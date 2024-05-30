@@ -81,9 +81,7 @@ class NMStateOrderProcessor(OrderProcessor):
 
         data['Search_Full'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_full())
         data['Search_Partial'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_partial())
-        print(data)
 
-        # Add blank columns for the Old_Format, New_Format, and Tractstar columns
         blank_columns = pd.DataFrame(columns=['Old_Format', 'New_Format', 'Tractstar', 'MI_Index', 'Documents', 'Basecamp'], index=data.index)
         data = pd.concat([data, blank_columns], axis=1)
 
@@ -143,7 +141,6 @@ class FederalOrderProcessor(OrderProcessor):
         blank_columns = pd.DataFrame(columns=['New Format', 'Tractstar', 'Documents', 'Basecamp'], index=data.index)
         data = pd.concat([data, blank_columns], axis=1)
 
-        print(data)
 
         return data
 
