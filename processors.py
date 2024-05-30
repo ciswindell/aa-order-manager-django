@@ -83,7 +83,7 @@ class NMStateOrderProcessor(OrderProcessor):
         data['Search_Full'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_full())
         data['Search_Partial'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_partial())
 
-        blank_columns = pd.DataFrame(columns=['Old_Format', 'New_Format', 'Tractstar', 'MI_Index', 'Documents', 'Basecamp'], index=data.index)
+        blank_columns = pd.DataFrame(columns=['New Format', 'Old Format', 'Tractstar', 'MI Index', 'Documents', 'Basecamp'], index=data.index)
         data = pd.concat([data, blank_columns], axis=1)
 
         return data
