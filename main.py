@@ -4,48 +4,49 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Fo
 from abc import ABC, abstractmethod
 
 
-def search_file(lease: str) -> str:
-    try:
-        number_string = ''.join([x for x in lease if x.isdigit() or x == '0'])
-        number = int(number_string)
-        search_string = '*' + str(number) + '*'
-    except ValueError:
-        return 'Error'
+class LeaseNumberParser:
+    def __init__(self, lease_number):
+        self.lease_number = lease_number
 
-    return search_string
+    def search_file(self) -> str:
+        try:
+            number_string = ''.join([x for x in self.lease_number if x.isdigit() or x == '0'])
+            number = int(number_string)
+            search_string = '*' + str(number) + '*'
+        except ValueError:
+            return 'Error'
 
+        return search_string
 
-def search_tractstar(lease: str) -> str:
-    try:
-        base_number = ''.join(lease.split(' ')[1:])
-        number_string = ''.join([x for x in lease if x.isdigit() or x == '0'])
-        alpha_string = ''.join([x for x in base_number if x.isalpha()])
-        number = int(number_string)
-        if alpha_string:
-            search_string = str(number) + '-' + alpha_string
-        else:
-            search_string = str(number)
-    except ValueError:
-        return 'Error'
+    def search_tractstar(self) -> str:
+        try:
+            base_number = ''.join(self.lease_number.split(' ')[1:])
+            number_string = ''.join([x for x in self.lease_number if x.isdigit() or x == '0'])
+            alpha_string = ''.join([x for x in base_number if x.isalpha()])
+            number = int(number_string)
+            if alpha_string:
+                search_string = str(number) + '-' + alpha_string
+            else:
+                search_string = str(number)
+        except ValueError:
+            return 'Error'
 
-    return search_string
+        return search_string
 
+    def search_full(self) -> str:
+        try:
+            search = '*' + self.lease_number.replace('-', '*') + '*'
+        except ValueError:
+            return 'Error'
+        return search
 
-def search_full(lease: str) -> str:
-    try:
-        search = '*' + lease.replace('-', '*') + '*'
-    except ValueError:
-        return 'Error'
-    return search
-
-
-def search_partial(lease: str) -> str:
-    try:
-        search_split = lease.split('-')[:2]
-        search = '*' + ('*'.join(search_split)) + '*'
-    except ValueError:
-        return 'Error'
-    return search
+    def search_partial(self) -> str:
+        try:
+            search_split = self.lease_number.split('-')[:2]
+            search = '*' + ('*'.join(search_split)) + '*'
+        except ValueError:
+            return 'Error'
+        return search
 
 
 class OrderProcessor(ABC):
@@ -72,8 +73,8 @@ class NMStateOrderProcessor(OrderProcessor):
     def process_data(self) -> pd.DataFrame:
         data = self.read_order_form()
 
-        data['Search_Full'] = data['Lease'].apply(search_full)
-        data['Search_Partial'] = data['Lease'].apply(search_partial)
+        data['Search_Full'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_full())
+        data['Search_Partial'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_partial())
         print(data)
 
         # Add blank columns for the Old_Format, New_Format, and Tractstar columns
@@ -122,8 +123,8 @@ class FederalOrderProcessor(OrderProcessor):
     def process_data(self) -> pd.DataFrame:
         data = self.read_order_form()
 
-        data['Search Files'] = data['Lease'].apply(search_file)
-        data['Search Tractstar'] = data['Lease'].apply(search_tractstar)
+        data['Search Files'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_file())
+        data['Search Tractstar'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_tractstar())
 
         blank_columns = pd.DataFrame(columns=['New Format', 'Tractstar', 'Documents', 'Basecamp'], index=data.index)
         data = pd.concat([data, blank_columns], axis=1)
