@@ -2,6 +2,7 @@ import pandas as pd
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font, NamedStyle
 
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 
 class LeaseNumberParser:
@@ -52,6 +53,7 @@ class LeaseNumberParser:
 class OrderProcessor(ABC):
     def __init__(self, order_form):
         self.order_form = order_form
+        self.data = self.read_order_form()
 
     @abstractmethod
     def read_order_form(self):
@@ -65,13 +67,17 @@ class OrderProcessor(ABC):
     def process_data(self):
         pass
 
+    @abstractmethod
+    def create_folders(self):
+        pass
+
 
 class NMStateOrderProcessor(OrderProcessor):
     def read_order_form(self):
         return pd.read_excel(self.order_form)
 
     def process_data(self) -> pd.DataFrame:
-        data = self.read_order_form()
+        data = self.data
 
         data['Search_Full'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_full())
         data['Search_Partial'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_partial())
@@ -115,13 +121,21 @@ class NMStateOrderProcessor(OrderProcessor):
 
         writer.close()
 
+    def create_folders(self):
+        base_path = Path(self.order_form).absolute().parent
+        directories = ['^Document Archive', '^MI Index', 'Runsheets']
+
+        for lease in self.data['Lease']:
+            for directory in directories:
+                (base_path / lease / directory).mkdir(exist_ok=True, parents=True)
+
 
 class FederalOrderProcessor(OrderProcessor):
     def read_order_form(self):
         return pd.read_excel(self.order_form)
 
     def process_data(self) -> pd.DataFrame:
-        data = self.read_order_form()
+        data = self.data
 
         data['Search Files'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_file())
         data['Search Tractstar'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_tractstar())
@@ -163,16 +177,21 @@ class FederalOrderProcessor(OrderProcessor):
 
         writer.close()
 
+    def create_folders(self):
+        base_path = Path(self.order_form).absolute().parent
+        directories = ['^Document Archive', 'Runsheets']
+
+        for lease in self.data['Lease']:
+            for directory in directories:
+                (base_path / lease / directory).mkdir(exist_ok=True, parents=True)
+
 
 if __name__ == '__main__':
-    # lease_number = 'NMNM 0001375A'
-    # parsed = search_tractstar(lease_number)
-    # print(lease_number)
-    # print(parsed)
-
-    order_form_path = 'ExampleData/order_state.xlsx'
-    order_processor = NMStateOrderProcessor(order_form_path)
-    order_processor.create_order_worksheet()
+    state_order_form_path = 'ExampleData/order_state.xlsx'
+    federal_order_form_path = 'ExampleData/order_fed.xlsx'
+    # order_processor = NMStateOrderProcessor(state_order_form_path)
+    order_processor = FederalOrderProcessor(federal_order_form_path)
+    order_processor.create_folders()
 
 
 
