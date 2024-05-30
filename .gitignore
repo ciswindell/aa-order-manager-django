@@ -1,0 +1,36 @@
+# PyCharm specific
+.idea/
+*.iml
+
+# Caches and logs
+*.pyc
+__pycache__/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment directories
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Python build artifacts
+dist/
+build/
+*.egg-info/
