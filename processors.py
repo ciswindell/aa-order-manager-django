@@ -3,6 +3,7 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Fo
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from datetime import datetime
 
 
 class LeaseNumberParser:
@@ -89,7 +90,10 @@ class NMStateOrderProcessor(OrderProcessor):
 
     def create_order_worksheet(self):
         data = self.process_data()
-        output_path = 'ExampleData/order_worksheet.xlsx'
+        date_string = datetime.now().strftime("%Y%m%d")
+        base_path = Path(self.order_form).absolute().parent
+        file_name = f'{date_string}_nmstate_order_worksheet.xlsx'
+        output_path = base_path / file_name
         writer = pd.ExcelWriter(output_path, engine='openpyxl')
         data.to_excel(writer, index=False, sheet_name='Worksheet')
 
@@ -141,12 +145,14 @@ class FederalOrderProcessor(OrderProcessor):
         blank_columns = pd.DataFrame(columns=['New Format', 'Tractstar', 'Documents', 'Basecamp'], index=data.index)
         data = pd.concat([data, blank_columns], axis=1)
 
-
         return data
 
     def create_order_worksheet(self):
         data = self.process_data()
-        output_path = 'ExampleData/order_worksheet.xlsx'
+        date_string = datetime.now().strftime("%Y%m%d")
+        base_path = Path(self.order_form).absolute().parent
+        file_name = f'{date_string}_federal_order_worksheet.xlsx'
+        output_path = base_path / file_name
         writer = pd.ExcelWriter(output_path, engine='openpyxl')
         data.to_excel(writer, index=False, sheet_name='Worksheet')
 
@@ -184,11 +190,11 @@ class FederalOrderProcessor(OrderProcessor):
 
 
 if __name__ == '__main__':
-    state_order_form_path = 'ExampleData/order_state.xlsx'
-    federal_order_form_path = 'ExampleData/order_fed.xlsx'
+    state_order_form_path = 'sample_data/order_state.xlsx'
+    federal_order_form_path = 'sample_data/order_fed.xlsx'
     # order_processor = NMStateOrderProcessor(state_order_form_path)
     order_processor = FederalOrderProcessor(federal_order_form_path)
-    order_processor.create_folders()
+    order_processor.create_order_worksheet()
 
 
 
