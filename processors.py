@@ -80,10 +80,10 @@ class NMStateOrderProcessor(OrderProcessor):
     def process_data(self) -> pd.DataFrame:
         data = self.data
 
-        data['Search_Full'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_full())
-        data['Search_Partial'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_partial())
+        data['Full Search'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_full())
+        data['Partial Search'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_partial())
 
-        blank_columns = pd.DataFrame(columns=['New Format', 'Old Format', 'Tractstar', 'MI Index', 'Documents', 'Basecamp'], index=data.index)
+        blank_columns = pd.DataFrame(columns=['New Format', 'Tractstar', 'Old Format', 'MI Index', 'Documents', 'Basecamp'], index=data.index)
         data = pd.concat([data, blank_columns], axis=1)
 
         return data
@@ -139,8 +139,8 @@ class FederalOrderProcessor(OrderProcessor):
     def process_data(self) -> pd.DataFrame:
         data = self.data
 
-        data['Search Files'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_file())
-        data['Search Tractstar'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_tractstar())
+        data['Files Search'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_file())
+        data['Tractstar Search'] = data['Lease'].apply(lambda x: LeaseNumberParser(x).search_tractstar())
 
         blank_columns = pd.DataFrame(columns=['New Format', 'Tractstar', 'Documents', 'Basecamp'], index=data.index)
         data = pd.concat([data, blank_columns], axis=1)
