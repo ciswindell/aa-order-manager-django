@@ -127,7 +127,7 @@ class NMStateOrderProcessor(OrderProcessor):
         base_path = Path(self.order_form).absolute().parent
         directories = ['^Document Archive', '^MI Index', 'Runsheets']
 
-        for lease in self.data['Lease']:
+        for lease in self.data['Lease Number']:
             for directory in directories:
                 (base_path / lease / directory).mkdir(exist_ok=True, parents=True)
 
@@ -192,8 +192,8 @@ class FederalOrderProcessor(OrderProcessor):
 if __name__ == '__main__':
     state_order_form_path = 'sample_data/order_state.xlsx'
     federal_order_form_path = 'sample_data/order_fed.xlsx'
-    # order_processor = NMStateOrderProcessor(state_order_form_path)
-    order_processor = FederalOrderProcessor(federal_order_form_path)
+    order_processor = NMStateOrderProcessor(state_order_form_path)
+    # order_processor = FederalOrderProcessor(federal_order_form_path)
     order_processor.create_order_worksheet()
 
 
