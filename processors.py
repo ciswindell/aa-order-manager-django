@@ -127,7 +127,7 @@ class NMStateOrderProcessor(OrderProcessor):
         base_path = Path(self.order_form).absolute().parent
         directories = ['^Document Archive', '^MI Index', 'Runsheets']
 
-        for lease in self.data['Lease Number']:
+        for lease in self.data['Lease']:
             for directory in directories:
                 (base_path / lease / directory).mkdir(exist_ok=True, parents=True)
 
