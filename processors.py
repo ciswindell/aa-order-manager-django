@@ -64,8 +64,19 @@ class LeaseNumberParser:
 
 
 class OrderProcessor(ABC):
-    def __init__(self, order_form):
+    def __init__(
+        self,
+        order_form,
+        agency=None,
+        order_type=None,
+        order_date=None,
+        order_number=None,
+    ):
         self.order_form = order_form
+        self.agency = agency
+        self.order_type = order_type
+        self.order_date = order_date
+        self.order_number = order_number
         self.data = self.read_order_form()
 
     @abstractmethod
@@ -87,7 +98,43 @@ class OrderProcessor(ABC):
 
 class NMStateOrderProcessor(OrderProcessor):
     def read_order_form(self):
-        return pd.read_excel(self.order_form)
+        data = pd.read_excel(self.order_form)
+
+        # Clean Report Start Date column - keep only actual dates, make everything else blank
+        if "Report Start Date" in data.columns:
+
+            def clean_date(value):
+                if pd.isna(value) or value == "":
+                    return None
+
+                # If it's a string, check if it contains only letters (like "Inception")
+                if isinstance(value, str):
+                    # If it's all letters or contains words like "inception", make it blank
+                    if value.isalpha() or "inception" in value.lower():
+                        return None
+                    # Try to parse date strings
+                    try:
+                        return pd.to_datetime(value, errors="raise")
+                    except:
+                        return None
+
+                # If it's a number, try to convert (could be Excel serial date)
+                if isinstance(value, (int, float)):
+                    try:
+                        # Convert Excel serial number to date
+                        return pd.to_datetime("1899-12-30") + pd.Timedelta(days=value)
+                    except:
+                        return None
+
+                # If it's already a datetime, keep it
+                if isinstance(value, (pd.Timestamp, datetime)):
+                    return value
+
+                return None
+
+            data["Report Start Date"] = data["Report Start Date"].apply(clean_date)
+
+        return data
 
     def process_data(self) -> pd.DataFrame:
         data = self.data
@@ -102,6 +149,16 @@ class NMStateOrderProcessor(OrderProcessor):
         ):  # Reverse to maintain order when inserting at front
             if col not in existing_columns:
                 data.insert(0, col, "")
+
+        # Prefill Agency and Order Type columns based on GUI selections
+        if self.agency:
+            data["Agency"] = self.agency
+        if self.order_type:
+            data["Order Type"] = self.order_type
+        if self.order_date:
+            data["Order Date"] = self.order_date
+        if self.order_number:
+            data["Order Number"] = self.order_number
 
         data["Full Search"] = data["Lease"].apply(
             lambda x: LeaseNumberParser(x).search_full()
@@ -145,6 +202,7 @@ class NMStateOrderProcessor(OrderProcessor):
             "Order Date": 15,
             "Lease": 15,
             "Requested Legal": 25,
+            "Report Start Date": 20,
             "Full Search": 14,
             "Partial Search": 14,
             "New Format": 12,
@@ -174,6 +232,17 @@ class NMStateOrderProcessor(OrderProcessor):
                 cell.style = normal_style
             worksheet.row_dimensions[row[0].row].height = None
 
+        # Apply date formatting to date columns
+        date_columns = ["Order Date", "Report Start Date"]
+        for col_name in date_columns:
+            if col_name in data.columns:
+                col_idx = data.columns.get_loc(col_name) + 1  # Excel is 1-indexed
+                col_letter = chr(ord("A") + col_idx - 1)
+                # Format the entire column as date
+                for row in range(1, worksheet.max_row + 1):  # Include header
+                    cell = worksheet[f"{col_letter}{row}"]
+                    cell.number_format = "M/D/YYYY"
+
         worksheet.freeze_panes = worksheet.cell(row=2, column=1)
         worksheet.auto_filter.ref = "A1:{}1".format(chr(ord("A") + data.shape[1] - 1))
 
@@ -190,7 +259,43 @@ class NMStateOrderProcessor(OrderProcessor):
 
 class FederalOrderProcessor(OrderProcessor):
     def read_order_form(self):
-        return pd.read_excel(self.order_form)
+        data = pd.read_excel(self.order_form)
+
+        # Clean Report Start Date column - keep only actual dates, make everything else blank
+        if "Report Start Date" in data.columns:
+
+            def clean_date(value):
+                if pd.isna(value) or value == "":
+                    return None
+
+                # If it's a string, check if it contains only letters (like "Inception")
+                if isinstance(value, str):
+                    # If it's all letters or contains words like "inception", make it blank
+                    if value.isalpha() or "inception" in value.lower():
+                        return None
+                    # Try to parse date strings
+                    try:
+                        return pd.to_datetime(value, errors="raise")
+                    except:
+                        return None
+
+                # If it's a number, try to convert (could be Excel serial date)
+                if isinstance(value, (int, float)):
+                    try:
+                        # Convert Excel serial number to date
+                        return pd.to_datetime("1899-12-30") + pd.Timedelta(days=value)
+                    except:
+                        return None
+
+                # If it's already a datetime, keep it
+                if isinstance(value, (pd.Timestamp, datetime)):
+                    return value
+
+                return None
+
+            data["Report Start Date"] = data["Report Start Date"].apply(clean_date)
+
+        return data
 
     def process_data(self) -> pd.DataFrame:
         data = self.data
@@ -205,6 +310,16 @@ class FederalOrderProcessor(OrderProcessor):
         ):  # Reverse to maintain order when inserting at front
             if col not in existing_columns:
                 data.insert(0, col, "")
+
+        # Prefill Agency and Order Type columns based on GUI selections
+        if self.agency:
+            data["Agency"] = self.agency
+        if self.order_type:
+            data["Order Type"] = self.order_type
+        if self.order_date:
+            data["Order Date"] = self.order_date
+        if self.order_number:
+            data["Order Number"] = self.order_number
 
         data["Files Search"] = data["Lease"].apply(
             lambda x: LeaseNumberParser(x).search_file()
@@ -268,6 +383,17 @@ class FederalOrderProcessor(OrderProcessor):
             for cell in row:
                 cell.style = normal_style
             worksheet.row_dimensions[row[0].row].height = None
+
+        # Apply date formatting to entire date columns
+        date_columns = ["Order Date", "Report Start Date"]
+        for col_name in date_columns:
+            if col_name in data.columns:
+                col_idx = data.columns.get_loc(col_name) + 1  # Excel is 1-indexed
+                col_letter = chr(ord("A") + col_idx - 1)
+                # Format the entire column as date
+                for row in range(1, worksheet.max_row + 1):  # Include header
+                    cell = worksheet[f"{col_letter}{row}"]
+                    cell.number_format = "M/D/YYYY"
 
         worksheet.freeze_panes = worksheet.cell(row=2, column=1)
         worksheet.auto_filter.ref = "A1:{}1".format(chr(ord("A") + data.shape[1] - 1))
