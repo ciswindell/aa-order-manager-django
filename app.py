@@ -15,6 +15,7 @@ def reset_gui():
     date_entry.set_date(datetime.now().date())  # Reset to today's date
     order_number_entry.delete(0, tk.END)  # Clear order number
     file_path_var.set("")  # Clear file selection
+    generate_folders.set(False)  # Reset checkbox to unchecked (default)
 
 
 def process_order():
@@ -102,7 +103,10 @@ def process_order():
             messagebox.showerror("Error", f"Unknown agency type: {selected_agency}")
             return
         order_processor.create_order_worksheet()
-        order_processor.create_folders()
+
+        # Only create folders if checkbox is checked
+        if generate_folders.get():
+            order_processor.create_folders()
 
         # Show success message and reset GUI
         messagebox.showinfo("Success", "Order processed successfully!")
@@ -115,7 +119,7 @@ root.configure(bg="lightgray")
 
 # Center window on screen
 window_width = 600
-window_height = 350
+window_height = 390
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 center_x = int(screen_width / 2 - window_width / 2)
@@ -242,6 +246,30 @@ browse_button = tk.Button(
     padx=10,
 )
 browse_button.pack(side="left")
+
+# Options frame for future configuration options
+options_frame = tk.Frame(main_frame, bg="lightgray", relief="ridge", bd=1)
+options_frame.pack(fill="x", pady=10)
+tk.Label(
+    options_frame,
+    text="Options:",
+    width=12,
+    anchor="w",
+    bg="lightgray",
+    font=("Arial", 10),
+).pack(side="left")
+
+generate_folders = tk.BooleanVar()
+generate_folders.set(False)  # Default to unchecked (disabled)
+
+generate_folders_checkbox = tk.Checkbutton(
+    options_frame,
+    text="Generate Lease Folders",
+    variable=generate_folders,
+    bg="lightgray",
+    font=("Arial", 10),
+)
+generate_folders_checkbox.pack(side="left", padx=(10, 0))
 
 # Button frame for centered button
 button_frame = tk.Frame(main_frame, bg="lightgray")
