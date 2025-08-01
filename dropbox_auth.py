@@ -3,6 +3,7 @@ Dropbox OAuth 2.0 Authentication Handler
 
 Handles OAuth 2.0 authentication flow with web browser integration,
 offline access, and refresh token management for long-term API access.
+Also supports simple token-based authentication for development.
 """
 
 import json
@@ -27,21 +28,26 @@ logger = logging.getLogger(__name__)
 
 class DropboxAuthHandler:
     """
-    Handles Dropbox OAuth 2.0 authentication with web browser flow.
+    Handles Dropbox authentication with multiple methods:
+    1. OAuth 2.0 flow with web browser (for production)
+    2. Simple token-based authentication (for development)
 
     Provides secure local storage of refresh tokens and automatic
     token refresh for long-term API access.
     """
 
     def __init__(
-        self, app_key: str, app_secret: str, token_file_path: Optional[str] = None
+        self,
+        app_key: str = None,
+        app_secret: str = None,
+        token_file_path: Optional[str] = None,
     ):
         """
         Initialize the authentication handler.
 
         Args:
-            app_key: Dropbox app key
-            app_secret: Dropbox app secret
+            app_key: Dropbox app key (optional if using token-based auth)
+            app_secret: Dropbox app secret (optional if using token-based auth)
             token_file_path: Optional custom path for token storage file
         """
         if not dropbox:
@@ -269,6 +275,127 @@ class DropboxAuthHandler:
         except Exception as e:
             logger.error(f"Authentication failed: {str(e)}")
             raise DropboxAuthenticationError(f"Authentication failed: {str(e)}")
+
+    def authenticate_with_token(
+        self, access_token: str = None, team_member_id: str = None
+    ) -> Optional[dropbox.Dropbox]:
+        """
+        Authenticate using a simple access token (for development).
+
+        Args:
+            access_token: Direct access token. If None, will try to get from environment.
+            team_member_id: Team member ID for Dropbox Business accounts. If None, will try to get from environment.
+
+        Returns:
+            Optional[dropbox.Dropbox]: Authenticated Dropbox client if successful, None otherwise
+
+        Raises:
+            DropboxAuthenticationError: If authentication fails
+        """
+        try:
+            # Get token from parameter or environment
+            token = access_token or os.environ.get("DROPBOX_ACCESS_TOKEN")
+            member_id = team_member_id or os.environ.get("DROPBOX_TEAM_MEMBER_ID")
+
+            if not token:
+                logger.warning(
+                    "No access token provided and DROPBOX_ACCESS_TOKEN not found in environment"
+                )
+                return None
+
+            logger.info("Attempting token-based authentication")
+
+            # First try as regular user account
+            try:
+                client = dropbox.Dropbox(oauth2_access_token=token)
+                account_info = client.users_get_current_account()
+                logger.info(
+                    f"✅ Token authentication successful as: {account_info.name.display_name}"
+                )
+                self._client = client
+                return client
+
+            except Exception as e:
+                error_str = str(e).lower()
+                if "team" in error_str and "business" in error_str:
+                    logger.info("Team token detected, attempting team authentication")
+                    return self._authenticate_team_token(token, member_id)
+                else:
+                    raise e
+
+        except Exception as e:
+            logger.error(f"Token-based authentication failed: {str(e)}")
+            raise DropboxAuthenticationError(f"Token authentication failed: {str(e)}")
+
+    def _authenticate_team_token(
+        self, token: str, member_id: str = None
+    ) -> Optional[dropbox.Dropbox]:
+        """
+        Authenticate using a Dropbox Business team token.
+
+        Args:
+            token: Team access token
+            member_id: Team member ID to act as
+
+        Returns:
+            Optional[dropbox.Dropbox]: Authenticated Dropbox client if successful, None otherwise
+        """
+        try:
+            # Create team client
+            team_client = dropbox.DropboxTeam(oauth2_access_token=token)
+
+            if member_id:
+                # Use specific team member
+                logger.info(f"Using team member ID: {member_id}")
+                client = team_client.as_user(member_id)
+            else:
+                # Get first available team member if no ID specified
+                logger.info(
+                    "No team member ID specified, getting first available member"
+                )
+                members = team_client.team_members_list()
+                if members.members:
+                    first_member = members.members[0]
+                    member_id = first_member.profile.team_member_id
+                    logger.info(
+                        f"Using first team member: {first_member.profile.name.display_name} ({member_id})"
+                    )
+                    client = team_client.as_user(member_id)
+                else:
+                    raise DropboxAuthenticationError("No team members found")
+
+            # Test the client
+            account_info = client.users_get_current_account()
+            logger.info(
+                f"✅ Team token authentication successful as: {account_info.name.display_name}"
+            )
+
+            self._client = client
+            return client
+
+        except Exception as e:
+            logger.error(f"Team token authentication failed: {str(e)}")
+            raise DropboxAuthenticationError(
+                f"Team token authentication failed: {str(e)}"
+            )
+
+    @classmethod
+    def create_simple_auth(
+        cls, access_token: str = None, team_member_id: str = None
+    ) -> "DropboxAuthHandler":
+        """
+        Factory method to create an auth handler for simple token-based authentication.
+
+        Args:
+            access_token: Direct access token. If None, will use DROPBOX_ACCESS_TOKEN from environment.
+            team_member_id: Team member ID for Dropbox Business accounts. If None, will use DROPBOX_TEAM_MEMBER_ID from environment.
+
+        Returns:
+            DropboxAuthHandler: Configured auth handler
+        """
+        handler = cls()
+        handler.authenticate_with_token(access_token, team_member_id)
+        return handler
 
     def is_authenticated(self) -> bool:
         """

@@ -129,7 +129,7 @@ class DropboxService(DropboxServiceInterface):
 
     def authenticate(self) -> bool:
         """
-        Authenticate with Dropbox using OAuth 2.0 flow.
+        Authenticate with Dropbox using OAuth 2.0 flow or token-based authentication.
 
         Returns:
             bool: True if authentication successful, False otherwise
@@ -141,6 +141,13 @@ class DropboxService(DropboxServiceInterface):
             if not self._auth_handler:
                 raise DropboxAuthenticationError("No authentication handler provided")
 
+            # Check if already authenticated (for token-based auth)
+            if self._auth_handler.is_authenticated():
+                self._client = self._auth_handler.get_client()
+                logger.info("Using existing authentication")
+                return True
+
+            # Otherwise, try OAuth flow
             self._client = self._auth_handler.authenticate()
 
             if self._client:

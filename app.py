@@ -17,58 +17,17 @@ def load_env_file():
     if os.path.exists(env_file):
         try:
             with open(env_file, "r") as f:
-                content = f.read()
-
-            # Remove line breaks and extract the three key values
-            clean_content = content.replace("\n", "")
-
-            # Extract DROPBOX_APP_KEY
-            if "DROPBOX_APP_KEY=" in clean_content:
-                key_part = clean_content.split("DROPBOX_APP_KEY=")[1].split("DROPBOX_")[
-                    0
-                ]
-                os.environ["DROPBOX_APP_KEY"] = key_part.strip()
-
-            # Extract DROPBOX_APP_SECRET
-            if "DROPBOX_APP_SECRET=" in clean_content:
-                secret_part = clean_content.split("DROPBOX_APP_SECRET=")[1].split(
-                    "DROPBOX_"
-                )[0]
-                os.environ["DROPBOX_APP_SECRET"] = secret_part.strip()
-
-            # Extract DROPBOX_AUTH_CODE (this is actually the access token)
-            if "DROPBOX_AUTH_CODE=" in clean_content:
-                token_part = clean_content.split("DROPBOX_AUTH_CODE=")[1].split("#")[0]
-                os.environ["DROPBOX_ACCESS_TOKEN"] = token_part.strip()
-
-            # Extract directory paths
-            if "DROPBOX_FEDERAL_DIR=" in content:
-                fed_start = content.find("DROPBOX_FEDERAL_DIR=") + len(
-                    "DROPBOX_FEDERAL_DIR="
-                )
-                fed_end = content.find("\n", fed_start)
-                os.environ["DROPBOX_FEDERAL_DIR"] = content[fed_start:fed_end].strip()
-
-            if "DROPBOX_NMSTATE_DIR=" in content:
-                state_start = content.find("DROPBOX_NMSTATE_DIR=") + len(
-                    "DROPBOX_NMSTATE_DIR="
-                )
-                # Find the end of this multi-line value (before the next DROPBOX_ or end of file)
-                remaining = content[state_start:]
-                if "\nDROPBOX_" in remaining:
-                    state_end = remaining.find("\nDROPBOX_")
-                    state_value = remaining[:state_end]
-                else:
-                    state_value = remaining
-                os.environ["DROPBOX_NMSTATE_DIR"] = state_value.strip()
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
+                        os.environ[key.strip()] = value.strip()
 
             print("✅ .env file loaded successfully")
-            print(f"   App Key: {'✅' if os.environ.get('DROPBOX_APP_KEY') else '❌'}")
+            print(f"   App Key: {'✅' if os.getenv('DROPBOX_APP_KEY') else '❌'}")
+            print(f"   App Secret: {'✅' if os.getenv('DROPBOX_APP_SECRET') else '❌'}")
             print(
-                f"   App Secret: {'✅' if os.environ.get('DROPBOX_APP_SECRET') else '❌'}"
-            )
-            print(
-                f"   Access Token: {'✅' if os.environ.get('DROPBOX_ACCESS_TOKEN') else '❌'}"
+                f"   Access Token: {'✅' if os.getenv('DROPBOX_ACCESS_TOKEN') else '❌'}"
             )
 
         except Exception as e:
@@ -164,29 +123,28 @@ def process_order():
                 # Show progress message
                 root.update_idletasks()
 
-                # Get credentials directly from environment
-                access_token = os.environ.get("DROPBOX_ACCESS_TOKEN")
+                # Create simple token-based auth handler
+                auth_handler = DropboxAuthHandler.create_simple_auth()
 
-                if not access_token:
+                if not auth_handler.is_authenticated():
                     messagebox.showwarning(
-                        "Dropbox Access Token Missing",
-                        "Dropbox access token not found in .env file.\nContinuing without Dropbox links.",
+                        "Dropbox Authentication Failed",
+                        "Could not authenticate with Dropbox.\nCheck your DROPBOX_ACCESS_TOKEN in .env file.\nContinuing without Dropbox links.",
                     )
                     dropbox_service = None
                 else:
-                    # Create Dropbox client directly with access token
-                    import dropbox
-
-                    dropbox_client = dropbox.Dropbox(oauth2_access_token=access_token)
-
                     # Create config manager for directory paths
                     config_manager = DropboxConfig()
 
-                    # Create simplified service (we'll need to modify this)
-                    dropbox_service = DropboxService(None, config_manager)
-                    dropbox_service._client = dropbox_client  # Set the client directly
+                    # Create Dropbox service with auth handler
+                    dropbox_service = DropboxService(auth_handler, config_manager)
 
-                    print("✅ Dropbox service initialized with access token")
+                    # Ensure service is authenticated (should already be ready)
+                    dropbox_service.authenticate()
+
+                    print(
+                        "✅ Dropbox service initialized with token-based authentication"
+                    )
 
             except Exception as e:
                 messagebox.showwarning(

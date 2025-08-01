@@ -156,12 +156,16 @@ class DropboxConfig:
 
     def _validate_configuration(self) -> None:
         """Validate that required configuration is present."""
-        # Check for required app credentials
+        # Check for app credentials (optional for token-based auth)
         if not self.get_app_key():
-            logger.warning("No Dropbox app key configured")
+            logger.debug(
+                "No Dropbox app key configured (not required for token-based auth)"
+            )
 
         if not self.get_app_secret():
-            logger.warning("No Dropbox app secret configured")
+            logger.debug(
+                "No Dropbox app secret configured (not required for token-based auth)"
+            )
 
         # Validate agency directories
         for agency, directory in self._agency_directories.items():
