@@ -48,7 +48,7 @@ def reset_gui():
     order_number_entry.delete(0, tk.END)  # Clear order number
     file_path_var.set("")  # Clear file selection
     generate_folders.set(False)  # Reset checkbox to unchecked (default)
-    use_dropbox.set(False)  # Reset Dropbox checkbox to unchecked (default)
+    # Note: use_dropbox is intentionally not reset to preserve user's choice
 
 
 def process_order():
@@ -345,7 +345,7 @@ generate_folders_checkbox.pack(side="left", padx=(10, 0))
 
 # Dropbox Link Integration checkbox
 use_dropbox = tk.BooleanVar()
-use_dropbox.set(False)  # Default to unchecked (disabled)
+use_dropbox.set(True)  # Default to checked (enabled)
 
 use_dropbox_checkbox = tk.Checkbutton(
     options_frame,
