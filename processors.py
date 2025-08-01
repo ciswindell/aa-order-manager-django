@@ -95,6 +95,27 @@ class OrderProcessor(ABC):
     def create_folders(self):
         pass
 
+    def generate_filename(self) -> str:
+        """Generate descriptive filename using GUI input data"""
+        # Get order number, defaulting to "Unknown" if empty
+        order_num = self.order_number.strip() if self.order_number else "Unknown"
+
+        # Get agency, defaulting to "Unknown" if empty
+        agency = self.agency if self.agency else "Unknown"
+
+        # Get order type, defaulting to "Unknown" if empty
+        order_type = self.order_type if self.order_type else "Unknown"
+
+        # Create filename: Order_{OrderNumber}_{Agency}_{OrderType}
+        filename = f"Order_{order_num}_{agency}_{order_type}.xlsx"
+
+        # Clean filename of any invalid characters
+        import re
+
+        filename = re.sub(r'[<>:"/\\|?*]', "_", filename)
+
+        return filename
+
 
 class NMStateOrderProcessor(OrderProcessor):
     def read_order_form(self):
@@ -185,9 +206,8 @@ class NMStateOrderProcessor(OrderProcessor):
 
     def create_order_worksheet(self):
         data = self.process_data()
-        date_string = datetime.now().strftime("%Y%m%d")
         base_path = Path(self.order_form).absolute().parent
-        file_name = f"{date_string}_nmstate_order_worksheet.xlsx"
+        file_name = self.generate_filename()
         output_path = base_path / file_name
         writer = pd.ExcelWriter(output_path, engine="openpyxl")
         data.to_excel(writer, index=False, sheet_name="Worksheet")
@@ -338,9 +358,8 @@ class FederalOrderProcessor(OrderProcessor):
 
     def create_order_worksheet(self):
         data = self.process_data()
-        date_string = datetime.now().strftime("%Y%m%d")
         base_path = Path(self.order_form).absolute().parent
-        file_name = f"{date_string}_federal_order_worksheet.xlsx"
+        file_name = self.generate_filename()
         output_path = base_path / file_name
         writer = pd.ExcelWriter(output_path, engine="openpyxl")
         data.to_excel(writer, index=False, sheet_name="Worksheet")
