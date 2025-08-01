@@ -219,10 +219,10 @@ class NMStateOrderProcessor(OrderProcessor):
     def create_order_worksheet(self):
         data = self.process_data()
 
-        # Dropbox link integration
+        # Populate Dropbox links if service is available
         if self.dropbox_service:
             try:
-                # Iterate through each lease and try to find corresponding Dropbox directory
+                print("🔍 Populating Dropbox links for State agency...")
                 for index, row in data.iterrows():
                     lease_name = row.get("Lease", "")
                     if lease_name and pd.notna(lease_name):
@@ -233,12 +233,16 @@ class NMStateOrderProcessor(OrderProcessor):
                             )
                             if shareable_link:
                                 data.at[index, "Link"] = shareable_link
+                                print(f"✅ Found link for {lease_name}")
+                            else:
+                                print(f"❌ No directory found for {lease_name}")
                         except Exception as e:
-                            # Continue to next lease on individual search errors
+                            print(f"⚠️ Error finding link for {lease_name}: {str(e)}")
+                            # Continue with next lease - don't fail the entire process
                             continue
-
             except Exception as e:
-                # Continue with worksheet creation even if Dropbox process fails
+                print(f"⚠️ Dropbox link population failed: {str(e)}")
+                # Continue with worksheet creation even if Dropbox fails
                 pass
 
         base_path = Path(self.order_form).absolute().parent
@@ -409,7 +413,7 @@ class FederalOrderProcessor(OrderProcessor):
         # Populate Dropbox links if service is available
         if self.dropbox_service:
             try:
-                # Iterate through each lease and try to find corresponding Dropbox directory
+                print("🔍 Populating Dropbox links for Federal agency...")
                 for index, row in data.iterrows():
                     lease_name = row.get("Lease", "")
                     if lease_name and pd.notna(lease_name):
@@ -420,11 +424,15 @@ class FederalOrderProcessor(OrderProcessor):
                             )
                             if shareable_link:
                                 data.at[index, "Link"] = shareable_link
+                                print(f"✅ Found link for {lease_name}")
+                            else:
+                                print(f"❌ No directory found for {lease_name}")
                         except Exception as e:
-                            # Continue to next lease on individual search errors
+                            print(f"⚠️ Error finding link for {lease_name}: {str(e)}")
+                            # Continue with next lease - don't fail the entire process
                             continue
-
             except Exception as e:
+                print(f"⚠️ Dropbox link population failed: {str(e)}")
                 # Continue with worksheet creation even if Dropbox fails
                 pass
 

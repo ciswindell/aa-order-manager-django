@@ -12,47 +12,69 @@ from processors import FederalOrderProcessor, NMStateOrderProcessor
 
 
 def load_env_file():
-    """Load environment variables from .env file."""
-    try:
-        if os.path.exists(".env"):
-            with open(".env", "r") as f:
+    """Load environment variables from .env file if it exists."""
+    env_file = ".env"
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, "r") as f:
                 content = f.read()
 
-            # Parse the content line by line
-            lines = content.split("\n")
-            current_key = None
-            current_value = ""
+            # Remove line breaks and extract the three key values
+            clean_content = content.replace("\n", "")
 
-            for line in lines:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
+            # Extract DROPBOX_APP_KEY
+            if "DROPBOX_APP_KEY=" in clean_content:
+                key_part = clean_content.split("DROPBOX_APP_KEY=")[1].split("DROPBOX_")[
+                    0
+                ]
+                os.environ["DROPBOX_APP_KEY"] = key_part.strip()
 
-                if "=" in line and not line.startswith(" "):
-                    # Save previous key-value pair if exists
-                    if current_key and current_value:
-                        os.environ[current_key] = current_value.strip().strip("\"'")
+            # Extract DROPBOX_APP_SECRET
+            if "DROPBOX_APP_SECRET=" in clean_content:
+                secret_part = clean_content.split("DROPBOX_APP_SECRET=")[1].split(
+                    "DROPBOX_"
+                )[0]
+                os.environ["DROPBOX_APP_SECRET"] = secret_part.strip()
 
-                    # Start new key-value pair
-                    key, value = line.split("=", 1)
-                    current_key = key.strip()
-                    current_value = value.strip()
+            # Extract DROPBOX_AUTH_CODE (this is actually the access token)
+            if "DROPBOX_AUTH_CODE=" in clean_content:
+                token_part = clean_content.split("DROPBOX_AUTH_CODE=")[1].split("#")[0]
+                os.environ["DROPBOX_ACCESS_TOKEN"] = token_part.strip()
+
+            # Extract directory paths
+            if "DROPBOX_FEDERAL_DIR=" in content:
+                fed_start = content.find("DROPBOX_FEDERAL_DIR=") + len(
+                    "DROPBOX_FEDERAL_DIR="
+                )
+                fed_end = content.find("\n", fed_start)
+                os.environ["DROPBOX_FEDERAL_DIR"] = content[fed_start:fed_end].strip()
+
+            if "DROPBOX_NMSTATE_DIR=" in content:
+                state_start = content.find("DROPBOX_NMSTATE_DIR=") + len(
+                    "DROPBOX_NMSTATE_DIR="
+                )
+                # Find the end of this multi-line value (before the next DROPBOX_ or end of file)
+                remaining = content[state_start:]
+                if "\nDROPBOX_" in remaining:
+                    state_end = remaining.find("\nDROPBOX_")
+                    state_value = remaining[:state_end]
                 else:
-                    # Continuation of multi-line value
-                    if current_key:
-                        current_value += "\n" + line
+                    state_value = remaining
+                os.environ["DROPBOX_NMSTATE_DIR"] = state_value.strip()
 
-            # Save the last key-value pair
-            if current_key and current_value:
-                os.environ[current_key] = current_value.strip().strip("\"'")
+            print("✅ .env file loaded successfully")
+            print(f"   App Key: {'✅' if os.environ.get('DROPBOX_APP_KEY') else '❌'}")
+            print(
+                f"   App Secret: {'✅' if os.environ.get('DROPBOX_APP_SECRET') else '❌'}"
+            )
+            print(
+                f"   Access Token: {'✅' if os.environ.get('DROPBOX_ACCESS_TOKEN') else '❌'}"
+            )
 
-            # Set the access token specifically
-            if "DROPBOX_AUTH_CODE" in os.environ:
-                os.environ["DROPBOX_ACCESS_TOKEN"] = os.environ["DROPBOX_AUTH_CODE"]
-
-    except Exception as e:
-        # Silently handle env loading errors
-        pass
+        except Exception as e:
+            print(f"⚠️ Warning: Could not load .env file: {e}")
+    else:
+        print("⚠️ Warning: .env file not found")
 
 
 # Load environment variables from .env file at startup
@@ -67,7 +89,7 @@ def reset_gui():
     order_number_entry.delete(0, tk.END)  # Clear order number
     file_path_var.set("")  # Clear file selection
     generate_folders.set(False)  # Reset checkbox to unchecked (default)
-    use_dropbox.set(True)  # Reset Dropbox checkbox to checked (default)
+    use_dropbox.set(False)  # Reset Dropbox checkbox to unchecked (default)
 
 
 def process_order():
@@ -163,6 +185,8 @@ def process_order():
                     # Create simplified service (we'll need to modify this)
                     dropbox_service = DropboxService(None, config_manager)
                     dropbox_service._client = dropbox_client  # Set the client directly
+
+                    print("✅ Dropbox service initialized with access token")
 
             except Exception as e:
                 messagebox.showwarning(
@@ -363,7 +387,7 @@ generate_folders_checkbox.pack(side="left", padx=(10, 0))
 
 # Dropbox Link Integration checkbox
 use_dropbox = tk.BooleanVar()
-use_dropbox.set(True)  # Default to checked (enabled)
+use_dropbox.set(False)  # Default to unchecked (disabled)
 
 use_dropbox_checkbox = tk.Checkbutton(
     options_frame,
