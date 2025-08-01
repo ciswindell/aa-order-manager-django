@@ -34,3 +34,24 @@ ENV/
 dist/
 build/
 *.egg-info/
+
+# Dropbox integration secrets and credentials
+*.token
+*.secret
+dropbox_config.json
+dropbox_credentials.json
+.dropbox_auth/
+.secrets/
+
+# Log files
+*.log
+logs/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
