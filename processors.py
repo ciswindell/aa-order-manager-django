@@ -118,6 +118,18 @@ class OrderProcessor(ABC):
 
 
 class NMStateOrderProcessor(OrderProcessor):
+    def __init__(
+        self,
+        order_form,
+        agency=None,
+        order_type=None,
+        order_date=None,
+        order_number=None,
+        dropbox_service=None,
+    ):
+        super().__init__(order_form, agency, order_type, order_date, order_number)
+        self.dropbox_service = dropbox_service
+
     def read_order_form(self):
         data = pd.read_excel(self.order_form)
 
@@ -206,6 +218,33 @@ class NMStateOrderProcessor(OrderProcessor):
 
     def create_order_worksheet(self):
         data = self.process_data()
+
+        # Populate Dropbox links if service is available
+        if self.dropbox_service:
+            try:
+                print("🔍 Populating Dropbox links for State agency...")
+                for index, row in data.iterrows():
+                    lease_name = row.get("Lease", "")
+                    if lease_name and pd.notna(lease_name):
+                        try:
+                            # Search for directory using State agency
+                            shareable_link = self.dropbox_service.search_directory(
+                                str(lease_name), agency="NMState"
+                            )
+                            if shareable_link:
+                                data.at[index, "Link"] = shareable_link
+                                print(f"✅ Found link for {lease_name}")
+                            else:
+                                print(f"❌ No directory found for {lease_name}")
+                        except Exception as e:
+                            print(f"⚠️ Error finding link for {lease_name}: {str(e)}")
+                            # Continue with next lease - don't fail the entire process
+                            continue
+            except Exception as e:
+                print(f"⚠️ Dropbox link population failed: {str(e)}")
+                # Continue with worksheet creation even if Dropbox fails
+                pass
+
         base_path = Path(self.order_form).absolute().parent
         file_name = self.generate_filename()
         output_path = base_path / file_name
@@ -278,6 +317,18 @@ class NMStateOrderProcessor(OrderProcessor):
 
 
 class FederalOrderProcessor(OrderProcessor):
+    def __init__(
+        self,
+        order_form,
+        agency=None,
+        order_type=None,
+        order_date=None,
+        order_number=None,
+        dropbox_service=None,
+    ):
+        super().__init__(order_form, agency, order_type, order_date, order_number)
+        self.dropbox_service = dropbox_service
+
     def read_order_form(self):
         data = pd.read_excel(self.order_form)
 
@@ -358,6 +409,33 @@ class FederalOrderProcessor(OrderProcessor):
 
     def create_order_worksheet(self):
         data = self.process_data()
+
+        # Populate Dropbox links if service is available
+        if self.dropbox_service:
+            try:
+                print("🔍 Populating Dropbox links for Federal agency...")
+                for index, row in data.iterrows():
+                    lease_name = row.get("Lease", "")
+                    if lease_name and pd.notna(lease_name):
+                        try:
+                            # Search for directory using Federal agency
+                            shareable_link = self.dropbox_service.search_directory(
+                                str(lease_name), agency="Federal"
+                            )
+                            if shareable_link:
+                                data.at[index, "Link"] = shareable_link
+                                print(f"✅ Found link for {lease_name}")
+                            else:
+                                print(f"❌ No directory found for {lease_name}")
+                        except Exception as e:
+                            print(f"⚠️ Error finding link for {lease_name}: {str(e)}")
+                            # Continue with next lease - don't fail the entire process
+                            continue
+            except Exception as e:
+                print(f"⚠️ Dropbox link population failed: {str(e)}")
+                # Continue with worksheet creation even if Dropbox fails
+                pass
+
         base_path = Path(self.order_form).absolute().parent
         file_name = self.generate_filename()
         output_path = base_path / file_name
