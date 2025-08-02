@@ -1,3 +1,33 @@
+"""
+Order Processors
+
+Agency-specific order processors that use externalized configuration.
+
+This module provides concrete implementations of OrderProcessor for different
+agency types (NMSLO, Federal). Each processor uses configuration-driven
+behavior instead of hard-coded values, making it easy to add new agency
+types by simply adding configuration entries.
+
+Configuration Integration:
+- Static configuration provides column widths, folder structures, and agency names
+- Behavioral configuration provides search function mappings and blank column definitions
+- Configuration can be injected for testing or custom scenarios
+- Default configurations are automatically loaded for each agency type
+
+Example:
+    # Use default configuration
+    processor = NMSLOOrderProcessor(order_form="data.xlsx")
+    
+    # Use custom configuration
+    custom_static = AgencyStaticConfig(...)
+    custom_behavioral = AgencyBehaviorConfig(...)
+    processor = NMSLOOrderProcessor(
+        order_form="data.xlsx",
+        static_config=custom_static,
+        behavioral_config=custom_behavioral
+    )
+"""
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
@@ -45,6 +75,29 @@ class OrderProcessor(ABC):
 
 
 class NMSLOOrderProcessor(OrderProcessor):
+    """
+    NMSLO-specific order processor using externalized configuration.
+    
+    This processor handles NMSLO agency orders with configuration-driven behavior.
+    All agency-specific settings (column widths, folder structures, search functions)
+    are loaded from configuration instead of being hard-coded.
+    
+    Configuration:
+    - Uses NMSLO static configuration for column widths and folder structures
+    - Uses NMSLO behavioral configuration for search functions and blank columns
+    - Supports dependency injection for testing and custom scenarios
+    
+    Args:
+        order_form: Path to the order form Excel file
+        agency: Agency name (defaults to "NMSLO")
+        order_type: Type of order being processed
+        order_date: Date of the order
+        order_number: Order number identifier
+        dropbox_service: Optional Dropbox service for link generation
+        static_config: Optional custom static configuration (for testing/custom use)
+        behavioral_config: Optional custom behavioral configuration (for testing/custom use)
+    """
+    
     def __init__(
         self,
         order_form,
@@ -148,6 +201,30 @@ class NMSLOOrderProcessor(OrderProcessor):
 
 
 class FederalOrderProcessor(OrderProcessor):
+    """
+    Federal-specific order processor using externalized configuration.
+    
+    This processor handles Federal agency orders with configuration-driven behavior.
+    All agency-specific settings (column widths, folder structures, search functions)
+    are loaded from configuration instead of being hard-coded.
+    
+    Configuration:
+    - Uses Federal static configuration for column widths and folder structures
+    - Uses Federal behavioral configuration for search functions and blank columns
+    - Supports dependency injection for testing and custom scenarios
+    - Includes Federal-specific Notes column handling
+    
+    Args:
+        order_form: Path to the order form Excel file
+        agency: Agency name (defaults to "Federal")
+        order_type: Type of order being processed
+        order_date: Date of the order
+        order_number: Order number identifier
+        dropbox_service: Optional Dropbox service for link generation
+        static_config: Optional custom static configuration (for testing/custom use)
+        behavioral_config: Optional custom behavioral configuration (for testing/custom use)
+    """
+    
     def __init__(
         self,
         order_form,
