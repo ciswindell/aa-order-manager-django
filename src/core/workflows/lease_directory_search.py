@@ -1,0 +1,186 @@
+"""
+Lease Directory Search Workflow
+
+Workflow implementation for finding lease directories in agency-specific Dropbox folders
+that exactly match the lease number and generating shareable links.
+"""
+
+import logging
+from typing import Dict, Any, Optional
+
+from .base import WorkflowBase, WorkflowConfig, WorkflowIdentity
+from src.core.models import OrderItemData, AgencyType
+from src.integrations.dropbox.service import DropboxService
+
+
+logger = logging.getLogger(__name__)
+
+
+class LeaseDirectorySearchWorkflow(WorkflowBase):
+    """
+    Workflow for searching lease directories in Dropbox.
+    
+    This workflow searches for lease directories in agency-specific Dropbox folders
+    that exactly match the lease number, and generates shareable links for found directories.
+    
+    Input: OrderItemData with agency and lease_number
+    Output: Shareable link if found, None if not found, error details if workflow fails
+    """
+    
+    def __init__(self, config: WorkflowConfig = None, dropbox_service: DropboxService = None):
+        """
+        Initialize the Lease Directory Search workflow.
+        
+        Args:
+            config: Workflow configuration settings
+            dropbox_service: Optional DropboxService instance for dependency injection
+        """
+        super().__init__(config)
+        self.dropbox_service = dropbox_service
+    
+    def _create_default_identity(self) -> WorkflowIdentity:
+        """Create default identity for this workflow type."""
+        return WorkflowIdentity(
+            workflow_type="lease_directory_search",
+            workflow_name="Lease Directory Search"
+        )
+    
+    def validate_inputs(self, input_data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+        """
+        Validate input data for the workflow.
+        
+        Args:
+            input_data: Dictionary containing workflow input parameters
+            
+        Returns:
+            tuple: (is_valid, error_message)
+        """
+        # Check if order_item_data is provided
+        if "order_item_data" not in input_data:
+            return False, "order_item_data is required"
+        
+        order_item_data = input_data["order_item_data"]
+        
+        # Check if it's an OrderItemData instance
+        if not isinstance(order_item_data, OrderItemData):
+            return False, "order_item_data must be an OrderItemData instance"
+        
+        # Validate required fields
+        if not order_item_data.agency:
+            return False, "OrderItemData.agency is required"
+        
+        if not order_item_data.lease_number:
+            return False, "OrderItemData.lease_number is required"
+        
+        if not order_item_data.lease_number.strip():
+            return False, "OrderItemData.lease_number cannot be empty"
+        
+        # Check if DropboxService is available
+        if not self.dropbox_service:
+            return False, "DropboxService is required for directory search"
+        
+        return True, None
+    
+    def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute the lease directory search workflow.
+        
+        Args:
+            input_data: Dictionary containing OrderItemData
+            
+        Returns:
+            Dict containing workflow results
+        """
+        order_item_data = input_data["order_item_data"]
+        
+        # Extract agency and lease number
+        agency = order_item_data.agency
+        lease_number = order_item_data.lease_number.strip()
+        
+        # Map AgencyType enum to DropboxService agency string
+        agency_name = self._map_agency_type_to_string(agency)
+        
+        self.logger.info(f"Searching for lease directory: {lease_number} (agency: {agency_name})")
+        
+        try:
+            # Use DropboxService to search for the directory
+            shareable_link = self.dropbox_service.search_directory(
+                directory_name=lease_number,
+                agency=agency_name
+            )
+            
+            if shareable_link:
+                self.logger.info(f"Found lease directory: {shareable_link}")
+                
+                # Update the OrderItemData with the result
+                order_item_data.report_directory_link = shareable_link
+                
+                return {
+                    "success": True,
+                    "shareable_link": shareable_link,
+                    "agency": agency_name,
+                    "lease_number": lease_number,
+                    "message": f"Successfully found directory for lease {lease_number}"
+                }
+            else:
+                self.logger.info(f"No directory found for lease: {lease_number}")
+                
+                return {
+                    "success": True,
+                    "shareable_link": None,
+                    "agency": agency_name,
+                    "lease_number": lease_number,
+                    "message": f"No directory found for lease {lease_number}"
+                }
+                
+        except Exception as error:
+            self.logger.error(f"Directory search failed for lease {lease_number}: {str(error)}")
+            
+            # Let the base class handle the error
+            raise error
+    
+    def _map_agency_type_to_string(self, agency: AgencyType) -> str:
+        """
+        Map AgencyType enum to DropboxService agency string.
+        
+        Args:
+            agency: AgencyType enum value
+            
+        Returns:
+            str: Agency string for DropboxService
+        """
+        if agency == AgencyType.NMSLO:
+            return "NMSLO"
+        elif agency == AgencyType.BLM:
+            return "Federal"  # BLM uses "Federal" in DropboxService
+        else:
+            raise ValueError(f"Unsupported agency type: {agency}")
+    
+    def set_dropbox_service(self, dropbox_service: DropboxService) -> None:
+        """
+        Set the DropboxService instance for this workflow.
+        
+        Args:
+            dropbox_service: DropboxService instance
+        """
+        self.dropbox_service = dropbox_service
+    
+    def get_workflow_info(self) -> Dict[str, Any]:
+        """
+        Get workflow information and current state.
+        
+        Returns:
+            Dict containing workflow metadata and configuration
+        """
+        base_info = super().get_workflow_info()
+        base_info.update({
+            "workflow_specific": {
+                "supported_agencies": ["NMSLO", "BLM"],
+                "dropbox_service_available": self.dropbox_service is not None,
+                "agency_mappings": {
+                    "NMSLO": "NMSLO",
+                    "BLM": "Federal"
+                }
+            }
+        })
+        return base_info
