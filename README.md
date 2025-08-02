@@ -2,12 +2,12 @@
 
 > **Professional order processing application for State and Federal lease management**
 
-A modern GUI application built with Python and Tkinter for processing New Mexico State Orders and Federal Orders. Streamlines the creation of Excel worksheets and optional lease folder structures with an intuitive user interface.
+A modern GUI application built with Python and Tkinter for processing NMSLO Orders and Federal Orders. Streamlines the creation of Excel worksheets and optional lease folder structures with an intuitive user interface.
 
 ## ✨ Features
 
 ### 📊 **Order Processing**
-- **State Orders**: Process New Mexico State lease orders with full search capabilities
+- **NMSLO Orders**: Process New Mexico State Land Office lease orders with full search capabilities
 - **Federal Orders**: Handle Federal lease orders with specialized formatting
 - **Excel Integration**: Generate formatted Excel worksheets with auto-filled columns
 - **Date Management**: Smart date handling with calendar picker interface
@@ -15,7 +15,7 @@ A modern GUI application built with Python and Tkinter for processing New Mexico
 ### 📁 **Flexible Folder Management** *(New!)*
 - **Optional Directory Creation**: Choose whether to create lease folder structures
 - **Smart Defaults**: Folders disabled by default for faster processing
-- **State-Specific Folders**: Creates `^Document Archive`, `^MI Index`, `Runsheets`
+- **NMSLO-Specific Folders**: Creates `^Document Archive`, `^MI Index`, `Runsheets`
 - **Federal-Specific Folders**: Creates `^Document Archive`, `Runsheets`
 
 ### 🎯 **User Experience**
@@ -26,7 +26,7 @@ A modern GUI application built with Python and Tkinter for processing New Mexico
 
 ### 🔍 **Search Generation**
 - **Automated Search Strings**: Generates multiple search patterns for lease lookup
-- **State Orders**: Full search, partial search patterns
+- **NMSLO Orders**: Full search, partial search patterns
 - **Federal Orders**: File search, Tractstar search patterns
 - **Error Handling**: Robust lease number parsing and validation
 
@@ -97,7 +97,7 @@ python3 app.py
 
 ### **Basic Workflow**
 1. **Launch Application**: Run `order-manager` or `python3 app.py`
-2. **Select Agency**: Choose "State" or "Federal"
+2. **Select Agency**: Choose "NMSLO" or "Federal"
 3. **Choose Order Type**: Select "Runsheet" (Abstract not implemented)
 4. **Set Order Date**: Use calendar picker to select date
 5. **Enter Order Number**: Input your order identifier
@@ -118,11 +118,11 @@ Generated files follow the naming pattern:
 Order_{OrderNumber}_{Agency}_{OrderType}.xlsx
 ```
 
-**Example**: `Order_2024-001_State_Runsheet.xlsx`
+**Example**: `Order_2024-001_NMSLO_Runsheet.xlsx`
 
 ### **Folder Structure** *(When enabled)*
 
-**State Orders**:
+**NMSLO Orders**:
 ```
 LeaseNumber/
 ├── ^Document Archive/
@@ -152,7 +152,7 @@ aa-order-manager/
 
 ### **Key Components**
 - **`app.py`**: Main GUI interface built with Tkinter
-- **`processors.py`**: Contains `NMStateOrderProcessor` and `FederalOrderProcessor` classes
+- **`processors.py`**: Contains `NMSLOOrderProcessor` and `FederalOrderProcessor` classes
 - **Abstract base class**: `OrderProcessor` defines the processing interface
 
 ### **Running Tests**
@@ -168,7 +168,7 @@ python3 processors.py
 - 🎨 Improved GUI with Options section and visual borders
 - 📏 Adjusted window size for better layout (390px height)
 - 🔄 Enhanced reset functionality for checkbox state
-- ✅ Comprehensive testing for State and Federal workflows
+- ✅ Comprehensive testing for NMSLO and Federal workflows
 
 ### **Previous Updates**
 - 📝 Filename generation with descriptive order information

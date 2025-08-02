@@ -188,7 +188,7 @@ class TestColumnManager(unittest.TestCase):
     def test_add_metadata_columns_existing_columns(self):
         """Test adding metadata columns when some already exist."""
         data_with_agency = pd.DataFrame(
-            {"Agency": ["State", "State"], "Lease": ["NMLC 123456", "NMLC 789012"]}
+            {"Agency": ["NMSLO", "NMSLO"], "Lease": ["NMLC 123456", "NMLC 789012"]}
         )
 
         result = ColumnManager.add_metadata_columns(
@@ -252,7 +252,7 @@ class TestBlankColumnManager(unittest.TestCase):
     def setUp(self):
         """Set up test data."""
         self.test_data = pd.DataFrame(
-            {"Lease": ["NMLC 123456", "NMLC 789012"], "Agency": ["Federal", "State"]}
+            {"Lease": ["NMLC 123456", "NMLC 789012"], "Agency": ["Federal", "NMSLO"]}
         )
 
     def test_add_blank_columns_basic(self):

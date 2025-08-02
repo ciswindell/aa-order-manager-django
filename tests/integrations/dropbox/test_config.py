@@ -70,7 +70,6 @@ class TestDropboxConfigInitialization(unittest.TestCase):
         expected_defaults = {
             "Federal": "/Federal/",
             "NMSLO": "/NMSLO/",
-            "State": "/NMSLO/",  # Alias
         }
         self.assertEqual(config._agency_directories, expected_defaults)
 

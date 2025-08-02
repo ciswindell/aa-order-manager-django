@@ -74,9 +74,9 @@ class ParsedColumnGenerator:
     """Utility class for generating parsed lease number columns in DataFrames."""
 
     @classmethod
-    def add_state_search_columns(cls, data: pd.DataFrame) -> pd.DataFrame:
+    def add_nmslo_search_columns(cls, data: pd.DataFrame) -> pd.DataFrame:
         """
-        Add "Full Search" and "Partial Search" columns for State agency processing.
+        Add "Full Search" and "Partial Search" columns for NMSLO agency processing.
 
         This method extracts the parsed column generation logic that was
         duplicated in the NMSLOOrderProcessor. It uses LeaseNumberParser
@@ -98,7 +98,7 @@ class ParsedColumnGenerator:
 
         data_copy = data.copy()
 
-        # Add State agency search columns - extracted from existing processor
+        # Add NMSLO agency search columns - extracted from existing processor
         data_copy["Full Search"] = data_copy["Lease"].apply(
             lambda x: LeaseNumberParser(x).search_full()
         )

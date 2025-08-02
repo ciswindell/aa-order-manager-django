@@ -137,7 +137,7 @@ class TestLeaseNumberParser(unittest.TestCase):
         self.assertEqual(parser1.search_full(), "*NM*12345*A*")
         self.assertEqual(parser1.search_partial(), "*NM*12345*")
 
-        # State lease format - search_tractstar extracts alpha when space-separated
+        # NMSLO lease format - search_tractstar extracts alpha when space-separated
         parser2 = LeaseNumberParser("NMLC 987654")
         self.assertEqual(parser2.search_file(), "*987654*")
         self.assertEqual(parser2.search_tractstar(), "987654")
@@ -172,9 +172,9 @@ class TestParsedColumnGenerator(unittest.TestCase):
             }
         )
 
-    def test_add_state_search_columns(self):
-        """Test adding state search columns."""
-        result = ParsedColumnGenerator.add_state_search_columns(self.test_data)
+    def test_add_nmslo_search_columns(self):
+        """Test adding NMSLO search columns."""
+        result = ParsedColumnGenerator.add_nmslo_search_columns(self.test_data)
 
         # Should have original columns plus new search columns
         expected_columns = ["Lease", "Other Column", "Full Search", "Partial Search"]
@@ -204,12 +204,12 @@ class TestParsedColumnGenerator(unittest.TestCase):
             result.iloc[1]["Tractstar Search"], "789012"
         )  # NM-789012-A -> dash separated, no alpha extracted
 
-    def test_add_state_search_columns_missing_lease_column(self):
+    def test_add_nmslo_search_columns_missing_lease_column(self):
         """Test error handling when Lease column is missing."""
         data_no_lease = pd.DataFrame({"Other Column": ["A", "B", "C"]})
 
         with self.assertRaises(ValueError) as context:
-            ParsedColumnGenerator.add_state_search_columns(data_no_lease)
+            ParsedColumnGenerator.add_nmslo_search_columns(data_no_lease)
 
         self.assertIn("DataFrame must contain a 'Lease' column", str(context.exception))
 
@@ -222,10 +222,10 @@ class TestParsedColumnGenerator(unittest.TestCase):
 
         self.assertIn("DataFrame must contain a 'Lease' column", str(context.exception))
 
-    def test_add_state_search_columns_invalid_dataframe(self):
+    def test_add_nmslo_search_columns_invalid_dataframe(self):
         """Test error handling with invalid DataFrame."""
         with self.assertRaises(ValueError) as context:
-            ParsedColumnGenerator.add_state_search_columns("not a dataframe")
+            ParsedColumnGenerator.add_nmslo_search_columns("not a dataframe")
 
         self.assertIn("data must be a pandas DataFrame", str(context.exception))
 
@@ -236,11 +236,11 @@ class TestParsedColumnGenerator(unittest.TestCase):
 
         self.assertIn("data must be a pandas DataFrame", str(context.exception))
 
-    def test_add_state_search_columns_returns_copy(self):
-        """Test that state search columns method returns a copy."""
+    def test_add_nmslo_search_columns_returns_copy(self):
+        """Test that NMSLO search columns method returns a copy."""
         original_data = self.test_data.copy()
 
-        result = ParsedColumnGenerator.add_state_search_columns(self.test_data)
+        result = ParsedColumnGenerator.add_nmslo_search_columns(self.test_data)
 
         # Original should be unchanged
         pd.testing.assert_frame_equal(self.test_data, original_data)
@@ -258,11 +258,11 @@ class TestParsedColumnGenerator(unittest.TestCase):
         # Result should have more columns
         self.assertGreater(len(result.columns), len(original_data.columns))
 
-    def test_add_state_search_columns_empty_dataframe(self):
-        """Test state search columns with empty DataFrame."""
+    def test_add_nmslo_search_columns_empty_dataframe(self):
+        """Test NMSLO search columns with empty DataFrame."""
         empty_data = pd.DataFrame({"Lease": []})
 
-        result = ParsedColumnGenerator.add_state_search_columns(empty_data)
+        result = ParsedColumnGenerator.add_nmslo_search_columns(empty_data)
 
         # Should have the expected columns even with empty data
         expected_columns = ["Lease", "Full Search", "Partial Search"]
@@ -284,13 +284,13 @@ class TestParsedColumnGenerator(unittest.TestCase):
         """Test that ParsedColumnGenerator correctly uses LeaseNumberParser."""
         single_lease_data = pd.DataFrame({"Lease": ["NMLC-123456-A"]})
 
-        # Test state columns
-        state_result = ParsedColumnGenerator.add_state_search_columns(single_lease_data)
+        # Test NMSLO columns
+        nmslo_result = ParsedColumnGenerator.add_nmslo_search_columns(single_lease_data)
         parser = LeaseNumberParser("NMLC-123456-A")
 
-        self.assertEqual(state_result.iloc[0]["Full Search"], parser.search_full())
+        self.assertEqual(nmslo_result.iloc[0]["Full Search"], parser.search_full())
         self.assertEqual(
-            state_result.iloc[0]["Partial Search"], parser.search_partial()
+            nmslo_result.iloc[0]["Partial Search"], parser.search_partial()
         )
 
         # Test federal columns
@@ -307,17 +307,17 @@ class TestParsedColumnGenerator(unittest.TestCase):
         """Test with realistic data that would come from processors."""
         realistic_data = pd.DataFrame(
             {
-                "Agency": ["State", "Federal", "State"],
+                "Agency": ["NMSLO", "Federal", "NMSLO"],
                 "Lease": ["NMLC 123456", "NM-789012-A", "NMLC-555666-B"],
                 "Requested Legal": ["Legal 1", "Legal 2", "Legal 3"],
             }
         )
 
-        # Test state processing
-        state_result = ParsedColumnGenerator.add_state_search_columns(realistic_data)
-        self.assertIn("Full Search", state_result.columns)
-        self.assertIn("Partial Search", state_result.columns)
-        self.assertEqual(len(state_result), 3)
+        # Test NMSLO processing
+        nmslo_result = ParsedColumnGenerator.add_nmslo_search_columns(realistic_data)
+        self.assertIn("Full Search", nmslo_result.columns)
+        self.assertIn("Partial Search", nmslo_result.columns)
+        self.assertEqual(len(nmslo_result), 3)
 
         # Test federal processing
         federal_result = ParsedColumnGenerator.add_federal_search_columns(

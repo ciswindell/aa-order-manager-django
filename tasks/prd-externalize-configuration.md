@@ -49,7 +49,7 @@ The current system has configuration values hard-coded directly in processor cla
 
 ### Processor Updates
 
-7. **Remove Hard-Coded Values**: Eliminate all hard-coded configuration from `StateProcessor` and `FederalProcessor` classes
+7. **Remove Hard-Coded Values**: Eliminate all hard-coded configuration from `NMSLOProcessor` and `FederalProcessor` classes
 
 8. **Static Configuration Integration**: Update processors to read column widths, folder structures, and Dropbox names from static configuration
 
@@ -160,11 +160,11 @@ The current system has configuration values hard-coded directly in processor cla
 ```python
 # Example of hybrid configuration structure:
 AGENCY_CONFIGS = {
-    "State": {
+    "NMSLO": {
         "static": AgencyStaticConfig(
             column_widths={"Agency": 15, "Order Type": 20, ...},
             folder_structure=["^Document Archive", "^MI Index", "Runsheets"],
-            dropbox_agency_name="NMState"
+            dropbox_agency_name="NMSLO"
         ),
         "behavioral": AgencyBehaviorConfig(
             search_mappings={

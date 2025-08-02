@@ -162,9 +162,9 @@ class TestFilenameGenerator(unittest.TestCase):
         """Test filename generation with realistic real-world examples."""
         # Example 1: NMSLO order
         result1 = FilenameGenerator.generate_order_filename(
-            order_number="33333", agency="State", order_type="Runsheet"
+            order_number="33333", agency="NMSLO", order_type="Runsheet"
         )
-        expected1 = "Order_33333_State_Runsheet.xlsx"
+        expected1 = "Order_33333_NMSLO_Runsheet.xlsx"
         self.assertEqual(result1, expected1)
 
         # Example 2: Federal order

@@ -2,7 +2,7 @@
 Integration Tests for Dropbox-Enabled Order Processors
 
 Tests the complete end-to-end workflow of order processing with Dropbox link integration,
-including both Federal and State processors with various scenarios.
+including both Federal and NMSLO processors with various scenarios.
 """
 
 import os
@@ -100,12 +100,12 @@ class TestDropboxIntegration(unittest.TestCase):
         non_null_links = link_column.dropna()
         self.assertEqual(len(non_null_links), 3)  # All 3 leases should have links
 
-    def test_state_processor_with_dropbox_service(self):
+    def test_nmslo_processor_with_dropbox_service(self):
         """Test NMSLOOrderProcessor with Dropbox service integration."""
         # Create processor with Dropbox service
         processor = NMSLOOrderProcessor(
             order_form=str(self.test_excel_file),
-            agency="State",
+            agency="NMSLO",
             order_type="Runsheet",
             order_date="2024-01-01",
             order_number="67890",
@@ -114,7 +114,7 @@ class TestDropboxIntegration(unittest.TestCase):
 
         # Mock successful Dropbox responses
         def mock_search_directory(lease_name, agency):
-            return f"https://dropbox.com/s/state456/{lease_name.replace(' ', '%20')}"
+            return f"https://dropbox.com/s/nmslo456/{lease_name.replace(' ', '%20')}"
 
         self.mock_dropbox_service.search_directory.side_effect = mock_search_directory
 
@@ -122,7 +122,7 @@ class TestDropboxIntegration(unittest.TestCase):
         with patch("builtins.print"):  # Suppress print output during test
             processor.create_order_worksheet()
 
-        # Verify Dropbox service was called with State agency
+        # Verify Dropbox service was called with NMSLO agency
         call_args_list = self.mock_dropbox_service.search_directory.call_args_list
         for call_args in call_args_list:
             self.assertEqual(call_args[1]["agency"], "NMSLO")
@@ -209,7 +209,7 @@ class TestDropboxIntegration(unittest.TestCase):
         """Test graceful handling when Dropbox service fails completely."""
         processor = NMSLOOrderProcessor(
             order_form=str(self.test_excel_file),
-            agency="State",
+            agency="NMSLO",
             order_type="Runsheet",
             order_date="2024-01-01",
             order_number="33333",
@@ -366,29 +366,29 @@ class TestWorkflowIntegration(unittest.TestCase):
         # Verify Dropbox integration worked
         self.assertTrue(mock_dropbox_service.search_directory.called)
 
-    def test_workflow_simulation_state_without_dropbox(self):
-        """Simulate complete workflow for State agency with Dropbox disabled."""
+    def test_workflow_simulation_nmslo_without_dropbox(self):
+        """Simulate complete workflow for NMSLO agency with Dropbox disabled."""
         # Create sample order form
         order_data = pd.DataFrame(
             {
                 "Lease": ["NMLC 333333", "NMLC 444444"],
-                "Requested Legal": ["State legal 1", "State legal 2"],
+                "Requested Legal": ["NMSLO legal 1", "NMSLO legal 2"],
                 "Report Start Date": ["2024-02-01", "2024-02-02"],
             }
         )
 
-        order_file = self.temp_path / "state_order.xlsx"
+        order_file = self.temp_path / "nmslo_order.xlsx"
         order_data.to_excel(order_file, index=False)
 
         # Simulate GUI inputs with Dropbox disabled
-        selected_agency = "State"
+        selected_agency = "NMSLO"
         selected_order_type = "Runsheet"
         selected_order_date = "2024-02-15"
-        selected_order_number = "STATE2024001"
+        selected_order_number = "NMSLO2024001"
         use_dropbox = False  # Checkbox disabled
 
         # Create processor as app.py would
-        if selected_agency == "State":
+        if selected_agency == "NMSLO":
             processor = NMSLOOrderProcessor(
                 order_form=str(order_file),
                 agency=selected_agency,
@@ -407,8 +407,8 @@ class TestWorkflowIntegration(unittest.TestCase):
 
         # Verify filename includes GUI inputs
         output_filename = output_files[0].name
-        self.assertIn("STATE2024001", output_filename)
-        self.assertIn("State", output_filename)
+        self.assertIn("NMSLO2024001", output_filename)
+        self.assertIn("NMSLO", output_filename)
         self.assertIn("Runsheet", output_filename)
 
         # Verify Link column exists but is empty (no Dropbox)

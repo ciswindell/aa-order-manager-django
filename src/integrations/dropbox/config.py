@@ -36,7 +36,6 @@ class DropboxConfig:
     DEFAULT_AGENCY_DIRECTORIES = {
         "Federal": "/Federal/",
         "NMSLO": "/NMSLO/",
-        "State": "/NMSLO/",  # Alias for NMSLO
     }
 
     # Default configuration file locations
@@ -132,7 +131,6 @@ class DropboxConfig:
             "DROPBOX_APP_SECRET": "app_secret",
             "DROPBOX_FEDERAL_DIR": ("agency_directories", "Federal"),
             "DROPBOX_NMSLO_DIR": ("agency_directories", "NMSLO"),
-            "DROPBOX_STATE_DIR": ("agency_directories", "State"),
         }
 
         for env_var, config_key in env_mappings.items():
@@ -201,7 +199,7 @@ class DropboxConfig:
         Get the root directory path for a specific agency.
 
         Args:
-            agency: Agency name (e.g., 'Federal', 'NMSLO', 'State')
+            agency: Agency name (e.g., 'Federal', 'NMSLO')
 
         Returns:
             Optional[str]: Directory path if configured, None otherwise
@@ -344,7 +342,6 @@ class DropboxConfig:
             "agency_directories": {
                 "Federal": "/Federal/",
                 "NMSLO": "/NMSLO/",
-                "State": "/NMSLO/",
             },
         }
 

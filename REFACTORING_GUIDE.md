@@ -70,7 +70,7 @@ class ExcelWriter:
 ```
 
 #### Acceptance Criteria
-- [ ] All duplicate code between State and Federal processors extracted
+- [ ] All duplicate code between NMSLO and Federal processors extracted
 - [ ] New utility classes have 100% unit test coverage
 - [ ] Existing processors updated to use new utilities
 - [ ] All existing functionality preserved (regression tests pass)
@@ -112,12 +112,12 @@ class AgencyConfig:
         """Return all columns that will be added to worksheet"""
         
 AGENCY_CONFIGS: Dict[str, AgencyConfig] = {
-    "State": AgencyConfig(
+    "NMSLO": AgencyConfig(
         search_columns=["Full Search", "Partial Search"],
         blank_columns=["New Format", "Tractstar", "Old Format", "MI Index", "Documents", "Search Notes", "Link"],
         folder_structure=["^Document Archive", "^MI Index", "Runsheets"],
         column_widths={...},  # All current hard-coded widths
-        dropbox_agency_name="NMState"
+        dropbox_agency_name="NMSLO"
     ),
     "Federal": AgencyConfig(
         search_columns=["Files Search", "Tractstar Search"],
@@ -194,7 +194,7 @@ class AgencyStrategy(ABC):
 **Location**: `src/core/strategies.py`
 
 ```python
-class StateAgencyStrategy(AgencyStrategy):
+class NMSLOAgencyStrategy(AgencyStrategy):
     def create_search_data(self, lease_data: pd.Series) -> Dict[str, pd.Series]:
         return {
             "Full Search": lease_data.apply(lambda x: LeaseNumberParser(x).search_full()),

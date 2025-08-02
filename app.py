@@ -64,7 +64,7 @@ def process_order():
     if selected_agency == "Select Agency":
         messagebox.showwarning(
             "No Agency Selected",
-            "Please select an agency (State or Federal) before processing.",
+            "Please select an agency (NMSLO or Federal) before processing.",
         )
         return
 
@@ -153,7 +153,7 @@ def process_order():
                 )
                 dropbox_service = None
 
-        if selected_agency == "State":
+        if selected_agency == "NMSLO":
             order_processor = NMSLOOrderProcessor(
                 order_form,
                 selected_agency,
@@ -215,7 +215,7 @@ tk.Label(
 ).pack(side="left")
 agency = tk.StringVar()
 agency.set("Select Agency")  # default value
-agency_option = tk.OptionMenu(agency_frame, agency, "Select Agency", "State", "Federal")
+agency_option = tk.OptionMenu(agency_frame, agency, "Select Agency", "NMSLO", "Federal")
 agency_option.config(width=15)
 agency_option.pack(side="left", padx=(10, 0))
 

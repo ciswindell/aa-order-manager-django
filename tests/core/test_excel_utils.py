@@ -21,7 +21,7 @@ class TestWorksheetStyler(unittest.TestCase):
         """Set up test data and mock worksheet."""
         self.test_data = pd.DataFrame(
             {
-                "Agency": ["Federal", "State"],
+                "Agency": ["Federal", "NMSLO"],
                 "Order Date": ["2023-01-15", "2023-02-20"],
                 "Report Start Date": ["2023-01-10", "2023-02-15"],
                 "Lease": ["NMLC 123456", "NMLC 789012"],
@@ -161,7 +161,7 @@ class TestExcelWriter(unittest.TestCase):
         """Set up test data."""
         self.test_data = pd.DataFrame(
             {
-                "Agency": ["Federal", "State"],
+                "Agency": ["Federal", "NMSLO"],
                 "Order Date": ["2023-01-15", "2023-02-20"],
                 "Lease": ["NMLC 123456", "NMLC 789012"],
                 "Notes": ["Note1", "Note2"],

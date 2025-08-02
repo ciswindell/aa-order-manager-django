@@ -60,7 +60,7 @@ class DropboxServiceInterface(ABC):
 
         Args:
             directory_name: Name of the directory to search for
-            agency: Optional agency type for scoped search (e.g., 'Federal', 'State')
+            agency: Optional agency type for scoped search (e.g., 'Federal', 'NMSLO')
 
         Returns:
             Optional[str]: Shareable link to the directory if found, None otherwise
@@ -178,7 +178,7 @@ class DropboxService(DropboxServiceInterface):
 
         Args:
             directory_name: Name of the directory to search for
-            agency: Optional agency type for scoped search (e.g., 'Federal', 'State')
+            agency: Optional agency type for scoped search (e.g., 'Federal', 'NMSLO')
 
         Returns:
             Optional[str]: Shareable link to the directory if found, None otherwise
