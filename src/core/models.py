@@ -235,9 +235,30 @@ class OrderItemData:
         
         # Workflow-Generated Fields  
         report_directory_link: Link to main lease directory (populated by workflow)
+        report_directory_path: Direct report directory path for programmatic access (populated by workflow)
         previous_report_found: Whether existing reports were detected (populated by workflow)
         documents_links: List of links to documents subdirectories (populated by workflow)
         lease_index_links: List of links to lease index directories - NMSLO only (populated by workflow)
+    
+    Example:
+        # Create order item with user input
+        order_item = OrderItemData(
+            agency=AgencyType.BLM,
+            lease_number="NMNM 0501759",
+            legal_description="Section 5, Township 2N, Range 3E",
+            start_date=datetime(2024, 1, 1),
+            end_date=datetime(2024, 12, 31)
+        )
+        
+        # After LeaseDirectorySearchWorkflow execution
+        order_item.report_directory_link = "https://dropbox.com/share/nmnm0501759"
+        order_item.report_directory_path = "/Federal/NMNM 0501759"
+        
+        # After PreviousReportDetectionWorkflow execution  
+        order_item.previous_report_found = True  # Master Documents found
+        
+        # Serialize with workflow data
+        json_data = order_item.to_json()
     """
     # User Input Fields
     agency: AgencyType
@@ -248,6 +269,7 @@ class OrderItemData:
     
     # Workflow-Generated Fields
     report_directory_link: Optional[str] = None
+    report_directory_path: Optional[str] = None
     previous_report_found: Optional[bool] = None
     documents_links: List[str] = field(default_factory=list)
     lease_index_links: List[str] = field(default_factory=list)  # NMSLO only
@@ -293,6 +315,12 @@ class OrderItemData:
         # Validate optional workflow fields have correct types when provided
         if self.report_directory_link is not None and not isinstance(self.report_directory_link, str):
             raise ValueError("report_directory_link must be a string or None")
+            
+        if self.report_directory_path is not None:
+            if not isinstance(self.report_directory_path, str):
+                raise ValueError("report_directory_path must be a string or None")
+            if not self.report_directory_path.strip():
+                raise ValueError("report_directory_path cannot be empty when provided")
             
         if self.previous_report_found is not None and not isinstance(self.previous_report_found, bool):
             raise ValueError("previous_report_found must be a boolean or None")

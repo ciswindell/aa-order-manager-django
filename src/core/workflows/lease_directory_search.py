@@ -103,21 +103,35 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
         self.logger.info(f"Searching for lease directory: {lease_number} (agency: {agency_name})")
         
         try:
-            # Use DropboxService to search for the directory
-            shareable_link = self.dropbox_service.search_directory(
-                directory_name=lease_number,
-                agency=agency_name
-            )
+            # Build the directory path based on agency mapping
+            directory_path = self._build_directory_path(agency_name, lease_number)
             
-            if shareable_link:
-                self.logger.info(f"Found lease directory: {shareable_link}")
+            # Use DropboxService with the resolved path (SOLID principle)
+            if hasattr(self.dropbox_service, 'search_directory_with_metadata'):
+                # Use the new path-based method
+                search_result = self.dropbox_service.search_directory_with_metadata(directory_path)
+                shareable_link = search_result.get("shareable_link")
+                found_path = search_result.get("path")
+            else:
+                # Fallback to legacy agency-aware method for backward compatibility
+                search_result = self.dropbox_service.search_directory_with_path(
+                    directory_name=lease_number,
+                    agency=agency_name
+                )
+                shareable_link = search_result.get("shareable_link")
+                found_path = search_result.get("path")
+            
+            if shareable_link or found_path:
+                self.logger.info(f"Found lease directory - Link: {shareable_link}, Path: {found_path}")
                 
-                # Update the OrderItemData with the result
+                # Update the OrderItemData with both results
                 order_item_data.report_directory_link = shareable_link
+                order_item_data.report_directory_path = found_path
                 
                 return {
                     "success": True,
                     "shareable_link": shareable_link,
+                    "directory_path": found_path,
                     "agency": agency_name,
                     "lease_number": lease_number,
                     "message": f"Successfully found directory for lease {lease_number}"
@@ -128,6 +142,7 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
                 return {
                     "success": True,
                     "shareable_link": None,
+                    "directory_path": None,
                     "agency": agency_name,
                     "lease_number": lease_number,
                     "message": f"No directory found for lease {lease_number}"
@@ -141,20 +156,46 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
     
     def _map_agency_type_to_string(self, agency: AgencyType) -> str:
         """
-        Map AgencyType enum to DropboxService agency string.
+        Map AgencyType enum to agency string for directory mapping.
         
         Args:
             agency: AgencyType enum value
             
         Returns:
-            str: Agency string for DropboxService
+            str: Agency string for directory path construction
         """
         if agency == AgencyType.NMSLO:
             return "NMSLO"
         elif agency == AgencyType.BLM:
-            return "Federal"  # BLM uses "Federal" in DropboxService
+            return "Federal"  # BLM uses "Federal" directory structure
         else:
             raise ValueError(f"Unsupported agency type: {agency}")
+    
+    def _build_directory_path(self, agency_string: str, lease_number: str) -> str:
+        """
+        Build the full directory path for a given agency and lease number.
+        
+        This method encapsulates the business logic of how agencies map to 
+        directory structures, keeping DropboxService focused on API operations.
+        
+        Args:
+            agency_string: Agency identifier ("NMSLO" or "Federal")
+            lease_number: Lease number to search for
+            
+        Returns:
+            str: Full directory path for searching
+            
+        Examples:
+            _build_directory_path("Federal", "NMNM 0501759") → "/Federal/NMNM 0501759"
+            _build_directory_path("NMSLO", "12345") → "/NMSLO/12345"
+        """
+        # Simple path construction - could be enhanced with config later
+        if agency_string == "Federal":
+            return f"/Federal/{lease_number}"
+        elif agency_string == "NMSLO":  
+            return f"/NMSLO/{lease_number}"
+        else:
+            raise ValueError(f"Unsupported agency string: {agency_string}")
     
     def set_dropbox_service(self, dropbox_service: DropboxService) -> None:
         """

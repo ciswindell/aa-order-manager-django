@@ -179,7 +179,10 @@ class TestWorkflowExecution:
     def test_execute_success_nmslo_directory_found(self):
         """Test successful execution with NMSLO agency - directory found."""
         mock_service = Mock(spec=DropboxService)
-        mock_service.search_directory.return_value = "https://dropbox.com/share/nmslo12345"
+        mock_service.search_directory_with_metadata.return_value = {
+            "path": "/NMSLO/12345",
+            "shareable_link": "https://dropbox.com/share/nmslo12345"
+        }
         
         workflow = LeaseDirectorySearchWorkflow(dropbox_service=mock_service)
         order_item = self.create_test_order_item(AgencyType.NMSLO, "12345")
@@ -187,26 +190,28 @@ class TestWorkflowExecution:
         
         result = workflow.execute(input_data)
         
-        # Verify DropboxService was called correctly
-        mock_service.search_directory.assert_called_once_with(
-            directory_name="12345",
-            agency="NMSLO"
-        )
+        # Verify DropboxService was called with the resolved path (SOLID principle)
+        mock_service.search_directory_with_metadata.assert_called_once_with("/NMSLO/12345")
         
         # Verify result
         assert result["success"] is True
         assert result["shareable_link"] == "https://dropbox.com/share/nmslo12345"
+        assert result["directory_path"] == "/NMSLO/12345"
         assert result["agency"] == "NMSLO"
         assert result["lease_number"] == "12345"
         assert "Successfully found directory" in result["message"]
         
         # Verify OrderItemData was updated
         assert order_item.report_directory_link == "https://dropbox.com/share/nmslo12345"
+        assert order_item.report_directory_path == "/NMSLO/12345"
     
     def test_execute_success_blm_directory_found(self):
         """Test successful execution with BLM agency - directory found."""
         mock_service = Mock(spec=DropboxService)
-        mock_service.search_directory.return_value = "https://dropbox.com/share/federal67890"
+        mock_service.search_directory_with_metadata.return_value = {
+            "path": "/Federal/NMNM 0501759",
+            "shareable_link": "https://dropbox.com/share/federal67890"
+        }
         
         workflow = LeaseDirectorySearchWorkflow(dropbox_service=mock_service)
         order_item = self.create_test_order_item(AgencyType.BLM, "NMNM 0501759")
@@ -214,25 +219,27 @@ class TestWorkflowExecution:
         
         result = workflow.execute(input_data)
         
-        # Verify DropboxService was called with "Federal" for BLM
-        mock_service.search_directory.assert_called_once_with(
-            directory_name="NMNM 0501759",
-            agency="Federal"
-        )
+        # Verify DropboxService was called with the resolved path (SOLID principle)
+        mock_service.search_directory_with_metadata.assert_called_once_with("/Federal/NMNM 0501759")
         
         # Verify result
         assert result["success"] is True
         assert result["shareable_link"] == "https://dropbox.com/share/federal67890"
+        assert result["directory_path"] == "/Federal/NMNM 0501759"
         assert result["agency"] == "Federal"
         assert result["lease_number"] == "NMNM 0501759"
         
         # Verify OrderItemData was updated
         assert order_item.report_directory_link == "https://dropbox.com/share/federal67890"
+        assert order_item.report_directory_path == "/Federal/NMNM 0501759"
     
     def test_execute_success_directory_not_found(self):
         """Test successful execution - directory not found."""
         mock_service = Mock(spec=DropboxService)
-        mock_service.search_directory.return_value = None  # Directory not found
+        mock_service.search_directory_with_metadata.return_value = {
+            "path": None,
+            "shareable_link": None
+        }  # Directory not found
         
         workflow = LeaseDirectorySearchWorkflow(dropbox_service=mock_service)
         order_item = self.create_test_order_item(AgencyType.NMSLO, "NOTFOUND")
@@ -240,26 +247,28 @@ class TestWorkflowExecution:
         
         result = workflow.execute(input_data)
         
-        # Verify DropboxService was called
-        mock_service.search_directory.assert_called_once_with(
-            directory_name="NOTFOUND",
-            agency="NMSLO"
-        )
+        # Verify DropboxService was called with the resolved path
+        mock_service.search_directory_with_metadata.assert_called_once_with("/NMSLO/NOTFOUND")
         
         # Verify result
         assert result["success"] is True
         assert result["shareable_link"] is None
+        assert result["directory_path"] is None
         assert result["agency"] == "NMSLO"
         assert result["lease_number"] == "NOTFOUND"
         assert "No directory found" in result["message"]
         
         # Verify OrderItemData was not updated
         assert order_item.report_directory_link is None
+        assert order_item.report_directory_path is None
     
     def test_execute_handles_whitespace_in_lease_number(self):
         """Test execution handles whitespace in lease number."""
         mock_service = Mock(spec=DropboxService)
-        mock_service.search_directory.return_value = "https://dropbox.com/share/test"
+        mock_service.search_directory_with_metadata.return_value = {
+            "path": "/NMSLO/12345",
+            "shareable_link": "https://dropbox.com/share/test"
+        }
         
         workflow = LeaseDirectorySearchWorkflow(dropbox_service=mock_service)
         order_item = self.create_test_order_item(AgencyType.NMSLO, "  12345  ")  # With whitespace
@@ -267,18 +276,15 @@ class TestWorkflowExecution:
         
         result = workflow.execute(input_data)
         
-        # Verify whitespace was stripped
-        mock_service.search_directory.assert_called_once_with(
-            directory_name="12345",  # Stripped
-            agency="NMSLO"
-        )
+        # Verify whitespace was stripped in path building
+        mock_service.search_directory_with_metadata.assert_called_once_with("/NMSLO/12345")
         
         assert result["lease_number"] == "12345"  # Should be stripped in result too
     
     def test_execute_dropbox_authentication_error(self):
         """Test execution handles DropboxAuthenticationError."""
         mock_service = Mock(spec=DropboxService)
-        mock_service.search_directory.side_effect = DropboxAuthenticationError("Not authenticated")
+        mock_service.search_directory_with_metadata.side_effect = DropboxAuthenticationError("Not authenticated")
         
         workflow = LeaseDirectorySearchWorkflow(dropbox_service=mock_service)
         order_item = self.create_test_order_item()
@@ -291,7 +297,7 @@ class TestWorkflowExecution:
     def test_execute_generic_error(self):
         """Test execution handles generic errors."""
         mock_service = Mock(spec=DropboxService)
-        mock_service.search_directory.side_effect = Exception("Network error")
+        mock_service.search_directory_with_metadata.side_effect = Exception("Network error")
         
         workflow = LeaseDirectorySearchWorkflow(dropbox_service=mock_service)
         order_item = self.create_test_order_item()
@@ -335,7 +341,10 @@ class TestWorkflowIntegration:
         """Test complete workflow lifecycle with successful directory search."""
         # Setup
         mock_service = Mock(spec=DropboxService)
-        mock_service.search_directory.return_value = "https://dropbox.com/share/success"
+        mock_service.search_directory_with_metadata.return_value = {
+            "path": "/Federal/NMNM 0501759",
+            "shareable_link": "https://dropbox.com/share/success"
+        }
         
         config = WorkflowConfig(settings={"timeout": 30})
         workflow = LeaseDirectorySearchWorkflow(config=config, dropbox_service=mock_service)
@@ -359,17 +368,16 @@ class TestWorkflowIntegration:
         # Verify complete workflow success
         assert result["success"] is True
         assert result["shareable_link"] == "https://dropbox.com/share/success"
+        assert result["directory_path"] == "/Federal/NMNM 0501759"
         assert result["agency"] == "Federal"  # BLM maps to Federal
         assert result["lease_number"] == "NMNM 0501759"
         
         # Verify integration with OrderItemData
         assert order_item.report_directory_link == "https://dropbox.com/share/success"
+        assert order_item.report_directory_path == "/Federal/NMNM 0501759"
         
-        # Verify DropboxService integration
-        mock_service.search_directory.assert_called_once_with(
-            directory_name="NMNM 0501759",
-            agency="Federal"
-        )
+        # Verify DropboxService integration with path-based approach
+        mock_service.search_directory_with_metadata.assert_called_once_with("/Federal/NMNM 0501759")
     
     def test_workflow_with_various_lease_formats(self):
         """Test workflow handles various lease number formats."""
@@ -385,7 +393,10 @@ class TestWorkflowIntegration:
         
         for lease_number, expected_agency in test_cases:
             mock_service.reset_mock()
-            mock_service.search_directory.return_value = f"https://dropbox.com/share/{lease_number.strip()}"
+            mock_service.search_directory_with_metadata.return_value = {
+                "path": f"/{expected_agency}/{lease_number.strip()}",
+                "shareable_link": f"https://dropbox.com/share/{lease_number.strip()}"
+            }
             
             agency_type = AgencyType.NMSLO if expected_agency == "NMSLO" else AgencyType.BLM
             order_item = OrderItemData(
@@ -398,10 +409,8 @@ class TestWorkflowIntegration:
             
             result = workflow.execute({"order_item_data": order_item})
             
-            # Verify correct agency mapping and lease number handling
-            mock_service.search_directory.assert_called_once_with(
-                directory_name=lease_number.strip(),
-                agency=expected_agency
-            )
+            # Verify correct path building and lease number handling
+            expected_path = f"/{expected_agency}/{lease_number.strip()}"
+            mock_service.search_directory_with_metadata.assert_called_once_with(expected_path)
             assert result["success"] is True
             assert result["agency"] == expected_agency
