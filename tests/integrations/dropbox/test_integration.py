@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 
-from src.core.processors import FederalOrderProcessor, NMStateOrderProcessor
+from src.core.processors import FederalOrderProcessor, NMSLOOrderProcessor
 
 
 class TestDropboxIntegration(unittest.TestCase):
@@ -101,9 +101,9 @@ class TestDropboxIntegration(unittest.TestCase):
         self.assertEqual(len(non_null_links), 3)  # All 3 leases should have links
 
     def test_state_processor_with_dropbox_service(self):
-        """Test NMStateOrderProcessor with Dropbox service integration."""
+        """Test NMSLOOrderProcessor with Dropbox service integration."""
         # Create processor with Dropbox service
-        processor = NMStateOrderProcessor(
+        processor = NMSLOOrderProcessor(
             order_form=str(self.test_excel_file),
             agency="State",
             order_type="Runsheet",
@@ -125,7 +125,7 @@ class TestDropboxIntegration(unittest.TestCase):
         # Verify Dropbox service was called with State agency
         call_args_list = self.mock_dropbox_service.search_directory.call_args_list
         for call_args in call_args_list:
-            self.assertEqual(call_args[1]["agency"], "NMState")
+            self.assertEqual(call_args[1]["agency"], "NMSLO")
 
         # Verify output file was created with populated links
         output_files = list(self.temp_path.glob("Order_*.xlsx"))
@@ -207,7 +207,7 @@ class TestDropboxIntegration(unittest.TestCase):
 
     def test_dropbox_service_complete_failure(self):
         """Test graceful handling when Dropbox service fails completely."""
-        processor = NMStateOrderProcessor(
+        processor = NMSLOOrderProcessor(
             order_form=str(self.test_excel_file),
             agency="State",
             order_type="Runsheet",
@@ -389,7 +389,7 @@ class TestWorkflowIntegration(unittest.TestCase):
 
         # Create processor as app.py would
         if selected_agency == "State":
-            processor = NMStateOrderProcessor(
+            processor = NMSLOOrderProcessor(
                 order_form=str(order_file),
                 agency=selected_agency,
                 order_type=selected_order_type,

@@ -5,7 +5,7 @@ from tkinter import filedialog, messagebox
 
 from tkcalendar import DateEntry
 
-from src.core.processors import FederalOrderProcessor, NMStateOrderProcessor
+from src.core.processors import FederalOrderProcessor, NMSLOOrderProcessor
 from src.integrations.dropbox.auth import DropboxAuthHandler
 from src.integrations.dropbox.config import DropboxConfig
 from src.integrations.dropbox.service import DropboxService
@@ -154,7 +154,7 @@ def process_order():
                 dropbox_service = None
 
         if selected_agency == "State":
-            order_processor = NMStateOrderProcessor(
+            order_processor = NMSLOOrderProcessor(
                 order_form,
                 selected_agency,
                 selected_order_type,

@@ -69,8 +69,8 @@ class TestDropboxConfigInitialization(unittest.TestCase):
 
         expected_defaults = {
             "Federal": "/Federal/",
-            "NMState": "/NMState/",
-            "State": "/NMState/",  # Alias
+            "NMSLO": "/NMSLO/",
+            "State": "/NMSLO/",  # Alias
         }
         self.assertEqual(config._agency_directories, expected_defaults)
 
@@ -96,7 +96,7 @@ class TestDropboxConfigFileLoading(unittest.TestCase):
         test_config = {
             "app_key": "test_key",
             "app_secret": "test_secret",
-            "agency_directories": {"Federal": "/MyFederal/", "NMState": "/MyNMState/"},
+            "agency_directories": {"Federal": "/MyFederal/", "NMSLO": "/MyNMSLO/"},
         }
 
         with open(self.config_file, "w") as f:
@@ -155,7 +155,7 @@ class TestDropboxConfigEnvironmentVariables(unittest.TestCase):
         os.environ["DROPBOX_APP_KEY"] = "env_test_key"
         os.environ["DROPBOX_APP_SECRET"] = "env_test_secret"
         os.environ["DROPBOX_FEDERAL_DIR"] = "/EnvFederal/"
-        os.environ["DROPBOX_NMSTATE_DIR"] = "/EnvNMState/"
+        os.environ["DROPBOX_NMSLO_DIR"] = "/EnvNMSLO/"
 
         with patch.object(DropboxConfig, "_find_config_file", return_value=None):
             config = DropboxConfig()
@@ -163,7 +163,7 @@ class TestDropboxConfigEnvironmentVariables(unittest.TestCase):
         self.assertEqual(config.get_app_key(), "env_test_key")
         self.assertEqual(config.get_app_secret(), "env_test_secret")
         self.assertEqual(config.get_agency_directory("Federal"), "/EnvFederal/")
-        self.assertEqual(config.get_agency_directory("NMState"), "/EnvNMState/")
+        self.assertEqual(config.get_agency_directory("NMSLO"), "/EnvNMSLO/")
 
     def test_environment_variables_override_file(self):
         """Test that environment variables override file configuration."""

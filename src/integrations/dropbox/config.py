@@ -35,8 +35,8 @@ class DropboxConfig:
     # Default agency directory mappings (can be overridden)
     DEFAULT_AGENCY_DIRECTORIES = {
         "Federal": "/Federal/",
-        "NMState": "/NMState/",
-        "State": "/NMState/",  # Alias for NMState
+        "NMSLO": "/NMSLO/",
+        "State": "/NMSLO/",  # Alias for NMSLO
     }
 
     # Default configuration file locations
@@ -131,7 +131,7 @@ class DropboxConfig:
             "DROPBOX_APP_KEY": "app_key",
             "DROPBOX_APP_SECRET": "app_secret",
             "DROPBOX_FEDERAL_DIR": ("agency_directories", "Federal"),
-            "DROPBOX_NMSTATE_DIR": ("agency_directories", "NMState"),
+            "DROPBOX_NMSLO_DIR": ("agency_directories", "NMSLO"),
             "DROPBOX_STATE_DIR": ("agency_directories", "State"),
         }
 
@@ -201,7 +201,7 @@ class DropboxConfig:
         Get the root directory path for a specific agency.
 
         Args:
-            agency: Agency name (e.g., 'Federal', 'NMState', 'State')
+            agency: Agency name (e.g., 'Federal', 'NMSLO', 'State')
 
         Returns:
             Optional[str]: Directory path if configured, None otherwise
@@ -222,7 +222,7 @@ class DropboxConfig:
         Set the root directory path for a specific agency.
 
         Args:
-            agency: Agency name (e.g., 'Federal', 'NMState')
+            agency: Agency name (e.g., 'Federal', 'NMSLO')
             directory_path: Root directory path (e.g., '/Federal/')
         """
         if not directory_path.startswith("/"):
@@ -284,7 +284,7 @@ class DropboxConfig:
         Get the full Dropbox search path for a specific lease.
 
         Args:
-            agency: Agency name (e.g., 'Federal', 'NMState')
+            agency: Agency name (e.g., 'Federal', 'NMSLO')
             lease_name: Lease name (e.g., 'NMLC 123456')
 
         Returns:
@@ -343,8 +343,8 @@ class DropboxConfig:
             "app_secret": "YOUR_DROPBOX_APP_SECRET_HERE",
             "agency_directories": {
                 "Federal": "/Federal/",
-                "NMState": "/NMState/",
-                "State": "/NMState/",
+                "NMSLO": "/NMSLO/",
+                "State": "/NMSLO/",
             },
         }
 

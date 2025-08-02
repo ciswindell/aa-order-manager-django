@@ -13,54 +13,7 @@ from openpyxl.styles import (
     Side,
 )
 
-
-class LeaseNumberParser:
-    def __init__(self, lease_number):
-        self.lease_number = lease_number
-
-    def search_file(self) -> str:
-        try:
-            number_string = "".join(
-                [x for x in self.lease_number if x.isdigit() or x == "0"]
-            )
-            number = int(number_string)
-            search_string = "*" + str(number) + "*"
-        except ValueError:
-            return "Error"
-
-        return search_string
-
-    def search_tractstar(self) -> str:
-        try:
-            base_number = "".join(self.lease_number.split(" ")[1:])
-            number_string = "".join(
-                [x for x in self.lease_number if x.isdigit() or x == "0"]
-            )
-            alpha_string = "".join([x for x in base_number if x.isalpha()])
-            number = int(number_string)
-            if alpha_string:
-                search_string = str(number) + "-" + alpha_string
-            else:
-                search_string = str(number)
-        except ValueError:
-            return "Error"
-
-        return search_string
-
-    def search_full(self) -> str:
-        try:
-            search = "*" + self.lease_number.replace("-", "*") + "*"
-        except ValueError:
-            return "Error"
-        return search
-
-    def search_partial(self) -> str:
-        try:
-            search_split = self.lease_number.split("-")[:2]
-            search = "*" + ("*".join(search_split)) + "*"
-        except ValueError:
-            return "Error"
-        return search
+from .utils.parsing_utils import LeaseNumberParser
 
 
 class OrderProcessor(ABC):
@@ -117,7 +70,7 @@ class OrderProcessor(ABC):
         return filename
 
 
-class NMStateOrderProcessor(OrderProcessor):
+class NMSLOOrderProcessor(OrderProcessor):
     def __init__(
         self,
         order_form,
@@ -229,7 +182,7 @@ class NMStateOrderProcessor(OrderProcessor):
                         try:
                             # Search for directory using State agency
                             shareable_link = self.dropbox_service.search_directory(
-                                str(lease_name), agency="NMState"
+                                str(lease_name), agency="NMSLO"
                             )
                             if shareable_link:
                                 data.at[index, "Link"] = shareable_link
@@ -509,6 +462,6 @@ class FederalOrderProcessor(OrderProcessor):
 if __name__ == "__main__":
     state_order_form_path = "sample_data/order_state.xlsx"
     federal_order_form_path = "sample_data/order_fed.xlsx"
-    order_processor = NMStateOrderProcessor(state_order_form_path)
+    order_processor = NMSLOOrderProcessor(state_order_form_path)
     # order_processor = FederalOrderProcessor(federal_order_form_path)
     order_processor.create_order_worksheet()
