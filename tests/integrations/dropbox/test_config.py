@@ -15,7 +15,7 @@ from unittest.mock import Mock, mock_open, patch
 
 # Import the classes we're testing
 try:
-    from dropbox_config import (
+    from src.integrations.dropbox.config import (
         DropboxConfig,
         DropboxConfigError,
         get_config,
@@ -42,7 +42,7 @@ class TestDropboxConfigInitialization(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
         reset_config()  # Reset global config for other tests
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_initialization_success(self, mock_logger):
         """Test successful initialization with default settings."""
         with patch.object(DropboxConfig, "_load_configuration"):
@@ -53,7 +53,7 @@ class TestDropboxConfigInitialization(unittest.TestCase):
         )
         mock_logger.info.assert_called_with("DropboxConfig initialized")
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_initialization_with_custom_file_path(self, mock_logger):
         """Test initialization with custom config file path."""
         with patch.object(DropboxConfig, "_load_configuration"):
@@ -90,7 +90,7 @@ class TestDropboxConfigFileLoading(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
         reset_config()
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_load_from_valid_json_file(self, mock_logger):
         """Test loading configuration from valid JSON file."""
         test_config = {
@@ -111,7 +111,7 @@ class TestDropboxConfigFileLoading(unittest.TestCase):
             f"Configuration loaded from: {self.config_file}"
         )
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_load_from_invalid_json_file(self, mock_logger):
         """Test loading configuration from invalid JSON file."""
         with open(self.config_file, "w") as f:
@@ -123,7 +123,7 @@ class TestDropboxConfigFileLoading(unittest.TestCase):
         self.assertIn("Invalid configuration file", str(context.exception))
         mock_logger.error.assert_called()
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_load_from_nonexistent_file(self, mock_logger):
         """Test loading configuration when file doesn't exist."""
         config = DropboxConfig(config_file_path="/nonexistent/config.json")
@@ -148,7 +148,7 @@ class TestDropboxConfigEnvironmentVariables(unittest.TestCase):
         os.environ.update(self.original_env)
         reset_config()
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_load_from_environment_variables(self, mock_logger):
         """Test loading configuration from environment variables."""
         # Set test environment variables
@@ -323,7 +323,7 @@ class TestDropboxConfigFileSaving(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
         reset_config()
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_save_configuration_success(self, mock_logger):
         """Test successful configuration saving."""
         self.config.set_app_credentials("save_key", "save_secret")
@@ -397,7 +397,7 @@ class TestDropboxConfigValidation(unittest.TestCase):
         """Clean up test fixtures."""
         reset_config()
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_validate_configuration_missing_credentials(self, mock_logger):
         """Test validation when credentials are missing."""
         self.config._validate_configuration()
@@ -405,7 +405,7 @@ class TestDropboxConfigValidation(unittest.TestCase):
         mock_logger.warning.assert_any_call("No Dropbox app key configured")
         mock_logger.warning.assert_any_call("No Dropbox app secret configured")
 
-    @patch("dropbox_config.logger")
+    @patch("src.integrations.dropbox.config.logger")
     def test_validate_configuration_invalid_directory_paths(self, mock_logger):
         """Test validation of invalid directory paths."""
         self.config.set_agency_directory(

@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 
-from processors import FederalOrderProcessor, NMStateOrderProcessor
+from src.core.processors import FederalOrderProcessor, NMStateOrderProcessor
 
 
 class TestDropboxIntegration(unittest.TestCase):

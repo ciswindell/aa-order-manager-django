@@ -20,7 +20,7 @@ except ImportError:
     dropbox = None
     DropboxOAuth2FlowNoRedirect = None
 
-from dropbox_service import DropboxAuthenticationError
+from .service import DropboxAuthenticationError
 
 # Configure logging
 logger = logging.getLogger(__name__)

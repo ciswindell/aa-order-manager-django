@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from dropbox_service import DropboxServiceError
+from .service import DropboxServiceError
 
 # Configure logging
 logger = logging.getLogger(__name__)

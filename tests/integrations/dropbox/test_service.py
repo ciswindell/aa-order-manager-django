@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 
 # Import the classes we're testing
-from dropbox_service import (
+from src.integrations.dropbox.service import (
     DropboxAuthenticationError,
     DropboxLinkError,
     DropboxSearchError,
@@ -102,7 +102,7 @@ class TestDropboxService(unittest.TestCase):
         self.assertIsNone(service._config_manager)
         self.assertIsNone(service._client)
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_initialization_logging(self, mock_logger):
         """Test that initialization logs properly."""
         DropboxService()
@@ -120,7 +120,7 @@ class TestDropboxServiceAuthentication(unittest.TestCase):
             auth_handler=self.mock_auth_handler, config_manager=self.mock_config_manager
         )
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_authenticate_success(self, mock_logger):
         """Test successful authentication."""
         mock_client = Mock()
@@ -133,7 +133,7 @@ class TestDropboxServiceAuthentication(unittest.TestCase):
         self.mock_auth_handler.authenticate.assert_called_once()
         mock_logger.info.assert_called_with("Dropbox authentication successful")
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_authenticate_failure(self, mock_logger):
         """Test authentication failure."""
         self.mock_auth_handler.authenticate.return_value = None
@@ -153,7 +153,7 @@ class TestDropboxServiceAuthentication(unittest.TestCase):
 
         self.assertIn("No authentication handler provided", str(context.exception))
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_authenticate_exception(self, mock_logger):
         """Test authentication when auth handler raises exception."""
         self.mock_auth_handler.authenticate.side_effect = Exception("Auth failed")
@@ -187,7 +187,7 @@ class TestDropboxServiceDirectorySearch(unittest.TestCase):
         )
         self.service._client = Mock()  # Set as authenticated
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_search_directory_authenticated(self, mock_logger):
         """Test directory search when authenticated."""
         result = self.service.search_directory("NMLC 123456", "Federal")
@@ -208,7 +208,7 @@ class TestDropboxServiceDirectorySearch(unittest.TestCase):
 
         self.assertIn("Service not authenticated", str(context.exception))
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_search_directory_exception(self, mock_logger):
         """Test directory search when exception occurs."""
         # Mock an exception during search (will be implemented in future tasks)
@@ -231,7 +231,7 @@ class TestDropboxServiceLinkGeneration(unittest.TestCase):
         )
         self.service._client = Mock()  # Set as authenticated
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_get_shareable_link_authenticated(self, mock_logger):
         """Test shareable link generation when authenticated."""
         result = self.service.get_shareable_link("/Federal/NMLC 123456/")
@@ -267,7 +267,7 @@ class TestDropboxServiceBulkOperations(unittest.TestCase):
         )
         self.service._client = Mock()  # Set as authenticated
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_bulk_search_directories_success(self, mock_logger):
         """Test bulk directory search with successful results."""
         directory_names = ["NMLC 123456", "NMLC 789012"]
@@ -279,7 +279,7 @@ class TestDropboxServiceBulkOperations(unittest.TestCase):
         expected_results = {"NMLC 123456": None, "NMLC 789012": None}
         self.assertEqual(results, expected_results)
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_bulk_search_directories_with_errors(self, mock_logger):
         """Test bulk directory search with some errors."""
         directory_names = ["NMLC 123456", "NMLC 789012"]
@@ -311,11 +311,11 @@ class TestDropboxServiceLogging(unittest.TestCase):
         self.mock_auth_handler = Mock()
         self.service = DropboxService(auth_handler=self.mock_auth_handler)
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_logger_configuration(self, mock_logger):
         """Test that logger is properly configured."""
         # Logger should be configured at module level
-        from dropbox_service import logger
+        from src.integrations.dropbox.service import logger
 
         self.assertEqual(logger.name, "dropbox_service")
 
@@ -332,7 +332,7 @@ class TestDropboxServiceDirectorySearchEnhanced(unittest.TestCase):
         )
         self.service._client = Mock()  # Set as authenticated
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_search_directory_with_agency_scoping_success(self, mock_logger):
         """Test successful directory search with agency scoping."""
         # Mock config manager to return search path
@@ -357,7 +357,7 @@ class TestDropboxServiceDirectorySearchEnhanced(unittest.TestCase):
         )
         mock_logger.info.assert_any_call("Generated search path: /Federal/NMLC 123456/")
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_search_directory_with_agency_no_search_path(self, mock_logger):
         """Test directory search when config manager can't generate search path."""
         # Mock config manager to return None
@@ -370,7 +370,7 @@ class TestDropboxServiceDirectorySearchEnhanced(unittest.TestCase):
             "Could not generate search path for agency 'Federal' and directory 'NMLC 123456'"
         )
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_search_directory_fallback_to_general_search(self, mock_logger):
         """Test fallback to general search when no agency specified."""
         with patch.object(
@@ -473,7 +473,7 @@ class TestDropboxServiceLinkGenerationEnhanced(unittest.TestCase):
         )
         self.service._client = Mock()  # Set as authenticated
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_get_shareable_link_existing_link_found(self, mock_logger):
         """Test shareable link generation when existing link is found."""
         with patch.object(
@@ -488,7 +488,7 @@ class TestDropboxServiceLinkGenerationEnhanced(unittest.TestCase):
             "Found existing shareable link: https://existing.link"
         )
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_get_shareable_link_create_new_link(self, mock_logger):
         """Test creating new shareable link when none exists."""
         with patch.object(
@@ -502,7 +502,7 @@ class TestDropboxServiceLinkGenerationEnhanced(unittest.TestCase):
         self.assertEqual(result, "https://new.link")
         mock_logger.info.assert_any_call("Created new shareable link: https://new.link")
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_get_shareable_link_creation_fails(self, mock_logger):
         """Test shareable link generation when both existing and new creation fail."""
         with patch.object(
@@ -542,8 +542,8 @@ class TestDropboxServiceLinkGenerationEnhanced(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    @patch("dropbox_service.SharedLinkSettings")
-    @patch("dropbox_service.RequestedVisibility")
+    @patch("src.integrations.dropbox.service.SharedLinkSettings")
+    @patch("src.integrations.dropbox.service.RequestedVisibility")
     def test_create_new_shared_link_with_settings(self, mock_visibility, mock_settings):
         """Test creating new shared link with settings."""
         # Mock the sharing settings
@@ -558,8 +558,10 @@ class TestDropboxServiceLinkGenerationEnhanced(unittest.TestCase):
         )
 
         # Mock the import to be successful
-        with patch("dropbox_service.SharedLinkSettings", mock_settings), patch(
-            "dropbox_service.RequestedVisibility", mock_visibility
+        with patch(
+            "src.integrations.dropbox.service.SharedLinkSettings", mock_settings
+        ), patch(
+            "src.integrations.dropbox.service.RequestedVisibility", mock_visibility
         ):
 
             result = self.service._create_new_shared_link("/Federal/NMLC 123456")
@@ -603,7 +605,7 @@ class TestDropboxServiceLinkGenerationEnhanced(unittest.TestCase):
         }
         self.assertEqual(results, expected)
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_create_shareable_links_batch_with_errors(self, mock_logger):
         """Test batch creation with some errors."""
         paths = ["/Federal/NMLC 123456", "/Federal/NMLC 789012"]
@@ -665,7 +667,7 @@ class TestDropboxServiceIntegration(unittest.TestCase):
         )
         self.service._client = Mock()  # Set as authenticated
 
-    @patch("dropbox_service.logger")
+    @patch("src.integrations.dropbox.service.logger")
     def test_end_to_end_search_and_link_generation(self, mock_logger):
         """Test complete workflow from search to link generation."""
         # Setup the complete chain

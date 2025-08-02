@@ -15,8 +15,8 @@ from unittest.mock import MagicMock, Mock, mock_open, patch
 
 # Import the classes we're testing
 try:
-    from dropbox_auth import DropboxAuthHandler
-    from dropbox_service import DropboxAuthenticationError
+    from src.integrations.dropbox.auth import DropboxAuthHandler
+    from src.integrations.dropbox.service import DropboxAuthenticationError
 except ImportError:
     # Handle case where dropbox isn't installed
     DropboxAuthHandler = None
@@ -39,8 +39,8 @@ class TestDropboxAuthHandlerInitialization(unittest.TestCase):
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_initialization_success(self, mock_logger, mock_dropbox):
         """Test successful initialization."""
         mock_dropbox.__bool__ = lambda x: True  # Simulate dropbox module available
@@ -57,7 +57,7 @@ class TestDropboxAuthHandlerInitialization(unittest.TestCase):
         self.assertIsNone(handler._refresh_token)
         mock_logger.info.assert_called_with("DropboxAuthHandler initialized")
 
-    @patch("dropbox_auth.dropbox", None)
+    @patch("src.integrations.dropbox.auth.dropbox", None)
     def test_initialization_no_dropbox_sdk(self):
         """Test initialization when Dropbox SDK is not available."""
         with self.assertRaises(DropboxAuthenticationError) as context:
@@ -65,7 +65,7 @@ class TestDropboxAuthHandlerInitialization(unittest.TestCase):
 
         self.assertIn("Dropbox SDK not available", str(context.exception))
 
-    @patch("dropbox_auth.dropbox")
+    @patch("src.integrations.dropbox.auth.dropbox")
     @patch.object(Path, "home")
     def test_default_token_path(self, mock_home, mock_dropbox):
         """Test default token path generation."""
@@ -95,8 +95,8 @@ class TestDropboxAuthHandlerTokenManagement(unittest.TestCase):
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_load_refresh_token_success(self, mock_logger, mock_dropbox):
         """Test successful refresh token loading."""
         mock_dropbox.__bool__ = lambda x: True
@@ -113,8 +113,8 @@ class TestDropboxAuthHandlerTokenManagement(unittest.TestCase):
         self.assertEqual(handler._refresh_token, "test_refresh_token")
         mock_logger.info.assert_any_call("Existing refresh token loaded successfully")
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_load_refresh_token_no_file(self, mock_logger, mock_dropbox):
         """Test loading refresh token when no file exists."""
         mock_dropbox.__bool__ = lambda x: True
@@ -126,8 +126,8 @@ class TestDropboxAuthHandlerTokenManagement(unittest.TestCase):
         self.assertIsNone(handler._refresh_token)
         mock_logger.info.assert_any_call("No existing token file found")
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_load_refresh_token_invalid_json(self, mock_logger, mock_dropbox):
         """Test loading refresh token with invalid JSON file."""
         mock_dropbox.__bool__ = lambda x: True
@@ -143,8 +143,8 @@ class TestDropboxAuthHandlerTokenManagement(unittest.TestCase):
         self.assertIsNone(handler._refresh_token)
         mock_logger.error.assert_called()
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_save_refresh_token_success(self, mock_logger, mock_dropbox):
         """Test successful refresh token saving."""
         mock_dropbox.__bool__ = lambda x: True
@@ -173,8 +173,8 @@ class TestDropboxAuthHandlerTokenManagement(unittest.TestCase):
 
         mock_logger.info.assert_called_with("Refresh token saved successfully")
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.os.makedirs", side_effect=OSError("Permission denied"))
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.os.makedirs", side_effect=OSError("Permission denied"))
     def test_save_refresh_token_failure(self, mock_makedirs, mock_dropbox):
         """Test refresh token saving failure."""
         mock_dropbox.__bool__ = lambda x: True
@@ -199,8 +199,8 @@ class TestDropboxAuthHandlerClientCreation(unittest.TestCase):
         self.app_secret = "test_app_secret"
         self.token_file_path = "/tmp/test_token.json"
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_create_client_from_refresh_token_success(self, mock_logger, mock_dropbox):
         """Test successful client creation from refresh token."""
         mock_dropbox.__bool__ = lambda x: True
@@ -229,8 +229,8 @@ class TestDropboxAuthHandlerClientCreation(unittest.TestCase):
         )
         mock_logger.info.assert_any_call("Successfully authenticated as: Test User")
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_create_client_no_refresh_token(self, mock_logger, mock_dropbox):
         """Test client creation when no refresh token is available."""
         mock_dropbox.__bool__ = lambda x: True
@@ -247,8 +247,8 @@ class TestDropboxAuthHandlerClientCreation(unittest.TestCase):
         self.assertIsNone(result)
         mock_logger.info.assert_called_with("No refresh token available")
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_create_client_invalid_token(self, mock_logger, mock_dropbox):
         """Test client creation with invalid refresh token."""
         mock_dropbox.__bool__ = lambda x: True
@@ -279,9 +279,9 @@ class TestDropboxAuthHandlerOAuthFlow(unittest.TestCase):
         self.app_secret = "test_app_secret"
         self.token_file_path = "/tmp/test_token.json"
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.DropboxOAuth2FlowNoRedirect")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.DropboxOAuth2FlowNoRedirect")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_initiate_oauth_flow_success(
         self, mock_logger, mock_flow_class, mock_dropbox
     ):
@@ -308,8 +308,8 @@ class TestDropboxAuthHandlerOAuthFlow(unittest.TestCase):
         )
         mock_logger.info.assert_any_call("OAuth flow started successfully")
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.DropboxOAuth2FlowNoRedirect")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.DropboxOAuth2FlowNoRedirect")
     def test_initiate_oauth_flow_failure(self, mock_flow_class, mock_dropbox):
         """Test OAuth flow initiation failure."""
         mock_dropbox.__bool__ = lambda x: True
@@ -327,9 +327,9 @@ class TestDropboxAuthHandlerOAuthFlow(unittest.TestCase):
 
         self.assertIn("Could not start OAuth flow", str(context.exception))
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.webbrowser")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.webbrowser")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_open_browser_success(self, mock_logger, mock_webbrowser, mock_dropbox):
         """Test successful browser opening."""
         mock_dropbox.__bool__ = lambda x: True
@@ -345,9 +345,9 @@ class TestDropboxAuthHandlerOAuthFlow(unittest.TestCase):
         mock_webbrowser.open.assert_called_with(test_url)
         mock_logger.info.assert_called_with("Opening authorization URL in browser")
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.webbrowser")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.webbrowser")
+    @patch("src.integrations.dropbox.auth.logger")
     @patch("builtins.print")
     def test_open_browser_failure(
         self, mock_print, mock_logger, mock_webbrowser, mock_dropbox
@@ -369,7 +369,7 @@ class TestDropboxAuthHandlerOAuthFlow(unittest.TestCase):
             f"Please manually open this URL in your browser: {test_url}"
         )
 
-    @patch("dropbox_auth.dropbox")
+    @patch("src.integrations.dropbox.auth.dropbox")
     @patch("builtins.input", side_effect=["", "test_auth_code"])
     @patch("builtins.print")
     def test_get_authorization_code(self, mock_print, mock_input, mock_dropbox):
@@ -396,8 +396,8 @@ class TestDropboxAuthHandlerAuthentication(unittest.TestCase):
         self.app_secret = "test_app_secret"
         self.token_file_path = "/tmp/test_token.json"
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_authenticate_with_existing_token(self, mock_logger, mock_dropbox):
         """Test authentication using existing refresh token."""
         mock_dropbox.__bool__ = lambda x: True
@@ -418,8 +418,8 @@ class TestDropboxAuthHandlerAuthentication(unittest.TestCase):
         self.assertEqual(result, mock_client)
         self.assertEqual(handler._client, mock_client)
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     @patch("builtins.print")
     def test_authenticate_interactive_flow_success(
         self, mock_print, mock_logger, mock_dropbox
@@ -465,7 +465,7 @@ class TestDropboxAuthHandlerAuthentication(unittest.TestCase):
         mock_flow.finish.assert_called_with("auth_code")
         mock_logger.info.assert_any_call("Authentication completed successfully")
 
-    @patch("dropbox_auth.dropbox")
+    @patch("src.integrations.dropbox.auth.dropbox")
     def test_authenticate_failure(self, mock_dropbox):
         """Test authentication failure."""
         mock_dropbox.__bool__ = lambda x: True
@@ -486,7 +486,7 @@ class TestDropboxAuthHandlerAuthentication(unittest.TestCase):
 
         self.assertIn("Authentication failed", str(context.exception))
 
-    @patch("dropbox_auth.dropbox")
+    @patch("src.integrations.dropbox.auth.dropbox")
     def test_is_authenticated(self, mock_dropbox):
         """Test authentication status checking."""
         mock_dropbox.__bool__ = lambda x: True
@@ -503,7 +503,7 @@ class TestDropboxAuthHandlerAuthentication(unittest.TestCase):
         handler._client = Mock()
         self.assertTrue(handler.is_authenticated())
 
-    @patch("dropbox_auth.dropbox")
+    @patch("src.integrations.dropbox.auth.dropbox")
     def test_get_client(self, mock_dropbox):
         """Test getting the authenticated client."""
         mock_dropbox.__bool__ = lambda x: True
@@ -538,8 +538,8 @@ class TestDropboxAuthHandlerUtilities(unittest.TestCase):
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    @patch("dropbox_auth.dropbox")
-    @patch("dropbox_auth.logger")
+    @patch("src.integrations.dropbox.auth.dropbox")
+    @patch("src.integrations.dropbox.auth.logger")
     def test_clear_stored_token(self, mock_logger, mock_dropbox):
         """Test clearing stored refresh token."""
         mock_dropbox.__bool__ = lambda x: True
@@ -563,7 +563,7 @@ class TestDropboxAuthHandlerUtilities(unittest.TestCase):
         self.assertIsNone(handler._client)
         mock_logger.info.assert_called_with("Stored refresh token cleared")
 
-    @patch("dropbox_auth.dropbox")
+    @patch("src.integrations.dropbox.auth.dropbox")
     def test_get_account_info_success(self, mock_dropbox):
         """Test successful account info retrieval."""
         mock_dropbox.__bool__ = lambda x: True
@@ -596,7 +596,7 @@ class TestDropboxAuthHandlerUtilities(unittest.TestCase):
         }
         self.assertEqual(result, expected)
 
-    @patch("dropbox_auth.dropbox")
+    @patch("src.integrations.dropbox.auth.dropbox")
     def test_get_account_info_no_client(self, mock_dropbox):
         """Test account info retrieval when not authenticated."""
         mock_dropbox.__bool__ = lambda x: True

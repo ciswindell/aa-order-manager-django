@@ -5,10 +5,10 @@ from tkinter import filedialog, messagebox
 
 from tkcalendar import DateEntry
 
-from dropbox_auth import DropboxAuthHandler
-from dropbox_config import DropboxConfig
-from dropbox_service import DropboxService
-from processors import FederalOrderProcessor, NMStateOrderProcessor
+from src.core.processors import FederalOrderProcessor, NMStateOrderProcessor
+from src.integrations.dropbox.auth import DropboxAuthHandler
+from src.integrations.dropbox.config import DropboxConfig
+from src.integrations.dropbox.service import DropboxService
 
 
 def load_env_file():
