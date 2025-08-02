@@ -61,14 +61,14 @@ Based on PRD: `prd-extract-utilities-shared-components.md`
 
 - [x] 4.0 Update Existing Processors to Use New Utilities
 
-- [ ] 5.0 Implement Comprehensive Unit Testing
-  - [ ] 5.1 Create `/tests/core/` directory and `tests/core/__init__.py` file
-  - [ ] 5.2 Create `tests/core/test_data_utils.py` with unit tests for DataCleaner.clean_date_column() with various date formats from `src/core/utils/data_utils.py`
-  - [ ] 5.3 Add unit tests for ColumnManager.add_metadata_columns() including existing column handling scenarios
-  - [ ] 5.4 Add unit tests for BlankColumnManager.add_blank_columns() with various column scenarios
-  - [ ] 5.5 Create `tests/core/test_excel_utils.py` with unit tests for all WorksheetStyler class methods using mock worksheet objects
-  - [ ] 5.6 Add unit tests for ExcelWriter.save_with_formatting() with mock file operations and error handling
-  - [ ] 5.7 Create `tests/core/test_file_utils.py` with unit tests for FilenameGenerator.generate_order_filename() with various input combinations
-  - [ ] 5.8 Create `tests/core/test_parsing_utils.py` with unit tests for ParsedColumnGenerator methods and moved LeaseNumberParser functionality
-  - [ ] 5.9 Verify 100% test coverage for all new utility classes (excluding edge cases as per PRD)
-  - [ ] 5.10 Run integration tests to ensure refactored processors produce equivalent output to original implementation 
+- [x] 5.0 Implement Comprehensive Unit Testing
+  - [x] 5.1 Create `/tests/core/` directory and `tests/core/__init__.py` file
+  - [x] 5.2 Create `tests/core/test_data_utils.py` with unit tests for DataCleaner.clean_date_column() with various date formats from `src/core/utils/data_utils.py`
+  - [x] 5.3 Add unit tests for ColumnManager.add_metadata_columns() including existing column handling scenarios
+  - [x] 5.4 Add unit tests for BlankColumnManager.add_blank_columns() with various column scenarios
+  - [x] 5.5 Create `tests/core/test_excel_utils.py` with unit tests for all WorksheetStyler class methods using mock worksheet objects
+  - [x] 5.6 Add unit tests for ExcelWriter.save_with_formatting() with mock file operations and error handling
+  - [x] 5.7 Create `tests/core/test_file_utils.py` with unit tests for FilenameGenerator.generate_order_filename() with various input combinations
+  - [x] 5.8 Create `tests/core/test_parsing_utils.py` with unit tests for ParsedColumnGenerator methods and moved LeaseNumberParser functionality
+  - [x] 5.9 Verify 100% test coverage for all new utility classes (excluding edge cases as per PRD)
+  - [x] 5.10 Run integration tests to ensure refactored processors produce equivalent output to original implementation 
