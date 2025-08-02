@@ -23,7 +23,25 @@ Example Usage:
 from .base import WorkflowBase, WorkflowConfig, WorkflowIdentity
 from .executor import WorkflowExecutor
 from .lease_directory_search import LeaseDirectorySearchWorkflow
+from .previous_report_detection import PreviousReportDetectionWorkflow
 # from .results import WorkflowResult, WorkflowError  
+
+
+def setup_workflow_executor() -> WorkflowExecutor:
+    """
+    Initialize WorkflowExecutor with all available workflow types registered.
+    
+    Returns:
+        WorkflowExecutor: Configured executor with all workflows registered
+    """
+    executor = WorkflowExecutor()
+    
+    # Register all available workflow types
+    executor.register_workflow_type("lease_directory_search", LeaseDirectorySearchWorkflow)
+    executor.register_workflow_type("previous_report_detection", PreviousReportDetectionWorkflow)
+    
+    return executor
+
 
 __version__ = "1.0.0"
 __all__ = [
@@ -31,5 +49,7 @@ __all__ = [
     "WorkflowConfig", 
     "WorkflowIdentity",
     "WorkflowExecutor",
-    "LeaseDirectorySearchWorkflow"
+    "LeaseDirectorySearchWorkflow",
+    "PreviousReportDetectionWorkflow",
+    "setup_workflow_executor"
 ]
