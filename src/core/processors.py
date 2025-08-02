@@ -3,17 +3,11 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from openpyxl.styles import (
-    Alignment,
-    Border,
-    Font,
-    NamedStyle,
-    PatternFill,
-    Protection,
-    Side,
-)
 
-from .utils.parsing_utils import LeaseNumberParser
+from .utils.data_utils import BlankColumnManager, ColumnManager, DataCleaner
+from .utils.excel_utils import ExcelWriter
+from .utils.file_utils import FilenameGenerator
+from .utils.parsing_utils import LeaseNumberParser, ParsedColumnGenerator
 
 
 class OrderProcessor(ABC):
@@ -48,27 +42,6 @@ class OrderProcessor(ABC):
     def create_folders(self):
         pass
 
-    def generate_filename(self) -> str:
-        """Generate descriptive filename using GUI input data"""
-        # Get order number, defaulting to "Unknown" if empty
-        order_num = self.order_number.strip() if self.order_number else "Unknown"
-
-        # Get agency, defaulting to "Unknown" if empty
-        agency = self.agency if self.agency else "Unknown"
-
-        # Get order type, defaulting to "Unknown" if empty
-        order_type = self.order_type if self.order_type else "Unknown"
-
-        # Create filename: Order_{OrderNumber}_{Agency}_{OrderType}
-        filename = f"Order_{order_num}_{agency}_{order_type}.xlsx"
-
-        # Clean filename of any invalid characters
-        import re
-
-        filename = re.sub(r'[<>:"/\\|?*]', "_", filename)
-
-        return filename
-
 
 class NMSLOOrderProcessor(OrderProcessor):
     def __init__(
@@ -86,86 +59,38 @@ class NMSLOOrderProcessor(OrderProcessor):
     def read_order_form(self):
         data = pd.read_excel(self.order_form)
 
-        # Clean Report Start Date column - keep only actual dates, make everything else blank
+        # Clean Report Start Date column using DataCleaner utility
         if "Report Start Date" in data.columns:
-
-            def clean_date(value):
-                if pd.isna(value) or value == "":
-                    return None
-
-                # If it's a string, check if it contains only letters (like "Inception")
-                if isinstance(value, str):
-                    # If it's all letters or contains words like "inception", make it blank
-                    if value.isalpha() or "inception" in value.lower():
-                        return None
-                    # Try to parse date strings
-                    try:
-                        return pd.to_datetime(value, errors="raise")
-                    except:
-                        return None
-
-                # If it's a number, try to convert (could be Excel serial date)
-                if isinstance(value, (int, float)):
-                    try:
-                        # Convert Excel serial number to date
-                        return pd.to_datetime("1899-12-30") + pd.Timedelta(days=value)
-                    except:
-                        return None
-
-                # If it's already a datetime, keep it
-                if isinstance(value, (pd.Timestamp, datetime)):
-                    return value
-
-                return None
-
-            data["Report Start Date"] = data["Report Start Date"].apply(clean_date)
+            data = DataCleaner.clean_date_column(data, "Report Start Date")
 
         return data
 
     def process_data(self) -> pd.DataFrame:
         data = self.data
 
-        # Add new columns if they don't exist, placing them at the beginning
-        new_columns = ["Agency", "Order Type", "Order Number", "Order Date"]
-        existing_columns = data.columns.tolist()
-
-        # Create empty columns for the new fields
-        for col in reversed(
-            new_columns
-        ):  # Reverse to maintain order when inserting at front
-            if col not in existing_columns:
-                data.insert(0, col, "")
-
-        # Prefill Agency and Order Type columns based on GUI selections
-        if self.agency:
-            data["Agency"] = self.agency
-        if self.order_type:
-            data["Order Type"] = self.order_type
-        if self.order_date:
-            data["Order Date"] = self.order_date
-        if self.order_number:
-            data["Order Number"] = self.order_number
-
-        data["Full Search"] = data["Lease"].apply(
-            lambda x: LeaseNumberParser(x).search_full()
-        )
-        data["Partial Search"] = data["Lease"].apply(
-            lambda x: LeaseNumberParser(x).search_partial()
+        # Add metadata columns using ColumnManager utility
+        data = ColumnManager.add_metadata_columns(
+            data,
+            agency=self.agency,
+            order_type=self.order_type,
+            order_date=self.order_date,
+            order_number=self.order_number,
         )
 
-        blank_columns = pd.DataFrame(
-            columns=[
-                "New Format",
-                "Tractstar",
-                "Old Format",
-                "MI Index",
-                "Documents",
-                "Search Notes",
-                "Link",
-            ],
-            index=data.index,
-        )
-        data = pd.concat([data, blank_columns], axis=1)
+        # Add search columns using ParsedColumnGenerator utility
+        data = ParsedColumnGenerator.add_state_search_columns(data)
+
+        # Add blank columns using BlankColumnManager utility
+        blank_column_names = [
+            "New Format",
+            "Tractstar",
+            "Old Format",
+            "MI Index",
+            "Documents",
+            "Search Notes",
+            "Link",
+        ]
+        data = BlankColumnManager.add_blank_columns(data, blank_column_names)
 
         return data
 
@@ -198,15 +123,15 @@ class NMSLOOrderProcessor(OrderProcessor):
                 # Continue with worksheet creation even if Dropbox fails
                 pass
 
+        # Save Excel file with formatting using ExcelWriter utility
         base_path = Path(self.order_form).absolute().parent
-        file_name = self.generate_filename()
+        file_name = FilenameGenerator.generate_order_filename(
+            order_number=self.order_number,
+            agency=self.agency,
+            order_type=self.order_type,
+        )
         output_path = base_path / file_name
-        writer = pd.ExcelWriter(output_path, engine="openpyxl")
-        data.to_excel(writer, index=False, sheet_name="Worksheet")
 
-        worksheet = writer.sheets["Worksheet"]
-
-        # Update column widths dictionary to include new columns
         column_widths = {
             "Agency": 15,
             "Order Type": 15,
@@ -226,39 +151,7 @@ class NMSLOOrderProcessor(OrderProcessor):
             "Link": 30,
         }
 
-        # Set column widths using column names
-        for idx, col in enumerate(data.columns):
-            column_letter = chr(ord("A") + idx)
-            worksheet.column_dimensions[column_letter].width = column_widths.get(
-                col, 12
-            )  # Default to 12 if not specified
-
-        normal_style = NamedStyle(name="normal")
-        normal_style.font = Font(name="Calibri", size=11)
-        normal_style.alignment = Alignment(
-            horizontal="left", vertical="top", wrap_text=True
-        )
-
-        for row in worksheet.iter_rows(min_row=1, max_row=500):
-            for cell in row:
-                cell.style = normal_style
-            worksheet.row_dimensions[row[0].row].height = None
-
-        # Apply date formatting to date columns
-        date_columns = ["Order Date", "Report Start Date"]
-        for col_name in date_columns:
-            if col_name in data.columns:
-                col_idx = data.columns.get_loc(col_name) + 1  # Excel is 1-indexed
-                col_letter = chr(ord("A") + col_idx - 1)
-                # Format the entire column as date
-                for row in range(1, worksheet.max_row + 1):  # Include header
-                    cell = worksheet[f"{col_letter}{row}"]
-                    cell.number_format = "M/D/YYYY"
-
-        worksheet.freeze_panes = worksheet.cell(row=2, column=1)
-        worksheet.auto_filter.ref = "A1:{}1".format(chr(ord("A") + data.shape[1] - 1))
-
-        writer.close()
+        ExcelWriter.save_with_formatting(data, output_path, column_widths)
 
     def create_folders(self):
         base_path = Path(self.order_form).absolute().parent
@@ -285,78 +178,36 @@ class FederalOrderProcessor(OrderProcessor):
     def read_order_form(self):
         data = pd.read_excel(self.order_form)
 
-        # Clean Report Start Date column - keep only actual dates, make everything else blank
+        # Clean Report Start Date column using DataCleaner utility
         if "Report Start Date" in data.columns:
-
-            def clean_date(value):
-                if pd.isna(value) or value == "":
-                    return None
-
-                # If it's a string, check if it contains only letters (like "Inception")
-                if isinstance(value, str):
-                    # If it's all letters or contains words like "inception", make it blank
-                    if value.isalpha() or "inception" in value.lower():
-                        return None
-                    # Try to parse date strings
-                    try:
-                        return pd.to_datetime(value, errors="raise")
-                    except:
-                        return None
-
-                # If it's a number, try to convert (could be Excel serial date)
-                if isinstance(value, (int, float)):
-                    try:
-                        # Convert Excel serial number to date
-                        return pd.to_datetime("1899-12-30") + pd.Timedelta(days=value)
-                    except:
-                        return None
-
-                # If it's already a datetime, keep it
-                if isinstance(value, (pd.Timestamp, datetime)):
-                    return value
-
-                return None
-
-            data["Report Start Date"] = data["Report Start Date"].apply(clean_date)
+            data = DataCleaner.clean_date_column(data, "Report Start Date")
 
         return data
 
     def process_data(self) -> pd.DataFrame:
         data = self.data
 
-        # Add new columns if they don't exist, placing them at the beginning
-        new_columns = ["Agency", "Order Type", "Order Number", "Order Date"]
-        existing_columns = data.columns.tolist()
-
-        # Create empty columns for the new fields
-        for col in reversed(
-            new_columns
-        ):  # Reverse to maintain order when inserting at front
-            if col not in existing_columns:
-                data.insert(0, col, "")
-
-        # Prefill Agency and Order Type columns based on GUI selections
-        if self.agency:
-            data["Agency"] = self.agency
-        if self.order_type:
-            data["Order Type"] = self.order_type
-        if self.order_date:
-            data["Order Date"] = self.order_date
-        if self.order_number:
-            data["Order Number"] = self.order_number
-
-        data["Files Search"] = data["Lease"].apply(
-            lambda x: LeaseNumberParser(x).search_file()
-        )
-        data["Tractstar Search"] = data["Lease"].apply(
-            lambda x: LeaseNumberParser(x).search_tractstar()
+        # Add metadata columns using ColumnManager utility
+        data = ColumnManager.add_metadata_columns(
+            data,
+            agency=self.agency,
+            order_type=self.order_type,
+            order_date=self.order_date,
+            order_number=self.order_number,
         )
 
-        blank_columns = pd.DataFrame(
-            columns=["New Format", "Tractstar", "Documents", "Search Notes", "Link"],
-            index=data.index,
-        )
-        data = pd.concat([data, blank_columns], axis=1)
+        # Add search columns using ParsedColumnGenerator utility
+        data = ParsedColumnGenerator.add_federal_search_columns(data)
+
+        # Add blank columns using BlankColumnManager utility
+        blank_column_names = [
+            "New Format",
+            "Tractstar",
+            "Documents",
+            "Search Notes",
+            "Link",
+        ]
+        data = BlankColumnManager.add_blank_columns(data, blank_column_names)
 
         return data
 
@@ -389,15 +240,15 @@ class FederalOrderProcessor(OrderProcessor):
                 # Continue with worksheet creation even if Dropbox fails
                 pass
 
+        # Save Excel file with formatting using ExcelWriter utility
         base_path = Path(self.order_form).absolute().parent
-        file_name = self.generate_filename()
+        file_name = FilenameGenerator.generate_order_filename(
+            order_number=self.order_number,
+            agency=self.agency,
+            order_type=self.order_type,
+        )
         output_path = base_path / file_name
-        writer = pd.ExcelWriter(output_path, engine="openpyxl")
-        data.to_excel(writer, index=False, sheet_name="Worksheet")
 
-        worksheet = writer.sheets["Worksheet"]
-
-        # Define column widths using a dictionary
         column_widths = {
             "Agency": 15,
             "Order Type": 15,
@@ -416,39 +267,7 @@ class FederalOrderProcessor(OrderProcessor):
             "Link": 30,
         }
 
-        # Set column widths using column names
-        for idx, col in enumerate(data.columns):
-            column_letter = chr(ord("A") + idx)
-            worksheet.column_dimensions[column_letter].width = column_widths.get(
-                col, 12
-            )  # Default to 12 if not specified
-
-        normal_style = NamedStyle(name="normal")
-        normal_style.font = Font(name="Calibri", size=11)
-        normal_style.alignment = Alignment(
-            horizontal="left", vertical="top", wrap_text=True
-        )
-
-        for row in worksheet.iter_rows(min_row=1, max_row=500):
-            for cell in row:
-                cell.style = normal_style
-            worksheet.row_dimensions[row[0].row].height = None
-
-        # Apply date formatting to entire date columns
-        date_columns = ["Order Date", "Report Start Date"]
-        for col_name in date_columns:
-            if col_name in data.columns:
-                col_idx = data.columns.get_loc(col_name) + 1  # Excel is 1-indexed
-                col_letter = chr(ord("A") + col_idx - 1)
-                # Format the entire column as date
-                for row in range(1, worksheet.max_row + 1):  # Include header
-                    cell = worksheet[f"{col_letter}{row}"]
-                    cell.number_format = "M/D/YYYY"
-
-        worksheet.freeze_panes = worksheet.cell(row=2, column=1)
-        worksheet.auto_filter.ref = "A1:{}1".format(chr(ord("A") + data.shape[1] - 1))
-
-        writer.close()
+        ExcelWriter.save_with_formatting(data, output_path, column_widths)
 
     def create_folders(self):
         base_path = Path(self.order_form).absolute().parent

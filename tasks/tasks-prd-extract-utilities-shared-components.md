@@ -48,16 +48,18 @@ Based on PRD: `prd-extract-utilities-shared-components.md`
   - [x] 3.4 Create ParsedColumnGenerator class with add_state_search_columns() and add_federal_search_columns() class methods
   - [x] 3.5 Ensure search methods properly use LeaseNumberParser for generating search terms
 
-- [ ] 4.0 Update Existing Processors to Use New Utilities
-  - [ ] 4.1 Update NMStateOrderProcessor to import and use DataCleaner for date cleaning logic
-  - [ ] 4.2 Update FederalOrderProcessor to import and use DataCleaner for date cleaning logic
-  - [ ] 4.3 Replace duplicate metadata column logic in both processors with ColumnManager.add_metadata_columns()
-  - [ ] 4.4 Replace duplicate blank column logic in both processors with BlankColumnManager.add_blank_columns()
-  - [ ] 4.5 Replace duplicate Excel formatting and writing logic with ExcelWriter.save_with_formatting()
-  - [ ] 4.6 Replace generate_filename() method calls with FilenameGenerator.generate_order_filename()
-  - [ ] 4.7 Update search column generation to use ParsedColumnGenerator class methods
-  - [ ] 4.8 Change all "NMState" references to "NMSLO" throughout processors.py
-  - [ ] 4.9 Verify functional equivalence by testing with sample data files
+- [x] 4.0 Update Existing Processors to Use New Utilities
+  - [x] 4.1 Update NMSLOOrderProcessor to import and use DataCleaner for date cleaning logic
+  - [x] 4.2 Update FederalOrderProcessor to import and use DataCleaner for date cleaning logic
+  - [x] 4.3 Replace duplicate metadata column logic in both processors with ColumnManager.add_metadata_columns()
+  - [x] 4.4 Replace duplicate blank column logic in both processors with BlankColumnManager.add_blank_columns()
+  - [x] 4.5 Replace duplicate Excel formatting and writing logic with ExcelWriter.save_with_formatting()
+  - [x] 4.6 Replace generate_filename() method calls with FilenameGenerator.generate_order_filename()
+  - [x] 4.7 Update search column generation to use ParsedColumnGenerator class methods
+  - [x] 4.8 Change all "NMState" references to "NMSLO" throughout processors.py
+  - [x] 4.9 Verify functional equivalence by testing with sample data files
+
+- [x] 4.0 Update Existing Processors to Use New Utilities
 
 - [ ] 5.0 Implement Comprehensive Unit Testing
   - [ ] 5.1 Create `/tests/core/` directory and `tests/core/__init__.py` file
