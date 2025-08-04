@@ -13,6 +13,9 @@ import webbrowser
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+# Import config system
+from src import config
+
 try:
     import dropbox
     from dropbox import DropboxOAuth2FlowNoRedirect
@@ -55,8 +58,8 @@ class DropboxAuthHandler:
                 "Dropbox SDK not available. Install with: pip install dropbox"
             )
 
-        self.app_key = app_key
-        self.app_secret = app_secret
+        self.app_key = app_key or config.get_dropbox_app_key()
+        self.app_secret = app_secret or config.get_dropbox_app_secret()
         self.token_file_path = token_file_path or self._get_default_token_path()
         self._client = None
         self._refresh_token = None
@@ -293,9 +296,9 @@ class DropboxAuthHandler:
             DropboxAuthenticationError: If authentication fails
         """
         try:
-            # Get token from parameter or environment
-            token = access_token or os.environ.get("DROPBOX_ACCESS_TOKEN")
-            member_id = team_member_id or os.environ.get("DROPBOX_TEAM_MEMBER_ID")
+            # Get token from parameter or environment using new config system
+            token = access_token or config.get_dropbox_access_token()
+            member_id = team_member_id or os.environ.get("DROPBOX_TEAM_MEMBER_ID")  # Keep as direct access since not in new config
 
             if not token:
                 logger.warning(

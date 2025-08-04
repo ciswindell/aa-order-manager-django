@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional
 from .base import WorkflowBase, WorkflowConfig, WorkflowIdentity
 from src.core.models import OrderItemData, AgencyType
 from src.integrations.dropbox.service import DropboxService
+from src import config
 
 
 logger = logging.getLogger(__name__)
@@ -189,13 +190,15 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
             _build_directory_path("Federal", "NMNM 0501759") → "/Federal/NMNM 0501759"
             _build_directory_path("NMSLO", "12345") → "/NMSLO/12345"
         """
-        # Simple path construction - could be enhanced with config later
-        if agency_string == "Federal":
-            return f"/Federal/{lease_number}"
-        elif agency_string == "NMSLO":  
-            return f"/NMSLO/{lease_number}"
-        else:
-            raise ValueError(f"Unsupported agency string: {agency_string}")
+        # Get base directory path from config system
+        base_path = config.get_lease_file_directory_path(agency_string)
+        
+        # Ensure base path ends with slash for proper path construction
+        if not base_path.endswith("/"):
+            base_path += "/"
+        
+        # Build full path: base_path + lease_number
+        return f"{base_path}{lease_number}"
     
     def set_dropbox_service(self, dropbox_service: DropboxService) -> None:
         """

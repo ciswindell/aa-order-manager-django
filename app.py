@@ -7,37 +7,8 @@ from tkcalendar import DateEntry
 
 from src.core.processors import FederalOrderProcessor, NMSLOOrderProcessor
 from src.integrations.dropbox.auth import DropboxAuthHandler
-from src.integrations.dropbox.config import DropboxConfig
 from src.integrations.dropbox.service import DropboxService
-
-
-def load_env_file():
-    """Load environment variables from .env file if it exists."""
-    env_file = ".env"
-    if os.path.exists(env_file):
-        try:
-            with open(env_file, "r") as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#") and "=" in line:
-                        key, value = line.split("=", 1)
-                        os.environ[key.strip()] = value.strip()
-
-            print("✅ .env file loaded successfully")
-            print(f"   App Key: {'✅' if os.getenv('DROPBOX_APP_KEY') else '❌'}")
-            print(f"   App Secret: {'✅' if os.getenv('DROPBOX_APP_SECRET') else '❌'}")
-            print(
-                f"   Access Token: {'✅' if os.getenv('DROPBOX_ACCESS_TOKEN') else '❌'}"
-            )
-
-        except Exception as e:
-            print(f"⚠️ Warning: Could not load .env file: {e}")
-    else:
-        print("⚠️ Warning: .env file not found")
-
-
-# Load environment variables from .env file at startup
-load_env_file()
+from src import config  # Automatically loads environment variables
 
 
 def reset_gui():
@@ -133,11 +104,8 @@ def process_order():
                     )
                     dropbox_service = None
                 else:
-                    # Create config manager for directory paths
-                    config_manager = DropboxConfig()
-
-                    # Create Dropbox service with auth handler
-                    dropbox_service = DropboxService(auth_handler, config_manager)
+                    # Create Dropbox service with auth handler (no config manager needed)
+                    dropbox_service = DropboxService(auth_handler)
 
                     # Ensure service is authenticated (should already be ready)
                     dropbox_service.authenticate()

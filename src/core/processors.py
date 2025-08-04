@@ -1,30 +1,28 @@
 """
 Order Processors
 
-Agency-specific order processors that use externalized configuration.
+Agency-specific order processors that use the unified configuration system.
 
 This module provides concrete implementations of OrderProcessor for different
-agency types (NMSLO, Federal). Each processor uses configuration-driven
-behavior instead of hard-coded values, making it easy to add new agency
-types by simply adding configuration entries.
+agency types (NMSLO, Federal). Each processor uses the unified config system
+for agency-specific settings like column widths, folder structures, and 
+directory paths.
 
 Configuration Integration:
-- Static configuration provides column widths, folder structures, and agency names
-- Behavioral configuration provides search function mappings and blank column definitions
+- Uses unified config system (src/config.py) for all agency settings
+- Column widths, folder structures, and directory paths loaded per agency
 - Configuration can be injected for testing or custom scenarios
 - Default configurations are automatically loaded for each agency type
 
 Example:
-    # Use default configuration
+    # Use default configuration (automatically loads from unified config)
     processor = NMSLOOrderProcessor(order_form="data.xlsx")
     
-    # Use custom configuration
-    custom_static = AgencyStaticConfig(...)
-    custom_behavioral = AgencyBehaviorConfig(...)
+    # Use custom configuration (for testing)
+    custom_agency_config = config.get_agency_config("NMSLO")
     processor = NMSLOOrderProcessor(
         order_form="data.xlsx",
-        static_config=custom_static,
-        behavioral_config=custom_behavioral
+        static_config=custom_agency_config
     )
 """
 
@@ -34,7 +32,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .config import get_behavioral_config, get_static_config
+from src import config
 from .utils.data_utils import BlankColumnManager, ColumnManager, DataCleaner
 from .utils.excel_utils import ExcelWriter
 from .utils.file_utils import FilenameGenerator
@@ -112,8 +110,8 @@ class NMSLOOrderProcessor(OrderProcessor):
         super().__init__(order_form, agency, order_type, order_date, order_number)
         self.dropbox_service = dropbox_service
         # Dependency injection for configuration - allows testing with mock configs
-        self.static_config = static_config or get_static_config("NMSLO")
-        self.behavioral_config = behavioral_config or get_behavioral_config("NMSLO")
+        self.agency_config = static_config or config.get_agency_config("NMSLO")
+# behavioral_config removed - using hardcoded agency-specific columns
 
     def read_order_form(self):
         data = pd.read_excel(self.order_form)
@@ -136,14 +134,12 @@ class NMSLOOrderProcessor(OrderProcessor):
             order_number=self.order_number,
         )
 
-        # Add search columns using behavioral configuration
-        search_data = self.behavioral_config.create_search_data(data["Lease"])
-        for column_name, column_data in search_data.items():
-            data[column_name] = column_data
-
-        # Add blank columns using BlankColumnManager utility
-        blank_column_names = self.behavioral_config.get_blank_columns()
-        data = BlankColumnManager.add_blank_columns(data, blank_column_names)
+        # Add blank search columns for NMSLO
+        nmslo_search_columns = [
+            "Full Search", "Partial Search", "New Format", "Tractstar", 
+            "Old Format", "MI Index", "Documents", "Search Notes"
+        ]
+        data = BlankColumnManager.add_blank_columns(data, nmslo_search_columns)
 
         return data
 
@@ -161,7 +157,7 @@ class NMSLOOrderProcessor(OrderProcessor):
                             # Search for directory using configured agency name
                             shareable_link = self.dropbox_service.search_directory(
                                 str(lease_name),
-                                agency=self.static_config.dropbox_agency_name,
+                                agency="NMSLO",
                             )
                             if shareable_link:
                                 data.at[index, "Link"] = shareable_link
@@ -187,13 +183,13 @@ class NMSLOOrderProcessor(OrderProcessor):
         output_path = base_path / file_name
 
         # Get column widths from static configuration
-        column_widths = self.static_config.column_widths
+        column_widths = self.agency_config.column_widths
 
         ExcelWriter.save_with_formatting(data, output_path, column_widths)
 
     def create_folders(self):
         base_path = Path(self.order_form).absolute().parent
-        directories = self.static_config.folder_structure
+        directories = self.agency_config.folder_structure
 
         for lease in self.data["Lease"]:
             for directory in directories:
@@ -239,8 +235,8 @@ class FederalOrderProcessor(OrderProcessor):
         super().__init__(order_form, agency, order_type, order_date, order_number)
         self.dropbox_service = dropbox_service
         # Dependency injection for configuration - allows testing with mock configs
-        self.static_config = static_config or get_static_config("Federal")
-        self.behavioral_config = behavioral_config or get_behavioral_config("Federal")
+        self.agency_config = static_config or config.get_agency_config("Federal")
+# behavioral_config removed - using hardcoded agency-specific columns
 
     def read_order_form(self):
         data = pd.read_excel(self.order_form)
@@ -263,14 +259,12 @@ class FederalOrderProcessor(OrderProcessor):
             order_number=self.order_number,
         )
 
-        # Add search columns using behavioral configuration
-        search_data = self.behavioral_config.create_search_data(data["Lease"])
-        for column_name, column_data in search_data.items():
-            data[column_name] = column_data
-
-        # Add blank columns using BlankColumnManager utility
-        blank_column_names = self.behavioral_config.get_blank_columns()
-        data = BlankColumnManager.add_blank_columns(data, blank_column_names)
+        # Add blank search columns for Federal
+        federal_search_columns = [
+            "Files Search", "Tractstar Search", "New Format", "Tractstar", 
+            "Documents", "Search Notes", "Notes"
+        ]
+        data = BlankColumnManager.add_blank_columns(data, federal_search_columns)
 
         return data
 
@@ -288,7 +282,7 @@ class FederalOrderProcessor(OrderProcessor):
                             # Search for directory using configured agency name
                             shareable_link = self.dropbox_service.search_directory(
                                 str(lease_name),
-                                agency=self.static_config.dropbox_agency_name,
+                                agency="Federal",
                             )
                             if shareable_link:
                                 data.at[index, "Link"] = shareable_link
@@ -314,13 +308,13 @@ class FederalOrderProcessor(OrderProcessor):
         output_path = base_path / file_name
 
         # Get column widths from static configuration
-        column_widths = self.static_config.column_widths
+        column_widths = self.agency_config.column_widths
 
         ExcelWriter.save_with_formatting(data, output_path, column_widths)
 
     def create_folders(self):
         base_path = Path(self.order_form).absolute().parent
-        directories = self.static_config.folder_structure
+        directories = self.agency_config.folder_structure
 
         for lease in self.data["Lease"]:
             for directory in directories:
