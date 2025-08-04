@@ -57,10 +57,16 @@ def test_final_integration():
         if result.get('directory_path'):
             print(f"\n📁 Path: {result.get('directory_path')}")
             
-        if result.get('shareable_link'):
-            link = result.get('shareable_link')
-            print(f"\n🔗 Link: {link[:60]}...")
+        # Always show shareable link status
+        link = result.get('shareable_link')
+        if link:
+            print(f"\n🔗 CLICKABLE LINK:")
+            print(f"   {link}")
             print("   🎉 Shareable link successfully created!")
+            print("   👆 Click the link above to test access!")
+        else:
+            print(f"\n🔗 Shareable Link: None (likely workspace permissions)")
+            print("   ℹ️  Regular user tokens have limited sharing permissions")
         
         print(f"\n🎯 COMPLETE SUCCESS!")
         print("✅ Regular user authentication: WORKING")

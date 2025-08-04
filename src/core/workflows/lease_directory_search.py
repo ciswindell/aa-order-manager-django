@@ -109,7 +109,7 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
             
             # Use DropboxService with the resolved path (SOLID principle)
             # Direct call - all DropboxService instances have this method
-            search_result = self.dropbox_service.search_directory_with_metadata(directory_path)
+            search_result = self.dropbox_service.get_directory_details(directory_path)
             shareable_link = search_result.get("shareable_link")
             found_path = search_result.get("path")
             
