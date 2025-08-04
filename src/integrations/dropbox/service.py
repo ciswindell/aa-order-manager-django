@@ -94,7 +94,59 @@ class DropboxListError(DropboxServiceError):
 
 
 class DropboxService(DropboxServiceInterface):
-    """Simplified Dropbox service with only essential functionality."""
+    """
+    Simplified Dropbox service with only essential functionality.
+    
+    ⚠️  CRITICAL DROPBOX API QUIRKS & LESSONS LEARNED ⚠️
+    
+    This class contains extensive documentation about Dropbox API limitations discovered 
+    through extensive debugging. READ THESE BEFORE MODIFYING:
+    
+    🔧 **ARCHITECTURAL PRINCIPLES:**
+    - Service layer = dumb API wrapper (no business logic)
+    - Workflow layer = handles business logic, path construction
+    - Always validate separation of concerns
+    
+    🏢 **BUSINESS WORKSPACE COMPLEXITIES:**
+    
+    1. **Path Format Inconsistencies**:
+       - File listing APIs: Accept workspace paths like "/Federal Workspace/folder/file"
+       - Sharing APIs: CANNOT use workspace paths, require file IDs
+       - Solution: Extract file ID first, then use for sharing operations
+    
+    2. **Authentication Type Implications**:
+       - Regular user token: Can access workspace, limited sharing permissions
+       - Team token: Full admin capabilities, requires team member ID
+       - App folder token: Limited to app folder only
+       
+    3. **Namespace Client Requirements**:
+       - Business workspaces require PathRoot.namespace_id() clients
+       - Must lookup shared folder IDs for workspace names
+       - Path transformations: "/Workspace/path" → "/path" within namespace
+    
+    4. **Sharing Permission Hierarchy** (try in order):
+       - team_only: Most common success for business
+       - password: Fallback for restricted environments
+       - default: Last resort
+    
+    🚨 **COMMON GOTCHAS:**
+    
+    - LookupError('not_found') in sharing = wrong path format (use file ID)
+    - Regular user can access but not share = expected behavior
+    - Business workspace paths work for listing but fail for sharing
+    - File IDs are the universal solution for sharing API calls
+    
+    💡 **DEBUGGING TIPS:**
+    
+    - If sharing fails: Extract file ID and retry
+    - If path not found: Check workspace namespacing
+    - If auth fails: Verify token type matches operation requirements
+    - Test with simple non-workspace paths first
+    
+    📚 **REFERENCES:**
+    - Dropbox Developer Guide: https://developers.dropbox.com/dbx-sharing-guide
+    - Team Files Guide: https://developers.dropbox.com/dbx-team-files-guide
+    """
 
     def __init__(self, auth_handler=None, config_manager=None):
         self._auth_handler = auth_handler
@@ -156,35 +208,47 @@ class DropboxService(DropboxServiceInterface):
             raise DropboxSearchError(f"Failed to search directory '{directory_name}': {str(e)}")
 
     def search_directory_with_metadata(self, directory_path: str) -> Dict[str, Optional[str]]:
-        """Search for directory by path and return both path and shareable link."""
+        """
+        Search for directory by path and return both path and shareable link.
+        
+        ARCHITECTURAL LESSON LEARNED:
+        
+        This method was originally doing business logic (parsing agency from paths, 
+        using config managers) which violated separation of concerns. The service layer
+        should be a dumb API wrapper, not contain business logic.
+        
+        PROPER ARCHITECTURE:
+        - Workflow layer: Handles business logic, path construction, agency mapping
+        - Service layer: Takes paths as-is, makes API calls, returns results
+        
+        DROPBOX API QUIRKS:
+        - Directory discovery works fine with workspace-namespaced paths
+        - Shareable link creation requires file IDs (handled in get_shareable_link)
+        - Regular user auth can access workspace content but has limited sharing permissions
+        """
         if not self.is_authenticated():
             raise DropboxAuthenticationError("Service not authenticated")
 
         try:
             logger.info(f"Searching for directory with metadata at path: {directory_path}")
             
-            # Extract directory name from path (e.g., "/Federal/NMNM 0501759" -> "NMNM 0501759")
-            directory_name = directory_path.rstrip("/").split("/")[-1]
+            # Simply check if the path exists (no business logic here)
+            # Workflow layer handles all agency/config business logic
+            found_path = self._search_exact_directory_path(directory_path)
             
-            # Extract agency from path (e.g., "/Federal/NMNM 0501759" -> "Federal")  
-            agency = None
-            if "/" in directory_path.strip("/"):
-                agency = directory_path.strip("/").split("/")[0]
-            
-            # Use the working method: config manager + team workspace search
-            if self._config_manager and agency and directory_name:
-                search_path = self._config_manager.get_search_path_for_lease(agency, directory_name)
-                if search_path:
-                    logger.info(f"Config generated search path: {search_path}")
-                    found_path = self._search_exact_directory_path(search_path)
-                    
-                    if found_path:
-                        shareable_link = self.get_shareable_link(found_path)
-                        logger.info(f"Found directory: {found_path}")
-                        return {
-                            "path": found_path,
-                            "shareable_link": shareable_link
-                        }
+            if found_path:
+                # Attempt to create shareable link, but don't fail if restricted
+                shareable_link = None
+                try:
+                    shareable_link = self.get_shareable_link(found_path)
+                except Exception as e:
+                    logger.warning(f"Could not create shareable link (likely workspace restriction): {str(e)}")
+                
+                logger.info(f"Found directory: {found_path}")
+                return {
+                    "path": found_path,
+                    "shareable_link": shareable_link
+                }
             
             logger.info(f"Directory not found for path: {directory_path}")
             return {
@@ -299,33 +363,171 @@ class DropboxService(DropboxServiceInterface):
         return files
 
     def get_shareable_link(self, path: str) -> Optional[str]:
-        """Generate a shareable link for a path."""
+        """
+        Generate a shareable link for a path.
+        
+        CRITICAL DROPBOX API QUIRKS & LIMITATIONS:
+        
+        1. **File ID vs Path Issue**: The Dropbox sharing API cannot use workspace-namespaced 
+           paths like "/Federal Workspace/^Runsheet Workspace/Runsheet Archive/NMLC 0028446A".
+           The sharing API requires either:
+           - File/folder IDs (recommended for business workspaces)
+           - Regular Dropbox paths (not workspace-namespaced)
+           - Namespace relative paths
+           
+        2. **Business vs Personal Paths**: 
+           - Personal: "/MyFolder/file.txt" works directly
+           - Business: "/WorkspaceName/folder/file.txt" fails for sharing API
+           - Solution: Extract file ID first, then use ID for sharing
+           
+        3. **Authentication Type Impact**:
+           - Regular user tokens: Can access workspace content but limited sharing permissions
+           - Team tokens: Full admin sharing capabilities
+           - App folder tokens: Limited to app folder only
+           
+        4. **Sharing Permission Hierarchy** (tried in order):
+           - team_only: Most common for business workspaces
+           - password: Fallback for restricted environments  
+           - default: Last resort with no visibility specified
+           
+        5. **Workspace Namespacing**: File listing APIs use different path formats 
+           than sharing APIs - this is the root cause of most business workspace issues.
+        """
         if not self.is_authenticated():
             raise DropboxAuthenticationError("Service not authenticated")
 
         try:
             logger.info(f"Generating shareable link for: {path}")
             
+            # CRITICAL: For business workspaces, get file ID first since sharing API 
+            # doesn't work with workspace-namespaced paths (discovered through extensive debugging)
+            file_id = None
+            try:
+                # Get file metadata to extract the file ID
+                metadata = self._get_file_metadata(path)
+                if metadata and hasattr(metadata, 'id'):
+                    file_id = metadata.id
+                    logger.info(f"Using file ID for sharing: {file_id}")
+            except Exception as e:
+                logger.debug(f"Could not get file ID, using path: {str(e)}")
+            
+            # Use file ID if available, otherwise fall back to path
+            # This is the key fix for business workspace sharing issues
+            share_reference = file_id if file_id else path
+            
             # Try to get existing shared link first
             try:
-                links = self._client.sharing_list_shared_links(path=path, direct_only=True)
+                links = self._client.sharing_list_shared_links(path=share_reference, direct_only=True)
                 if links.links:
                     logger.info("Found existing shareable link")
                     return links.links[0].url
             except:
                 pass  # No existing link found, create new one
             
-            # Create new shared link
-            settings = SharedLinkSettings(
-                requested_visibility=RequestedVisibility.public,
-                allow_download=True
-            )
-            link = self._client.sharing_create_shared_link_with_settings(path, settings)
-            logger.info("Created new shareable link")
-            return link.url
+            # Create new shared link with business-appropriate settings
+            # PERMISSION HIERARCHY: Try in order of most likely to succeed in business environments
+            
+            # 1. Try team-only first (most common for business workspaces)
+            try:
+                settings = SharedLinkSettings(
+                    requested_visibility=RequestedVisibility.team_only,
+                    allow_download=True
+                )
+                link = self._client.sharing_create_shared_link_with_settings(share_reference, settings)
+                logger.info("Created team-only shareable link")
+                return link.url
+            except Exception as e:
+                logger.debug(f"Team-only sharing failed: {str(e)}")
+                
+                # 2. Fallback to password-protected if team-only fails
+                try:
+                    settings = SharedLinkSettings(
+                        requested_visibility=RequestedVisibility.password,
+                        allow_download=True
+                    )
+                    link = self._client.sharing_create_shared_link_with_settings(share_reference, settings)
+                    logger.info("Created password-protected shareable link")
+                    return link.url
+                except Exception as e:
+                    logger.debug(f"Password-protected sharing failed: {str(e)}")
+                    
+                    # 3. Last resort: default settings (no visibility specified)
+                    try:
+                        link = self._client.sharing_create_shared_link(share_reference)
+                        logger.info("Created default shareable link")
+                        return link.url
+                    except Exception as e:
+                        logger.error(f"All sharing methods failed: {str(e)}")
+                        # Let the outer exception handler catch this
+                        raise
 
         except Exception as e:
             logger.error(f"Failed to generate shareable link: {str(e)}")
+            return None
+
+    def _get_file_metadata(self, path: str):
+        """
+        Get file metadata for a given path.
+        
+        DROPBOX BUSINESS WORKSPACE NAMESPACING QUIRKS:
+        
+        1. **Two Client Types Needed**:
+           - Regular client: For personal Dropbox or simple business paths
+           - Workspace-namespaced client: For business workspace content
+           
+        2. **Path Transformations**:
+           - Input: "/Federal Workspace/^Runsheet Workspace/Runsheet Archive/NMLC 0028446A"
+           - Workspace name: "Federal Workspace" 
+           - Relative path: "/^Runsheet Workspace/Runsheet Archive/NMLC 0028446A"
+           
+        3. **Namespace ID Resolution**:
+           - Must lookup shared folder ID for workspace
+           - Create namespaced client with PathRoot.namespace_id()
+           - Use relative paths within that namespace
+           
+        4. **Fallback Strategy**:
+           - Try workspace-namespaced approach first
+           - Fall back to regular client if workspace lookup fails
+           - Gracefully handle all errors (metadata is optional for most operations)
+           
+        5. **Why This Complexity Exists**:
+           - Dropbox Business has layered access (team space vs member folders)
+           - Different APIs expect different path formats
+           - Regular user tokens need special handling for workspace content
+        """
+        try:
+            # Clean the path
+            clean_path = path.rstrip("/")
+            
+            # Extract workspace name for namespaced access
+            # This is required for business workspace content access
+            workspace_name = self._extract_workspace_name(clean_path)
+            if workspace_name:
+                # Use workspace-namespaced client - required for business workspaces
+                shared = self._client.sharing_list_folders()
+                workspace_folder_id = None
+                
+                # Find the shared folder ID for this workspace
+                for folder in shared.entries:
+                    if folder.name == workspace_name:
+                        workspace_folder_id = folder.shared_folder_id
+                        break
+                
+                if workspace_folder_id:
+                    # Create namespaced client with proper PathRoot
+                    path_root = dropbox.common.PathRoot.namespace_id(workspace_folder_id)
+                    workspace_client = self._client.with_path_root(path_root)
+                    
+                    # Convert to relative path within workspace
+                    relative_path = clean_path.replace(f"/{workspace_name}/", "/").rstrip("/")
+                    return workspace_client.files_get_metadata(relative_path)
+            
+            # Fallback to regular client for non-workspace paths
+            return self._client.files_get_metadata(clean_path)
+            
+        except Exception as e:
+            logger.debug(f"Could not get metadata for {path}: {str(e)}")
+            # Metadata failures are non-fatal - we can still do directory operations
             return None
 
     def _search_exact_directory_path(self, search_path: str) -> Optional[str]:

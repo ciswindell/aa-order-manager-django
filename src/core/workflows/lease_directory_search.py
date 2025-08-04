@@ -108,19 +108,10 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
             directory_path = self._build_directory_path(agency_name, lease_number)
             
             # Use DropboxService with the resolved path (SOLID principle)
-            if hasattr(self.dropbox_service, 'search_directory_with_metadata'):
-                # Use the new path-based method
-                search_result = self.dropbox_service.search_directory_with_metadata(directory_path)
-                shareable_link = search_result.get("shareable_link")
-                found_path = search_result.get("path")
-            else:
-                # Fallback to legacy agency-aware method for backward compatibility
-                search_result = self.dropbox_service.search_directory_with_path(
-                    directory_name=lease_number,
-                    agency=agency_name
-                )
-                shareable_link = search_result.get("shareable_link")
-                found_path = search_result.get("path")
+            # Direct call - all DropboxService instances have this method
+            search_result = self.dropbox_service.search_directory_with_metadata(directory_path)
+            shareable_link = search_result.get("shareable_link")
+            found_path = search_result.get("path")
             
             if shareable_link or found_path:
                 self.logger.info(f"Found lease directory - Link: {shareable_link}, Path: {found_path}")
@@ -187,11 +178,11 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
             str: Full directory path for searching
             
         Examples:
-            _build_directory_path("Federal", "NMNM 0501759") → "/Federal/NMNM 0501759"
-            _build_directory_path("NMSLO", "12345") → "/NMSLO/12345"
+            _build_directory_path("Federal", "NMNM 0501759") → "/Federal Workspace/^Runsheet Workspace/Runsheet Archive/NMNM 0501759"
+            _build_directory_path("NMSLO", "12345") → "/State Workspace/^Runsheet Workspace/Runsheet Report Archive - New Format/12345"
         """
         # Get base directory path from config system
-        base_path = config.get_lease_file_directory_path(agency_string)
+        base_path = config.get_runsheet_directory_path(agency_string)
         
         # Ensure base path ends with slash for proper path construction
         if not base_path.endswith("/"):

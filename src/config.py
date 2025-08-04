@@ -109,5 +109,20 @@ def get_dropbox_app_secret() -> str:
     """Get Dropbox app secret from environment."""
     return os.getenv("DROPBOX_APP_SECRET", "")
 
+def get_dropbox_auth_type() -> str:
+    """
+    Get Dropbox authentication type from environment.
+    
+    Returns:
+        str: Authentication type - 'user', 'team', or 'oauth'
+             Defaults to 'team' (for current business setup)
+    
+    Auth Types:
+        - 'user': Regular individual user authentication (for real users)
+        - 'team': Business team token with member selection (for services)  
+        - 'oauth': OAuth browser flow (future implementation)
+    """
+    return os.getenv("DROPBOX_AUTH_TYPE", "team")
+
 # Load environment once when module is imported
 load_environment()
