@@ -96,33 +96,18 @@ def get_column_widths(agency: str) -> Dict[str, int]:
     """Get column widths for an agency."""
     return get_agency_config(agency).column_widths
 
-# Dropbox configuration accessors
+# Cloud provider configuration
+def get_cloud_provider() -> str:
+    """Get configured cloud provider from environment."""
+    return os.getenv("CLOUD_PROVIDER", "dropbox")
+
+def get_dropbox_auth_type() -> str:
+    """Get Dropbox authentication type from environment."""
+    return os.getenv("DROPBOX_AUTH_TYPE", "token")
+
 def get_dropbox_access_token() -> str:
     """Get Dropbox access token from environment."""
     return os.getenv("DROPBOX_ACCESS_TOKEN", "")
-
-def get_dropbox_app_key() -> str:
-    """Get Dropbox app key from environment."""
-    return os.getenv("DROPBOX_APP_KEY", "")
-
-def get_dropbox_app_secret() -> str:
-    """Get Dropbox app secret from environment."""
-    return os.getenv("DROPBOX_APP_SECRET", "")
-
-def get_dropbox_auth_type() -> str:
-    """
-    Get Dropbox authentication type from environment.
-    
-    Returns:
-        str: Authentication type - 'user', 'team', or 'oauth'
-             Defaults to 'team' (for current business setup)
-    
-    Auth Types:
-        - 'user': Regular individual user authentication (for real users)
-        - 'team': Business team token with member selection (for services)  
-        - 'oauth': OAuth browser flow (future implementation)
-    """
-    return os.getenv("DROPBOX_AUTH_TYPE", "team")
 
 # Load environment once when module is imported
 load_environment()

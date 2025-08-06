@@ -10,7 +10,8 @@ from typing import Dict, Any, Optional
 
 from .base import WorkflowBase, WorkflowConfig, WorkflowIdentity
 from src.core.models import OrderItemData, AgencyType
-from src.integrations.dropbox.service import DropboxService
+from src.integrations.cloud.factory import get_cloud_service
+from src.integrations.cloud.protocols import CloudOperations
 from src import config
 
 
@@ -28,16 +29,16 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
     Output: Shareable link if found, None if not found, error details if workflow fails
     """
     
-    def __init__(self, config: WorkflowConfig = None, dropbox_service: DropboxService = None):
+    def __init__(self, config: WorkflowConfig = None, cloud_service: CloudOperations = None):
         """
         Initialize the Lease Directory Search workflow.
         
         Args:
             config: Workflow configuration settings
-            dropbox_service: Optional DropboxService instance for dependency injection
+            cloud_service: Optional CloudOperations instance for dependency injection
         """
         super().__init__(config)
-        self.dropbox_service = dropbox_service
+        self.cloud_service = cloud_service
     
     def _create_default_identity(self) -> WorkflowIdentity:
         """Create default identity for this workflow type."""
@@ -76,9 +77,9 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
         if not order_item_data.lease_number.strip():
             return False, "OrderItemData.lease_number cannot be empty"
         
-        # Check if DropboxService is available
-        if not self.dropbox_service:
-            return False, "DropboxService is required for directory search"
+        # Check if CloudOperations service is available
+        if not self.cloud_service:
+            return False, "CloudOperations service is required for directory search"
         
         return True, None
     
@@ -107,11 +108,19 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
             # Build the directory path based on agency mapping
             directory_path = self._build_directory_path(agency_name, lease_number)
             
-            # Use DropboxService with the resolved path (SOLID principle)
-            # Direct call - all DropboxService instances have this method
-            search_result = self.dropbox_service.get_directory_details(directory_path)
-            shareable_link = search_result.get("shareable_link")
-            found_path = search_result.get("path")
+            # Use CloudOperations with the resolved path
+            # Check if directory exists by listing files
+            files = self.cloud_service.list_files(directory_path)
+            
+            if files:
+                # Directory exists, create share link
+                share_link = self.cloud_service.create_share_link(directory_path, is_public=True)
+                shareable_link = share_link.url if share_link else None
+                found_path = directory_path
+            else:
+                # Directory doesn't exist
+                shareable_link = None
+                found_path = None
             
             if shareable_link or found_path:
                 self.logger.info(f"Found lease directory - Link: {shareable_link}, Path: {found_path}")
@@ -191,14 +200,14 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
         # Build full path: base_path + lease_number
         return f"{base_path}{lease_number}"
     
-    def set_dropbox_service(self, dropbox_service: DropboxService) -> None:
+    def set_cloud_service(self, cloud_service: CloudOperations) -> None:
         """
-        Set the DropboxService instance for this workflow.
+        Set the CloudOperations instance for this workflow.
         
         Args:
-            dropbox_service: DropboxService instance
+            cloud_service: CloudOperations instance
         """
-        self.dropbox_service = dropbox_service
+        self.cloud_service = cloud_service
     
     def get_workflow_info(self) -> Dict[str, Any]:
         """
@@ -211,7 +220,7 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
         base_info.update({
             "workflow_specific": {
                 "supported_agencies": ["NMSLO", "BLM"],
-                "dropbox_service_available": self.dropbox_service is not None,
+                "cloud_service_available": self.cloud_service is not None,
                 "agency_mappings": {
                     "NMSLO": "NMSLO",
                     "BLM": "Federal"

@@ -34,9 +34,7 @@ The current `DropboxService` creates vendor lock-in and limits future flexibilit
 
 ### Protocol Interfaces
 4. The system must implement `CloudAuthentication` protocol with authenticate() and is_authenticated() methods
-5. The system must implement `CloudFileOperations` protocol with find_file() and list_files() methods  
-6. The system must implement `CloudSharingOperations` protocol with create_share_link() method
-7. The system must include placeholder protocol `CloudDirectoryOperations` for future directory creation functionality
+5. The system must implement `CloudOperations` protocol with list_files(), list_directories(), create_share_link(), and create_directory() methods
 
 ### Service Implementation
 8. The system must refactor existing DropboxService to implement the new protocols and return generic data types

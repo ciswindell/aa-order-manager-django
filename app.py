@@ -6,8 +6,8 @@ from tkinter import filedialog, messagebox
 from tkcalendar import DateEntry
 
 from src.core.processors import FederalOrderProcessor, NMSLOOrderProcessor
-from src.integrations.dropbox.auth import DropboxAuthHandler
-from src.integrations.dropbox.service import DropboxService
+from src.integrations.dropbox.auth import create_dropbox_auth
+from src.integrations.dropbox.service_legacy import DropboxServiceLegacy
 from src import config  # Automatically loads environment variables
 
 
@@ -95,7 +95,7 @@ def process_order():
                 root.update_idletasks()
 
                 # Create simple token-based auth handler
-                auth_handler = DropboxAuthHandler.create_simple_auth()
+                auth_handler = create_dropbox_auth()
 
                 if not auth_handler.is_authenticated():
                     messagebox.showwarning(
@@ -105,7 +105,7 @@ def process_order():
                     dropbox_service = None
                 else:
                     # Create Dropbox service with auth handler (no config manager needed)
-                    dropbox_service = DropboxService(auth_handler)
+                    dropbox_service = DropboxServiceLegacy(auth_handler)
 
                     # Ensure service is authenticated (should already be ready)
                     dropbox_service.authenticate()

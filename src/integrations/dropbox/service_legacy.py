@@ -65,7 +65,7 @@ def _require_auth(func):
     return wrapper
 
 
-class DropboxService(DropboxServiceInterface):
+class DropboxServiceLegacy(DropboxServiceInterface):
     """Clean Dropbox service - minimal complexity with essential workspace support."""
 
     def __init__(self, auth_handler):

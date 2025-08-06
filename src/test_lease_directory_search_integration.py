@@ -12,8 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.core.workflows.lease_directory_search import LeaseDirectorySearchWorkflow
 from src.core.models import OrderItemData, AgencyType
-from src.integrations.dropbox.auth import DropboxAuthHandler
-from src.integrations.dropbox.service import DropboxService
+from src.integrations.cloud.factory import get_cloud_service
 
 
 class TestLeaseDirectorySearchIntegration:
@@ -21,18 +20,15 @@ class TestLeaseDirectorySearchIntegration:
     
     def test_blm_nmlc_lease_directory(self):
         """Test finding the known lease directory 'NMLC 0028446A'."""
-        # Create authentication handler
-        auth_handler = DropboxAuthHandler.create_simple_auth()
-        
-        # Create Dropbox service
-        dropbox_service = DropboxService(auth_handler=auth_handler)
+        # Create cloud service using factory
+        cloud_service = get_cloud_service()
         
         # Authenticate
-        assert dropbox_service.authenticate(), "Failed to authenticate with Dropbox"
-        assert dropbox_service.is_authenticated(), "Service should be authenticated"
+        assert cloud_service.authenticate(), "Failed to authenticate with cloud service"
+        assert cloud_service.is_authenticated(), "Service should be authenticated"
         
         # Create workflow with service
-        workflow = LeaseDirectorySearchWorkflow(dropbox_service=dropbox_service)
+        workflow = LeaseDirectorySearchWorkflow(cloud_service=cloud_service)
         
         # Create test order item with known lease
         order_item = OrderItemData(

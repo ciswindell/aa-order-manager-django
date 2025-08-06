@@ -11,7 +11,8 @@ from typing import Dict, Any, Optional
 
 from .base import WorkflowBase, WorkflowConfig, WorkflowIdentity
 from src.core.models import OrderItemData
-from src.integrations.dropbox.service import DropboxService
+from src.integrations.cloud.factory import get_cloud_service
+from src.integrations.cloud.protocols import CloudOperations
 
 
 logger = logging.getLogger(__name__)
@@ -31,16 +32,16 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
     # Case-insensitive regex pattern for Master Documents detection
     MASTER_DOCUMENTS_PATTERN = re.compile(r'.*master documents.*', re.IGNORECASE)
     
-    def __init__(self, config: WorkflowConfig = None, dropbox_service: DropboxService = None):
+    def __init__(self, config: WorkflowConfig = None, cloud_service: CloudOperations = None):
         """
         Initialize the Previous Report Detection workflow.
         
         Args:
             config: Workflow configuration settings
-            dropbox_service: Optional DropboxService instance for dependency injection
+            cloud_service: Optional CloudOperations instance for dependency injection
         """
         super().__init__(config)
-        self.dropbox_service = dropbox_service
+        self.cloud_service = cloud_service
     
     def _create_default_identity(self) -> WorkflowIdentity:
         """Create default identity for this workflow type."""
@@ -71,13 +72,13 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
         if not order_item_data.report_directory_path:
             return False, "report_directory_path is required in order_item_data"
         
-        # Check if DropboxService is available
-        dropbox_service = input_data.get("dropbox_service") or self.dropbox_service
-        if not dropbox_service:
-            return False, "dropbox_service is required"
+        # Check if CloudOperations service is available
+        cloud_service = input_data.get("cloud_service") or self.cloud_service
+        if not cloud_service:
+            return False, "cloud_service is required"
         
-        if not dropbox_service.is_authenticated():
-            return False, "dropbox_service must be authenticated"
+        if not cloud_service.is_authenticated():
+            return False, "cloud_service must be authenticated"
         
         return True, None
     
@@ -104,14 +105,15 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
                 }
             
             order_item_data = input_data["order_item_data"]
-            dropbox_service = input_data.get("dropbox_service") or self.dropbox_service
+            cloud_service = input_data.get("cloud_service") or self.cloud_service
             directory_path = order_item_data.report_directory_path
             
             self.logger.info(f"Searching for Master Documents in directory: {directory_path}")
             
             # List files in the directory
             try:
-                files = dropbox_service.list_directory_files(directory_path)
+                cloud_files = cloud_service.list_files(directory_path)
+                files = [{"name": file.name, "path": file.path} for file in cloud_files]
                 self.logger.debug(f"Found {len(files)} files in directory")
                 
             except Exception as e:
