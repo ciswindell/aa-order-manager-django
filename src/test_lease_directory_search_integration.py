@@ -6,6 +6,10 @@ Tests the complete workflow using real Dropbox API to find the known lease "NMLC
 
 from datetime import datetime
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from src.core.workflows.lease_directory_search import LeaseDirectorySearchWorkflow
 from src.core.models import OrderItemData, AgencyType
 from src.integrations.dropbox.auth import DropboxAuthHandler
@@ -15,7 +19,7 @@ from src.integrations.dropbox.service import DropboxService
 class TestLeaseDirectorySearchIntegration:
     """Integration test using real Dropbox authentication."""
     
-    def test_find_nmlc_lease_directory(self):
+    def test_blm_nmlc_lease_directory(self):
         """Test finding the known lease directory 'NMLC 0028446A'."""
         # Create authentication handler
         auth_handler = DropboxAuthHandler.create_simple_auth()
@@ -61,5 +65,5 @@ class TestLeaseDirectorySearchIntegration:
 
 if __name__ == "__main__":
     test = TestLeaseDirectorySearchIntegration()
-    test.test_find_nmlc_lease_directory()
+    test.test_blm_nmlc_lease_directory()
     print("✅ Integration test completed successfully!") 
