@@ -34,7 +34,7 @@ class AgencyConfig:
 AGENCY_CONFIGS = {
     "NMSLO": AgencyConfig(
         runsheet_report_directory_path="/State Workspace/^Runsheet Workspace/Runsheet Report Archive - New Format/",
-        lease_file_directory_path="/NMSLO/",  # TODO: Clarify if different from runsheet path
+        lease_file_directory_path="/NMSLO/",
         column_widths={
             "Agency": 15,
             "Order Type": 15,
@@ -57,7 +57,7 @@ AGENCY_CONFIGS = {
     ),
     "Federal": AgencyConfig(
         runsheet_report_directory_path="/Federal Workspace/^Runsheet Workspace/Runsheet Archive/",
-        lease_file_directory_path="/Federal/",  # TODO: Clarify if different from runsheet path
+        lease_file_directory_path="/Federal/",
         column_widths={
             "Agency": 15,
             "Order Type": 15,

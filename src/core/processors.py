@@ -1,4 +1,12 @@
 """
+DEPRECATED - DO NOT DEVELOP FURTHER
+===================================
+
+This module is being phased out and should not be used for new development.
+The functionality has been moved to the new workflow framework.
+
+For new development, use the workflow system in src/core/workflows/ instead.
+
 Order Processors
 
 Agency-specific order processors that use the unified configuration system.
