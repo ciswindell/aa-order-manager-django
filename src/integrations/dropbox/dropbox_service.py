@@ -24,13 +24,13 @@ The service must handle both regular and workspace paths correctly.
 import logging
 from typing import Optional, List
 import dropbox
-from dropbox.common import PathRoot
 from dropbox.sharing import SharedLinkSettings
 
 from ..cloud.models import CloudFile, ShareLink
 from ..cloud.protocols import CloudOperations
 from ..cloud.errors import map_dropbox_error, CloudAuthError
 from .auth import create_dropbox_auth
+from .workspace_handler import DropboxWorkspaceHandler
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +64,13 @@ class DropboxCloudService(CloudOperations):
     def __init__(self, auth_type: str = None):
         self._auth_service = create_dropbox_auth(auth_type)
         self._client = None
+        self._workspace_handler = None
 
     def authenticate(self) -> bool:
         """Authenticate using the auth service."""
         self._auth_service.authenticate()  # Raises CloudAuthError on failure
         self._client = self._auth_service.get_client()
+        self._workspace_handler = DropboxWorkspaceHandler(self._client)
         return True
 
     def is_authenticated(self) -> bool:
@@ -129,9 +131,14 @@ class DropboxCloudService(CloudOperations):
             ]
         except dropbox.exceptions.ApiError:
             # Try workspace logic
-            workspace_result = self._get_workspace_list(path)
-            if isinstance(workspace_result, list):
-                return workspace_result
+            workspace_result = self._workspace_handler.workspace_call(
+                path, lambda client, rel_path: client.files_list_folder(rel_path)
+            )
+            if workspace_result and hasattr(workspace_result, "entries"):
+                return [
+                    self._convert_metadata_to_cloud_file(entry)
+                    for entry in workspace_result.entries
+                ]
             else:
                 return []
 
@@ -140,61 +147,9 @@ class DropboxCloudService(CloudOperations):
         try:
             return self._client.files_list_folder(path)
         except dropbox.exceptions.ApiError:
-            return self._get_workspace_list(path)
-
-    def _get_workspace_list(self, path: str):
-        """Get workspace list - returns raw API result."""
-        return self._workspace_call(
-            path, lambda client, rel_path: client.files_list_folder(rel_path)
-        )
-
-    def _is_workspace_path(self, path: str) -> bool:
-        """Check if path is a workspace path."""
-        return "workspace" in path.lower()
-
-    def _workspace_call(self, path: str, api_func):
-        """Generic workspace API call handler."""
-        if not self._is_workspace_path(path):
-            return None
-
-        client = self._get_workspace_client(path)
-        if not client:
-            return None
-
-        try:
-            relative_path = self._get_relative_path(path)
-            return api_func(client, relative_path)
-        except dropbox.exceptions.ApiError:
-            return None
-
-    def _get_workspace_client(self, path: str):
-        """Get workspace-specific client for path."""
-        # Extract workspace name (first part of path)
-        parts = path.strip("/").split("/")
-        if not parts or not self._is_workspace_path(parts[0]):
-            return None
-
-        workspace_name = parts[0]
-
-        # Find namespace ID for this workspace
-        shared_folders = self._client.sharing_list_folders().entries
-        for folder in shared_folders:
-            if hasattr(folder, "name") and folder.name == workspace_name:
-                namespace_id = folder.shared_folder_id
-                return self._client.with_path_root(PathRoot.namespace_id(namespace_id))
-
-        return None
-
-    def _get_relative_path(self, path: str) -> str:
-        """Convert workspace path to relative path."""
-        # Example: "/Federal Workspace/folder/file" -> "/folder/file"
-        parts = path.strip("/").split("/")
-        if len(parts) < 2:
-            return path
-
-        # Remove workspace name from path
-        relative_parts = parts[1:]
-        return "/" + "/".join(relative_parts)
+            return self._workspace_handler.workspace_call(
+                path, lambda client, rel_path: client.files_list_folder(rel_path)
+            )
 
     def _convert_metadata_to_cloud_file(self, metadata) -> CloudFile:
         """Convert Dropbox metadata to CloudFile."""
@@ -220,22 +175,9 @@ class DropboxCloudService(CloudOperations):
         try:
             return self._client.files_get_metadata(path)
         except dropbox.exceptions.ApiError:
-            return self._get_workspace_metadata(path)
-
-    def _get_workspace_metadata(self, path: str):
-        """Handle workspace path metadata."""
-        if not self._is_workspace_path(path):
-            return None
-
-        client = self._get_workspace_client(path)
-        if not client:
-            return None
-
-        try:
-            relative_path = self._get_relative_path(path)
-            return client.files_get_metadata(relative_path)
-        except dropbox.exceptions.ApiError:
-            return None
+            return self._workspace_handler.workspace_call(
+                path, lambda client, rel_path: client.files_get_metadata(rel_path)
+            )
 
     def _get_existing_link(self, file_id: str) -> Optional[str]:
         """Get existing share link for file ID."""
