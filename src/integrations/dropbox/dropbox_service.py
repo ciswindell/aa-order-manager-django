@@ -43,10 +43,9 @@ class DropboxCloudService(CloudOperations):
 
     def authenticate(self) -> bool:
         """Authenticate using the auth service."""
-        success = self._auth_service.authenticate()
-        if success:
-            self._client = self._auth_service.get_client()
-        return success
+        self._auth_service.authenticate()  # Raises CloudAuthError on failure
+        self._client = self._auth_service.get_client()
+        return True
 
     def is_authenticated(self) -> bool:
         """Check if authenticated using the auth service."""

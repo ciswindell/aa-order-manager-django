@@ -5,7 +5,7 @@ Provides Dropbox-specific authentication and cloud operations.
 """
 
 from .auth import create_dropbox_auth, DropboxTokenAuth, DropboxOAuthAuth
-from .cloud_service import DropboxCloudService
+from .dropbox_service import DropboxCloudService
 from .service_legacy import DropboxServiceLegacy
 
 __all__ = [

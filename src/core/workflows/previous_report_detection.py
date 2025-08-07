@@ -110,7 +110,7 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
             cloud_service = input_data.get("cloud_service") or self.cloud_service
             directory_path = order_item_data.report_directory_path
 
-                            self.logger.info(
+            self.logger.info(
                 "Searching for Master Documents in directory: %s", directory_path
             )
 
@@ -148,7 +148,8 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
 
             if master_documents_found:
                 self.logger.info(
-                    "Master Documents detected. Found %d matching files.", len(matching_files)
+                    "Master Documents detected. Found %d matching files.",
+                    len(matching_files),
                 )
             else:
                 self.logger.info("No Master Documents files found in directory.")

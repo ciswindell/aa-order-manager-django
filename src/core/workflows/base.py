@@ -83,7 +83,7 @@ class WorkflowBase(ABC):
             Error result dictionary
         """
         context = context or {}
-        self.logger.error(f"Workflow failed: {str(error)}", exc_info=True)
+        self.logger.error("Workflow failed: %s", str(error), exc_info=True)
         
         return {
             "success": False,
