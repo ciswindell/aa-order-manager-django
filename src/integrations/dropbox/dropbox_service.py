@@ -25,6 +25,7 @@ import logging
 from typing import Optional, List
 import dropbox
 from dropbox.common import PathRoot
+from dropbox.sharing import SharedLinkSettings
 
 from ..cloud.models import CloudFile, ShareLink
 from ..cloud.protocols import CloudOperations
@@ -32,6 +33,29 @@ from ..cloud.errors import map_dropbox_error, CloudAuthError
 from .auth import create_dropbox_auth
 
 logger = logging.getLogger(__name__)
+
+
+def _require_auth(func):
+    """Decorator to ensure service is authenticated before method execution."""
+
+    def wrapper(self, *args, **kwargs):
+        if not self.is_authenticated():
+            raise CloudAuthError("Service not authenticated", "dropbox")
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
+def _handle_dropbox_errors(func):
+    """Decorator to handle Dropbox API errors consistently."""
+
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except Exception as e:
+            raise map_dropbox_error(e) from e
+
+    return wrapper
 
 
 class DropboxCloudService(CloudOperations):
@@ -51,58 +75,46 @@ class DropboxCloudService(CloudOperations):
         """Check if authenticated using the auth service."""
         return self._auth_service.is_authenticated()
 
+    @_require_auth
+    @_handle_dropbox_errors
     def list_files(
         self, directory_path: str, recursive: bool = False
     ) -> List[CloudFile]:
         """List files in directory (not directories)."""
-        if not self.is_authenticated():
-            raise CloudAuthError("Service not authenticated", "dropbox")
-
         if recursive:
             raise NotImplementedError("Recursive listing not yet implemented")
 
-        try:
-            items = self._list_items(directory_path)
-            return [item for item in items if not item.is_directory]
-        except Exception as e:
-            raise map_dropbox_error(e) from e
+        items = self._list_items(directory_path)
+        return [item for item in items if not item.is_directory]
 
+    @_require_auth
+    @_handle_dropbox_errors
     def list_directories(
         self, directory_path: str, recursive: bool = False
     ) -> List[CloudFile]:
         """List directories in directory (not files)."""
-        if not self.is_authenticated():
-            raise CloudAuthError("Service not authenticated", "dropbox")
-
         if recursive:
             raise NotImplementedError("Recursive listing not yet implemented")
 
-        try:
-            items = self._list_items(directory_path)
-            return [item for item in items if item.is_directory]
-        except Exception as e:
-            raise map_dropbox_error(e) from e
+        items = self._list_items(directory_path)
+        return [item for item in items if item.is_directory]
 
+    @_require_auth
+    @_handle_dropbox_errors
     def create_share_link(
         self, file_path: str, is_public: bool = True
     ) -> Optional[ShareLink]:
         """Create shareable link for file or directory."""
-        if not self.is_authenticated():
-            raise CloudAuthError("Service not authenticated", "dropbox")
+        file_id = self._get_file_id(file_path)
+        if not file_id:
+            return None
 
-        try:
-            file_id = self._get_file_id(file_path)
-            if not file_id:
-                return None
+        existing_link = self._get_existing_link(file_id)
+        if existing_link:
+            return ShareLink(url=existing_link, is_public=is_public)
 
-            existing_link = self._get_existing_link(file_id)
-            if existing_link:
-                return ShareLink(url=existing_link, is_public=is_public)
-
-            new_link = self._create_new_link(file_id, is_public)
-            return ShareLink(url=new_link, is_public=is_public)
-        except Exception as e:
-            raise map_dropbox_error(e) from e
+        new_link = self._create_new_link(file_id, is_public)
+        return ShareLink(url=new_link, is_public=is_public)
 
     def create_directory(self, path: str) -> Optional[CloudFile]:
         """Create a new directory (placeholder for future)."""
@@ -136,9 +148,13 @@ class DropboxCloudService(CloudOperations):
             path, lambda client, rel_path: client.files_list_folder(rel_path)
         )
 
+    def _is_workspace_path(self, path: str) -> bool:
+        """Check if path is a workspace path."""
+        return "workspace" in path.lower()
+
     def _workspace_call(self, path: str, api_func):
         """Generic workspace API call handler."""
-        if "workspace" not in path.lower():
+        if not self._is_workspace_path(path):
             return None
 
         client = self._get_workspace_client(path)
@@ -155,7 +171,7 @@ class DropboxCloudService(CloudOperations):
         """Get workspace-specific client for path."""
         # Extract workspace name (first part of path)
         parts = path.strip("/").split("/")
-        if not parts or "workspace" not in parts[0].lower():
+        if not parts or not self._is_workspace_path(parts[0]):
             return None
 
         workspace_name = parts[0]
@@ -208,7 +224,7 @@ class DropboxCloudService(CloudOperations):
 
     def _get_workspace_metadata(self, path: str):
         """Handle workspace path metadata."""
-        if "workspace" not in path.lower():
+        if not self._is_workspace_path(path):
             return None
 
         client = self._get_workspace_client(path)
@@ -240,8 +256,6 @@ class DropboxCloudService(CloudOperations):
 
     def _create_link_settings(self, public: bool):
         """Create link settings."""
-        from dropbox.sharing import SharedLinkSettings
-
         if public:
             return SharedLinkSettings(
                 requested_visibility=dropbox.sharing.RequestedVisibility.public
