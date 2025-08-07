@@ -28,7 +28,7 @@ from dropbox.common import PathRoot
 
 from ..cloud.models import CloudFile, ShareLink
 from ..cloud.protocols import CloudOperations
-from ..cloud.errors import map_dropbox_error, CloudNotFoundError, CloudAuthError
+from ..cloud.errors import map_dropbox_error, CloudAuthError
 from .auth import create_dropbox_auth
 
 logger = logging.getLogger(__name__)
@@ -52,39 +52,45 @@ class DropboxCloudService(CloudOperations):
         """Check if authenticated using the auth service."""
         return self._auth_service.is_authenticated()
 
-    def list_files(self, directory_path: str, recursive: bool = False) -> List[CloudFile]:
+    def list_files(
+        self, directory_path: str, recursive: bool = False
+    ) -> List[CloudFile]:
         """List files in directory (not directories)."""
         if not self.is_authenticated():
             raise CloudAuthError("Service not authenticated", "dropbox")
-            
+
         if recursive:
             raise NotImplementedError("Recursive listing not yet implemented")
-        
+
         try:
             items = self._list_items(directory_path)
             return [item for item in items if not item.is_directory]
         except Exception as e:
-            raise map_dropbox_error(e)
+            raise map_dropbox_error(e) from e
 
-    def list_directories(self, directory_path: str, recursive: bool = False) -> List[CloudFile]:
+    def list_directories(
+        self, directory_path: str, recursive: bool = False
+    ) -> List[CloudFile]:
         """List directories in directory (not files)."""
         if not self.is_authenticated():
             raise CloudAuthError("Service not authenticated", "dropbox")
-            
+
         if recursive:
             raise NotImplementedError("Recursive listing not yet implemented")
-        
+
         try:
             items = self._list_items(directory_path)
             return [item for item in items if item.is_directory]
         except Exception as e:
-            raise map_dropbox_error(e)
+            raise map_dropbox_error(e) from e
 
-    def create_share_link(self, file_path: str, is_public: bool = True) -> Optional[ShareLink]:
+    def create_share_link(
+        self, file_path: str, is_public: bool = True
+    ) -> Optional[ShareLink]:
         """Create shareable link for file or directory."""
         if not self.is_authenticated():
             raise CloudAuthError("Service not authenticated", "dropbox")
-            
+
         try:
             file_id = self._get_file_id(file_path)
             if not file_id:
@@ -97,7 +103,7 @@ class DropboxCloudService(CloudOperations):
             new_link = self._create_new_link(file_id, is_public)
             return ShareLink(url=new_link, is_public=is_public)
         except Exception as e:
-            raise map_dropbox_error(e)
+            raise map_dropbox_error(e) from e
 
     def create_directory(self, path: str) -> Optional[CloudFile]:
         """Create a new directory (placeholder for future)."""
@@ -107,7 +113,9 @@ class DropboxCloudService(CloudOperations):
         """List all items (files and directories) in path."""
         try:
             result = self._list_folder(path)
-            return [self._convert_metadata_to_cloud_file(entry) for entry in result.entries]
+            return [
+                self._convert_metadata_to_cloud_file(entry) for entry in result.entries
+            ]
         except dropbox.exceptions.ApiError:
             # Try workspace logic
             workspace_result = self._get_workspace_list(path)
@@ -125,17 +133,19 @@ class DropboxCloudService(CloudOperations):
 
     def _get_workspace_list(self, path: str):
         """Get workspace list - returns raw API result."""
-        return self._workspace_call(path, lambda client, rel_path: client.files_list_folder(rel_path))
+        return self._workspace_call(
+            path, lambda client, rel_path: client.files_list_folder(rel_path)
+        )
 
     def _workspace_call(self, path: str, api_func):
         """Generic workspace API call handler."""
         if "workspace" not in path.lower():
             return None
-        
+
         client = self._get_workspace_client(path)
         if not client:
             return None
-        
+
         try:
             relative_path = self._get_relative_path(path)
             return api_func(client, relative_path)
@@ -148,28 +158,28 @@ class DropboxCloudService(CloudOperations):
         parts = path.strip("/").split("/")
         if not parts or "workspace" not in parts[0].lower():
             return None
-        
+
         workspace_name = parts[0]
-        
+
         # Find namespace ID for this workspace
         shared_folders = self._client.sharing_list_folders().entries
         for folder in shared_folders:
-            if hasattr(folder, 'name') and folder.name == workspace_name:
+            if hasattr(folder, "name") and folder.name == workspace_name:
                 namespace_id = folder.shared_folder_id
                 return self._client.with_path_root(PathRoot.namespace_id(namespace_id))
-        
+
         return None
 
     def _get_relative_path(self, path: str) -> str:
         """Convert workspace path to relative path."""
         # Example: "/Federal Workspace/folder/file" -> "/folder/file"
-        parts = path.strip('/').split('/')
+        parts = path.strip("/").split("/")
         if len(parts) < 2:
             return path
-        
+
         # Remove workspace name from path
         relative_parts = parts[1:]
-        return '/' + '/'.join(relative_parts)
+        return "/" + "/".join(relative_parts)
 
     def _convert_metadata_to_cloud_file(self, metadata) -> CloudFile:
         """Convert Dropbox metadata to CloudFile."""
@@ -177,9 +187,9 @@ class DropboxCloudService(CloudOperations):
             path=metadata.path_display,
             name=metadata.name,
             is_directory=isinstance(metadata, dropbox.files.FolderMetadata),
-            file_id=getattr(metadata, 'id', None),
-            size=getattr(metadata, 'size', None),
-            modified_date=getattr(metadata, 'server_modified', None)
+            file_id=getattr(metadata, "id", None),
+            size=getattr(metadata, "size", None),
+            modified_date=getattr(metadata, "server_modified", None),
         )
 
     def _get_file_id(self, path: str) -> Optional[str]:
@@ -215,7 +225,9 @@ class DropboxCloudService(CloudOperations):
     def _get_existing_link(self, file_id: str) -> Optional[str]:
         """Get existing share link for file ID."""
         try:
-            links = self._client.sharing_list_shared_links(path=file_id, direct_only=True)
+            links = self._client.sharing_list_shared_links(
+                path=file_id, direct_only=True
+            )
             return links.links[0].url if links.links else None
         except Exception:
             pass
@@ -230,7 +242,7 @@ class DropboxCloudService(CloudOperations):
     def _create_link_settings(self, public: bool):
         """Create link settings."""
         from dropbox.sharing import SharedLinkSettings
-        
+
         if public:
             return SharedLinkSettings(
                 requested_visibility=dropbox.sharing.RequestedVisibility.public
@@ -238,4 +250,4 @@ class DropboxCloudService(CloudOperations):
         else:
             return SharedLinkSettings(
                 requested_visibility=dropbox.sharing.RequestedVisibility.team_only
-            ) 
+            )

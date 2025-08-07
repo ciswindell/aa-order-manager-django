@@ -107,7 +107,7 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
         agency_name = self._map_agency_type_to_string(agency)
 
         self.logger.info(
-            f"Searching for lease directory: {lease_number} (agency: {agency_name})"
+            "Searching for lease directory: %s (agency: %s)", lease_number, agency_name
         )
 
         try:
@@ -132,7 +132,9 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
 
             if shareable_link or found_path:
                 self.logger.info(
-                    f"Found lease directory - Link: {shareable_link}, Path: {found_path}"
+                    "Found lease directory - Link: %s, Path: %s",
+                    shareable_link,
+                    found_path,
                 )
 
                 # Update the OrderItemData with both results
@@ -148,7 +150,7 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
                     "message": f"Successfully found directory for lease {lease_number}",
                 }
             else:
-                self.logger.info(f"No directory found for lease: {lease_number}")
+                self.logger.info("No directory found for lease: %s", lease_number)
 
                 return {
                     "success": True,
@@ -161,7 +163,7 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
 
         except Exception as error:
             self.logger.error(
-                f"Directory search failed for lease {lease_number}: {str(error)}"
+                "Directory search failed for lease %s: %s", lease_number, str(error)
             )
 
             # Let the base class handle the error

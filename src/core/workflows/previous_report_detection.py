@@ -98,7 +98,7 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
             # Validate inputs
             is_valid, error_message = self.validate_inputs(input_data)
             if not is_valid:
-                self.logger.error(f"Input validation failed: {error_message}")
+                self.logger.error("Input validation failed: %s", error_message)
                 return {
                     "success": False,
                     "error": error_message,
@@ -110,18 +110,18 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
             cloud_service = input_data.get("cloud_service") or self.cloud_service
             directory_path = order_item_data.report_directory_path
 
-            self.logger.info(
-                f"Searching for Master Documents in directory: {directory_path}"
+                            self.logger.info(
+                "Searching for Master Documents in directory: %s", directory_path
             )
 
             # List files in the directory
             try:
                 cloud_files = cloud_service.list_files(directory_path)
                 files = [{"name": file.name, "path": file.path} for file in cloud_files]
-                self.logger.debug(f"Found {len(files)} files in directory")
+                self.logger.debug("Found %d files in directory", len(files))
 
             except Exception as e:
-                self.logger.error(f"Failed to list directory files: {str(e)}")
+                self.logger.error("Failed to list directory files: %s", str(e))
                 # Set previous_report_found to None to indicate error
                 order_item_data.previous_report_found = None
                 return {
@@ -141,14 +141,14 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
                 if self.MASTER_DOCUMENTS_PATTERN.match(filename):
                     master_documents_found = True
                     matching_files.append(filename)
-                    self.logger.debug(f"Found Master Documents file: {filename}")
+                    self.logger.debug("Found Master Documents file: %s", filename)
 
             # Update OrderItemData with detection result
             order_item_data.previous_report_found = master_documents_found
 
             if master_documents_found:
                 self.logger.info(
-                    f"Master Documents detected. Found {len(matching_files)} matching files."
+                    "Master Documents detected. Found %d matching files.", len(matching_files)
                 )
             else:
                 self.logger.info("No Master Documents files found in directory.")
@@ -165,7 +165,7 @@ class PreviousReportDetectionWorkflow(WorkflowBase):
         except Exception as e:
             # Handle unexpected errors
             self.logger.error(
-                f"Unexpected error in workflow execution: {str(e)}", exc_info=True
+                "Unexpected error in workflow execution: %s", str(e), exc_info=True
             )
             # Set previous_report_found to None to indicate error
             if "order_item_data" in input_data:
