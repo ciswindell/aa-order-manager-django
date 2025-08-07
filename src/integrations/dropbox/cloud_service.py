@@ -197,7 +197,7 @@ class DropboxCloudService(CloudOperations):
         try:
             metadata = self._get_metadata(path)
             return metadata.id
-        except Exception:
+        except (dropbox.exceptions.ApiError, AttributeError):
             return None
 
     def _get_metadata(self, path: str):
@@ -229,7 +229,7 @@ class DropboxCloudService(CloudOperations):
                 path=file_id, direct_only=True
             )
             return links.links[0].url if links.links else None
-        except Exception:
+        except dropbox.exceptions.ApiError:
             pass
         return None
 
