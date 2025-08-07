@@ -15,12 +15,27 @@ from ..cloud.errors import CloudAuthError
 logger = logging.getLogger(__name__)
 
 
-class DropboxTokenAuth(CloudAuthentication):
+class DropboxAuthBase(CloudAuthentication):
+    """Base class for Dropbox authentication methods."""
+
+    def __init__(self):
+        self._client = None
+
+    def is_authenticated(self) -> bool:
+        """Check if authenticated."""
+        return self._client is not None
+
+    def get_client(self) -> Optional[dropbox.Dropbox]:
+        """Get the authenticated Dropbox client."""
+        return self._client
+
+
+class DropboxTokenAuth(DropboxAuthBase):
     """Simple token-based Dropbox authentication."""
 
     def __init__(self, access_token: str = None):
+        super().__init__()
         self._access_token = access_token or config.get_dropbox_access_token()
-        self._client = None
 
     def authenticate(self) -> bool:
         """Authenticate using access token."""
@@ -43,33 +58,14 @@ class DropboxTokenAuth(CloudAuthentication):
                 f"Token authentication failed: {e}", "dropbox", e
             ) from e
 
-    def is_authenticated(self) -> bool:
-        """Check if authenticated."""
-        return self._client is not None
 
-    def get_client(self) -> Optional[dropbox.Dropbox]:
-        """Get the authenticated Dropbox client."""
-        return self._client
-
-
-class DropboxOAuthAuth(CloudAuthentication):
+class DropboxOAuthAuth(DropboxAuthBase):
     """OAuth-based Dropbox authentication (placeholder for future)."""
-
-    def __init__(self):
-        self._client = None
 
     def authenticate(self) -> bool:
         """Authenticate using OAuth flow (not yet implemented)."""
         logger.warning("OAuth authentication not yet implemented")
         raise CloudAuthError("OAuth authentication not yet implemented", "dropbox")
-
-    def is_authenticated(self) -> bool:
-        """Check if authenticated."""
-        return False
-
-    def get_client(self) -> Optional[dropbox.Dropbox]:
-        """Get the authenticated Dropbox client."""
-        return self._client
 
 
 def create_dropbox_auth(auth_type: str = None) -> CloudAuthentication:

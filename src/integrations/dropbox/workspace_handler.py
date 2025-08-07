@@ -7,9 +7,10 @@ This component is responsible for all Dropbox workspace-related operations:
 - Path conversion between full and relative workspace paths
 """
 
+from typing import Optional, Tuple
+
 import dropbox
 from dropbox.common import PathRoot
-from typing import Optional
 
 
 class DropboxWorkspaceHandler:
@@ -17,6 +18,12 @@ class DropboxWorkspaceHandler:
 
     def __init__(self, client: dropbox.Dropbox):
         self._client = client
+
+    def _parse_path(self, path: str) -> Tuple[str, list]:
+        """Parse path into workspace name and parts."""
+        parts = path.strip("/").split("/")
+        workspace_name = parts[0] if parts else ""
+        return workspace_name, parts
 
     def is_workspace_path(self, path: str) -> bool:
         """Check if path is a workspace path."""
@@ -27,12 +34,9 @@ class DropboxWorkspaceHandler:
         if not self.is_workspace_path(path):
             return None
 
-        # Extract workspace name (first part of path)
-        parts = path.strip("/").split("/")
-        if not parts or not self.is_workspace_path(parts[0]):
+        workspace_name, parts = self._parse_path(path)
+        if not parts or not self.is_workspace_path(workspace_name):
             return None
-
-        workspace_name = parts[0]
 
         # Find namespace ID for this workspace
         shared_folders = self._client.sharing_list_folders().entries
@@ -46,7 +50,7 @@ class DropboxWorkspaceHandler:
     def get_relative_path(self, path: str) -> str:
         """Convert workspace path to relative path."""
         # Example: "/Federal Workspace/folder/file" -> "/folder/file"
-        parts = path.strip("/").split("/")
+        _, parts = self._parse_path(path)
         if len(parts) < 2:
             return path
 
@@ -66,5 +70,5 @@ class DropboxWorkspaceHandler:
         try:
             relative_path = self.get_relative_path(path)
             return api_func(client, relative_path)
-        except dropbox.exceptions.ApiError:
+        except (dropbox.exceptions.ApiError, dropbox.exceptions.BadInputError):
             return None
