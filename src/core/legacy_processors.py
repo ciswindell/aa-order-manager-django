@@ -1,13 +1,21 @@
 """
-DEPRECATED - DO NOT DEVELOP FURTHER
-===================================
+🚨 DEPRECATED - DO NOT DEVELOP FURTHER 🚨
+=========================================
 
-This module is being phased out and should not be used for new development.
-The functionality has been moved to the new workflow framework.
+⚠️  WARNING: This module is LEGACY CODE and should not be used for new development.
+⚠️  WARNING: This code will be removed in a future version.
 
-For new development, use the workflow system in src/core/workflows/ instead.
+MIGRATION PATH:
+- For new development, use the workflow system in src/core/workflows/
+- Use OrderData/OrderItemData models in src/core/models.py  
+- Use service layer in src/core/services/ (when implemented)
 
-Order Processors
+This file is preserved only for:
+- Reference during migration
+- Temporary compatibility during transition
+- Understanding legacy business logic
+
+LEGACY Order Processors
 
 Agency-specific order processors that use the unified configuration system.
 
@@ -48,6 +56,15 @@ from .utils.parsing_utils import LeaseNumberParser, ParsedColumnGenerator
 
 
 class OrderProcessor(ABC):
+    """
+    🚨 DEPRECATED: Use workflow system instead
+
+    This abstract base class is legacy code. For new development:
+    - Use OrderData/OrderItemData models from src/core/models.py
+    - Use workflow framework from src/core/workflows/
+    - Use service layer from src/core/services/ (when implemented)
+    """
+
     def __init__(
         self,
         order_form,
@@ -82,17 +99,19 @@ class OrderProcessor(ABC):
 
 class NMSLOOrderProcessor(OrderProcessor):
     """
+    🚨 DEPRECATED: Use workflow system instead
+
     NMSLO-specific order processor using externalized configuration.
-    
+
     This processor handles NMSLO agency orders with configuration-driven behavior.
     All agency-specific settings (column widths, folder structures, search functions)
     are loaded from configuration instead of being hard-coded.
-    
+
     Configuration:
     - Uses NMSLO static configuration for column widths and folder structures
     - Uses NMSLO behavioral configuration for search functions and blank columns
     - Supports dependency injection for testing and custom scenarios
-    
+
     Args:
         order_form: Path to the order form Excel file
         agency: Agency name (defaults to "NMSLO")
@@ -103,7 +122,7 @@ class NMSLOOrderProcessor(OrderProcessor):
         static_config: Optional custom static configuration (for testing/custom use)
         behavioral_config: Optional custom behavioral configuration (for testing/custom use)
     """
-    
+
     def __init__(
         self,
         order_form,
@@ -119,7 +138,8 @@ class NMSLOOrderProcessor(OrderProcessor):
         self.dropbox_service = dropbox_service
         # Dependency injection for configuration - allows testing with mock configs
         self.agency_config = static_config or config.get_agency_config("NMSLO")
-# behavioral_config removed - using hardcoded agency-specific columns
+
+    # behavioral_config removed - using hardcoded agency-specific columns
 
     def read_order_form(self):
         data = pd.read_excel(self.order_form)
@@ -144,8 +164,14 @@ class NMSLOOrderProcessor(OrderProcessor):
 
         # Add blank search columns for NMSLO
         nmslo_search_columns = [
-            "Full Search", "Partial Search", "New Format", "Tractstar", 
-            "Old Format", "MI Index", "Documents", "Search Notes"
+            "Full Search",
+            "Partial Search",
+            "New Format",
+            "Tractstar",
+            "Old Format",
+            "MI Index",
+            "Documents",
+            "Search Notes",
         ]
         data = BlankColumnManager.add_blank_columns(data, nmslo_search_columns)
 
@@ -206,18 +232,20 @@ class NMSLOOrderProcessor(OrderProcessor):
 
 class FederalOrderProcessor(OrderProcessor):
     """
+    🚨 DEPRECATED: Use workflow system instead
+
     Federal-specific order processor using externalized configuration.
-    
+
     This processor handles Federal agency orders with configuration-driven behavior.
     All agency-specific settings (column widths, folder structures, search functions)
     are loaded from configuration instead of being hard-coded.
-    
+
     Configuration:
     - Uses Federal static configuration for column widths and folder structures
     - Uses Federal behavioral configuration for search functions and blank columns
     - Supports dependency injection for testing and custom scenarios
     - Includes Federal-specific Notes column handling
-    
+
     Args:
         order_form: Path to the order form Excel file
         agency: Agency name (defaults to "Federal")
@@ -228,7 +256,7 @@ class FederalOrderProcessor(OrderProcessor):
         static_config: Optional custom static configuration (for testing/custom use)
         behavioral_config: Optional custom behavioral configuration (for testing/custom use)
     """
-    
+
     def __init__(
         self,
         order_form,
@@ -244,7 +272,8 @@ class FederalOrderProcessor(OrderProcessor):
         self.dropbox_service = dropbox_service
         # Dependency injection for configuration - allows testing with mock configs
         self.agency_config = static_config or config.get_agency_config("Federal")
-# behavioral_config removed - using hardcoded agency-specific columns
+
+    # behavioral_config removed - using hardcoded agency-specific columns
 
     def read_order_form(self):
         data = pd.read_excel(self.order_form)
@@ -269,8 +298,13 @@ class FederalOrderProcessor(OrderProcessor):
 
         # Add blank search columns for Federal
         federal_search_columns = [
-            "Files Search", "Tractstar Search", "New Format", "Tractstar", 
-            "Documents", "Search Notes", "Notes"
+            "Files Search",
+            "Tractstar Search",
+            "New Format",
+            "Tractstar",
+            "Documents",
+            "Search Notes",
+            "Notes",
         ]
         data = BlankColumnManager.add_blank_columns(data, federal_search_columns)
 

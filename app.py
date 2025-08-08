@@ -5,10 +5,76 @@ from tkinter import filedialog, messagebox
 
 from tkcalendar import DateEntry
 
-from src.core.processors import FederalOrderProcessor, NMSLOOrderProcessor
+from src.core.legacy_processors import FederalOrderProcessor, NMSLOOrderProcessor
+from src.core.services.order_processor import OrderProcessorService
+from src.core.models import OrderData, AgencyType, ReportType
 from src.integrations.dropbox.auth import create_dropbox_auth
 from src.integrations.dropbox.service_legacy import DropboxServiceLegacy
+from src.integrations.cloud.factory import CloudServiceFactory
 from src import config  # Automatically loads environment variables
+
+
+class ProgressWindow:
+    """Simple progress feedback window implementing ProgressCallback protocol."""
+
+    def __init__(self, parent):
+        self.parent = parent
+        self.window = None
+        self.progress_label = None
+
+    def show(self):
+        """Show the progress window."""
+        self.window = tk.Toplevel(self.parent)
+        self.window.title("Processing Order...")
+        self.window.geometry("400x100")
+        self.window.resizable(False, False)
+
+        # Center on parent
+        self.window.transient(self.parent)
+        self.window.grab_set()
+
+        # Progress label
+        self.progress_label = tk.Label(
+            self.window,
+            text="Starting order processing...",
+            font=("Arial", 10),
+            wraplength=350,
+            justify="center",
+        )
+        self.progress_label.pack(expand=True)
+
+        # Update display
+        self.window.update()
+
+    def update_progress(self, message: str, percentage: int = None):
+        """Update progress message (implements ProgressCallback protocol)."""
+        if self.progress_label:
+            self.progress_label.config(text=message)
+            self.window.update()
+
+    def close(self):
+        """Close the progress window."""
+        if self.window:
+            self.window.destroy()
+            self.window = None
+
+
+def create_order_data_from_gui(
+    selected_agency, selected_order_type, selected_order_date, selected_order_number
+):
+    """Create OrderData from GUI selections."""
+    # Convert GUI values to enums
+    report_type = (
+        ReportType.RUNSHEET
+        if selected_order_type == "Runsheet"
+        else ReportType.BASE_ABSTRACT
+    )
+
+    return OrderData(
+        order_number=selected_order_number or "Unknown",
+        order_date=selected_order_date,
+        order_type=report_type,
+    )
 
 
 def reset_gui():
@@ -18,8 +84,7 @@ def reset_gui():
     date_entry.set_date(datetime.now().date())  # Reset to today's date
     order_number_entry.delete(0, tk.END)  # Clear order number
     file_path_var.set("")  # Clear file selection
-    generate_folders.set(False)  # Reset checkbox to unchecked (default)
-    # Note: use_dropbox is intentionally not reset to preserve user's choice
+    # Note: Dropbox integration is now standard for all orders
 
 
 def process_order():
@@ -30,6 +95,9 @@ def process_order():
 
     # Get Order Number
     selected_order_number = order_number_entry.get()
+
+    # Create progress window
+    progress_window = ProgressWindow(root)
 
     # Validate Agency selection
     if selected_agency == "Select Agency":
@@ -49,7 +117,20 @@ def process_order():
 
     # Check if Abstract is selected
     if selected_order_type == "Abstract":
-        messagebox.showinfo("Not Implemented", "Abstract workflow is not implemented")
+        messagebox.showinfo(
+            "Not Implemented", "Abstract workflow is not yet implemented"
+        )
+        return
+
+    # Validate Order Number format (optional but helpful)
+    if (
+        selected_order_number
+        and not selected_order_number.replace("-", "").replace("_", "").isalnum()
+    ):
+        messagebox.showwarning(
+            "Invalid Order Number",
+            "Order number should contain only letters, numbers, hyphens, and underscores.",
+        )
         return
 
     # Get the selected file from GUI
@@ -58,19 +139,24 @@ def process_order():
     # Check if file is selected
     if not order_form:
         messagebox.showwarning(
-            "No File Selected", "Please select an Excel file before processing."
+            "No File Selected",
+            "Please select an Excel order form file before processing.\n\nClick 'Browse' to select your order form.",
         )
         return
 
     # Validate selected file
     if not os.path.exists(order_form):
         messagebox.showerror(
-            "File Not Found", f"The selected file does not exist:\n{order_form}"
+            "File Not Found",
+            f"The selected file no longer exists:\n{order_form}\n\nPlease select a different file.",
         )
         return
 
-    if not order_form.lower().endswith(".xlsx"):
-        messagebox.showerror("Invalid File Type", "Please select an Excel file (.xlsx)")
+    if not order_form.lower().endswith((".xlsx", ".xls")):
+        messagebox.showerror(
+            "Invalid File Type",
+            f"Selected file is not an Excel file:\n{order_form}\n\nPlease select an Excel file (.xlsx or .xls)",
+        )
         return
 
     try:
@@ -87,70 +173,124 @@ def process_order():
         return
 
     if order_form:
-        # Initialize Dropbox service if checkbox is checked
-        dropbox_service = None
-        if use_dropbox.get():
+        # Show progress window
+        progress_window.show()
+
+        try:
+            # Create OrderData from GUI selections
+            order_data = create_order_data_from_gui(
+                selected_agency,
+                selected_order_type,
+                selected_order_date,
+                selected_order_number,
+            )
+
+            # Initialize cloud service
+            progress_window.update_progress("Initializing cloud service...")
+            cloud_service = CloudServiceFactory.create_service("dropbox")
+
+            # Authenticate the cloud service
             try:
-                # Show progress message
-                root.update_idletasks()
-
-                # Create simple token-based auth handler
-                auth_handler = create_dropbox_auth()
-
-                if not auth_handler.is_authenticated():
-                    messagebox.showwarning(
-                        "Dropbox Authentication Failed",
-                        "Could not authenticate with Dropbox.\nCheck your DROPBOX_ACCESS_TOKEN in .env file.\nContinuing without Dropbox links.",
-                    )
-                    dropbox_service = None
-                else:
-                    # Create Dropbox service with auth handler (no config manager needed)
-                    dropbox_service = DropboxServiceLegacy(auth_handler)
-
-                    # Ensure service is authenticated (should already be ready)
-                    dropbox_service.authenticate()
-
-                    print(
-                        "✅ Dropbox service initialized with token-based authentication"
-                    )
-
-            except Exception as e:
-                messagebox.showwarning(
-                    "Dropbox Error",
-                    f"Dropbox initialization failed: {str(e)}\nContinuing without Dropbox links.",
+                cloud_service.authenticate()
+            except Exception as auth_error:
+                progress_window.close()
+                messagebox.showerror(
+                    "Authentication Error",
+                    f"Failed to authenticate with Dropbox: {auth_error}\n\n"
+                    "Please check your DROPBOX_ACCESS_TOKEN in the .env file.",
                 )
-                dropbox_service = None
+                return
 
-        if selected_agency == "NMSLO":
-            order_processor = NMSLOOrderProcessor(
-                order_form,
-                selected_agency,
-                selected_order_type,
-                selected_order_date,
-                selected_order_number,
-                dropbox_service=dropbox_service,
+            # Create order processor with progress callback
+            order_processor = OrderProcessorService(cloud_service, progress_window)
+
+            # Process order end-to-end
+            from pathlib import Path
+
+            # Convert GUI agency to enum
+            agency_enum = (
+                AgencyType.NMSLO if selected_agency == "NMSLO" else AgencyType.BLM
             )
-        elif selected_agency == "Federal":
-            order_processor = FederalOrderProcessor(
-                order_form,
-                selected_agency,
-                selected_order_type,
-                selected_order_date,
-                selected_order_number,
-                dropbox_service=dropbox_service,
+
+            # Save output to same directory as input file
+            input_file_path = Path(order_form)
+            output_directory = input_file_path.parent
+
+            output_path = order_processor.process_order(
+                order_data=order_data,
+                order_form_path=input_file_path,
+                output_directory=output_directory,
+                agency=agency_enum,
+                use_legacy_format=False,  # Use new minimal format
             )
-        else:
-            messagebox.showerror("Error", f"Unknown agency type: {selected_agency}")
+
+            progress_window.close()
+
+            # Show success message and reset GUI
+            messagebox.showinfo(
+                "Success", f"Order processed successfully!\nOutput: {output_path}"
+            )
+            reset_gui()
+
+        except FileNotFoundError as e:
+            progress_window.close()
+            messagebox.showerror(
+                "File Not Found",
+                f"Could not find the order form file:\n{order_form}\n\nPlease check the file path and try again.",
+            )
             return
-        order_processor.create_order_worksheet()
+        except PermissionError as e:
+            progress_window.close()
+            messagebox.showerror(
+                "File Access Error",
+                f"Permission denied accessing the file:\n{order_form}\n\nPlease check file permissions and try again.",
+            )
+            return
+        except ValueError as e:
+            progress_window.close()
+            messagebox.showerror(
+                "Invalid Data",
+                f"Invalid data in the order form:\n{str(e)}\n\nPlease check the Excel file format and try again.",
+            )
+            return
+        except ConnectionError as e:
+            progress_window.close()
+            messagebox.showerror(
+                "Connection Error",
+                "Unable to connect to Dropbox.\n\nPlease check your internet connection and Dropbox authentication.",
+            )
+            return
+        except Exception as e:
+            progress_window.close()
+            error_msg = str(e)
 
-        # Only create folders if checkbox is checked
-        if generate_folders.get():
-            order_processor.create_folders()
+            # ALWAYS log errors to console for debugging
+            import traceback
 
-        # Show success message and reset GUI
-        messagebox.showinfo("Success", "Order processed successfully!")
-        reset_gui()
+            print(f"\n❌ ERROR in process_order(): {error_msg}")
+            traceback.print_exc()
+
+            if "authentication" in error_msg.lower():
+                messagebox.showerror(
+                    "Authentication Error",
+                    "Dropbox authentication failed.\n\nPlease check your DROPBOX_ACCESS_TOKEN in the .env file.",
+                )
+            elif "column" in error_msg.lower():
+                messagebox.showerror(
+                    "Excel Format Error",
+                    f"Problem with Excel file format:\n{error_msg}\n\nPlease ensure your order form has the required columns (Lease, Legal Description).",
+                )
+            elif "workflow" in error_msg.lower():
+                messagebox.showerror(
+                    "Workflow Error",
+                    f"Error during workflow execution:\n{error_msg}\n\nSome items may not have been processed completely.",
+                )
+            else:
+                messagebox.showerror(
+                    "Processing Error",
+                    f"An unexpected error occurred:\n{error_msg}\n\nPlease contact support if the problem persists.",
+                )
+            return
 
 
 root = tk.Tk()
@@ -299,30 +439,7 @@ tk.Label(
     font=("Arial", 10),
 ).pack(side="left")
 
-generate_folders = tk.BooleanVar()
-generate_folders.set(False)  # Default to unchecked (disabled)
-
-generate_folders_checkbox = tk.Checkbutton(
-    options_frame,
-    text="Generate Lease Folders",
-    variable=generate_folders,
-    bg="lightgray",
-    font=("Arial", 10),
-)
-generate_folders_checkbox.pack(side="left", padx=(10, 0))
-
-# Dropbox Link Integration checkbox
-use_dropbox = tk.BooleanVar()
-use_dropbox.set(True)  # Default to checked (enabled)
-
-use_dropbox_checkbox = tk.Checkbutton(
-    options_frame,
-    text="Add Dropbox Links",
-    variable=use_dropbox,
-    bg="lightgray",
-    font=("Arial", 10),
-)
-use_dropbox_checkbox.pack(side="left", padx=(20, 0))
+# Note: Legacy options removed - Dropbox links now standard, folder generation handled by workflows
 
 # Button frame for centered button
 button_frame = tk.Frame(main_frame, bg="lightgray")
