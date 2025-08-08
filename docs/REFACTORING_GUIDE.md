@@ -164,7 +164,7 @@ OrderProcessor → WorkflowOrchestrator → [Workflow1, Workflow2, Workflow3, Wo
 **Requirements**:
 - Fill in placeholder workflows with actual implementation logic
 - Implement 4 core workflows using framework from Phase 2:
-  1. **Report Directory Search**: Find main lease directory
+  1. **Lease Directory Search**: Find main lease directory
   2. **Previous Report Detection**: Check for existing reports
   3. **Documents Directory Search**: Find documents subdirectory
   4. **Lease Index Directory Search**: Find lease index subdirectory (NMSLO only)
