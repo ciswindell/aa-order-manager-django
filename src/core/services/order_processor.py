@@ -3,10 +3,11 @@ Main Order Processor Service - Coordinates the entire order processing pipeline.
 """
 
 from pathlib import Path
-from typing import List, Optional, Protocol
+from typing import List, Optional, Protocol, Dict, Any
 
-from src.core.models import OrderData, OrderItemData, AgencyType
+from src.core.models import OrderData, OrderItemData, AgencyType, ReportType
 from src.core.services.order_form_parser import parse_order_form_to_order_items
+from src.core.services.order_worksheet_exporter import export_order_items_to_worksheet
 from src.core.services.workflow_orchestrator import WorkflowOrchestrator
 from src.integrations.cloud.protocols import CloudOperations
 
@@ -16,7 +17,7 @@ class ProgressCallback(Protocol):
 
     def update_progress(self, message: str, percentage: Optional[int] = None) -> None:
         """Update progress with message and optional percentage."""
-        ...
+        raise NotImplementedError
 
 
 class OrderProcessorService:
@@ -87,7 +88,7 @@ class OrderProcessorService:
                 )
                 progress = 40 + int((i + 1) / total_items * 30)  # 40-70% range
                 self._update_progress(f"Processed item {i + 1}/{total_items}", progress)
-            except Exception as e:
+            except (ValueError, IOError, RuntimeError) as e:
                 # Log error but continue with other items
                 self._update_progress(f"Error processing item {i + 1}: {str(e)}")
                 continue
@@ -101,10 +102,6 @@ class OrderProcessorService:
         output_directory: Path,
     ) -> str:
         """Export processed items to worksheet."""
-        from src.core.services.order_worksheet_exporter import (
-            export_order_items_to_worksheet,
-        )
-
         # Get agency from first order item (all items should have same agency)
         item_agency = order_items[0].agency if order_items else AgencyType.NMSLO
 
@@ -121,6 +118,78 @@ class OrderProcessorService:
         """Update progress if callback is available."""
         if self.progress_callback:
             self.progress_callback.update_progress(message, percentage)
+
+    @staticmethod
+    def create_order_data_from_form(form_data: Dict[str, Any]) -> OrderData:
+        """
+        Convert GUI form data to OrderData business object.
+
+        Args:
+            form_data: Dictionary with keys: agency, order_type, order_date,
+                      order_number, file_path
+
+        Returns:
+            OrderData: Business domain object
+
+        Raises:
+            ValueError: If form data is invalid
+        """
+        # Convert GUI strings to business enums
+        report_type = OrderProcessorService._map_order_type(form_data["order_type"])
+
+        return OrderData(
+            order_number=form_data["order_number"] or "Unknown",
+            order_date=form_data["order_date"],
+            order_type=report_type,
+        )
+
+    @staticmethod
+    def map_agency_type(agency_str: str) -> AgencyType:
+        """
+        Convert GUI agency string to AgencyType enum.
+
+        Args:
+            agency_str: Agency string from GUI ("NMSLO", "Federal", etc.)
+
+        Returns:
+            AgencyType: Corresponding enum value
+
+        Raises:
+            ValueError: If agency string is invalid
+        """
+        agency_mapping = {
+            "NMSLO": AgencyType.NMSLO,
+            "Federal": AgencyType.BLM,  # "Federal" in GUI maps to BLM in business
+        }
+
+        if agency_str not in agency_mapping:
+            raise ValueError(f"Unknown agency: {agency_str}")
+
+        return agency_mapping[agency_str]
+
+    @staticmethod
+    def _map_order_type(order_type_str: str) -> ReportType:
+        """
+        Convert GUI order type string to ReportType enum.
+
+        Args:
+            order_type_str: Order type string from GUI
+
+        Returns:
+            ReportType: Corresponding enum value
+
+        Raises:
+            ValueError: If order type string is invalid
+        """
+        type_mapping = {
+            "Runsheet": ReportType.RUNSHEET,
+            "Abstract": ReportType.BASE_ABSTRACT,
+        }
+
+        if order_type_str not in type_mapping:
+            raise ValueError(f"Unknown order type: {order_type_str}")
+
+        return type_mapping[order_type_str]
 
 
 def process_order_end_to_end(

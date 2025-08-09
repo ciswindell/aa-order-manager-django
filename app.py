@@ -6,7 +6,8 @@ from pathlib import Path
 from tkinter import messagebox
 
 from src.core.services.order_processor import OrderProcessorService
-from src.core.models import AgencyType
+
+
 from src.integrations.cloud.factory import CloudServiceFactory
 from src.gui.progress_window import ProgressWindow
 from src.gui.main_window import MainWindow
@@ -98,8 +99,9 @@ def process_order(main_window):
         progress_window.show()
 
         try:
-            # Create OrderData from GUI selections
-            order_data = main_window.create_order_data()
+            # Create OrderData from GUI selections using service
+            form_data = main_window.get_form_data()
+            order_data = OrderProcessorService.create_order_data_from_form(form_data)
 
             # Initialize cloud service
             progress_window.update_progress("Initializing cloud service...")
@@ -123,10 +125,8 @@ def process_order(main_window):
             order_processor = OrderProcessorService(cloud_service, progress_window)
 
             # Process order end-to-end
-            # Convert GUI agency to enum
-            agency_enum = (
-                AgencyType.NMSLO if form_data["agency"] == "NMSLO" else AgencyType.BLM
-            )
+            # Convert GUI agency to enum using service
+            agency_enum = OrderProcessorService.map_agency_type(form_data["agency"])
 
             # Save output to same directory as input file
             input_file_path = Path(order_form)
