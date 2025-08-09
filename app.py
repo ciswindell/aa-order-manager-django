@@ -1,16 +1,17 @@
+"""GUI application for processing order forms with cloud integration."""
+
 import os
 import tkinter as tk
+import traceback
 from datetime import datetime
+from pathlib import Path
 from tkinter import filedialog, messagebox
 
 from tkcalendar import DateEntry
 
 from src.core.services.order_processor import OrderProcessorService
 from src.core.models import OrderData, AgencyType, ReportType
-from src.integrations.dropbox.auth import create_dropbox_auth
-from src.integrations.dropbox.service_legacy import DropboxServiceLegacy
 from src.integrations.cloud.factory import CloudServiceFactory
-from src import config  # Automatically loads environment variables
 
 
 class ProgressWindow:
@@ -45,7 +46,7 @@ class ProgressWindow:
         # Update display
         self.window.update()
 
-    def update_progress(self, message: str, percentage: int = None):
+    def update_progress(self, message: str, _percentage: int = None):
         """Update progress message (implements ProgressCallback protocol)."""
         if self.progress_label:
             self.progress_label.config(text=message)
@@ -59,7 +60,7 @@ class ProgressWindow:
 
 
 def create_order_data_from_gui(
-    selected_agency, selected_order_type, selected_order_date, selected_order_number
+    _selected_agency, selected_order_type, selected_order_date, selected_order_number
 ):
     """Create OrderData from GUI selections."""
     # Convert GUI values to enums
@@ -87,6 +88,7 @@ def reset_gui():
 
 
 def process_order():
+    """Process the order using GUI selections and cloud integration."""
     # Get GUI selections
     selected_agency = agency.get()
     selected_order_type = order_type.get()
@@ -160,14 +162,14 @@ def process_order():
 
     try:
         # Test if file is accessible/readable
-        with open(order_form, "rb") as test_file:
+        with open(order_form, "rb"):
             pass
     except PermissionError:
         messagebox.showerror(
             "Access Denied", f"Cannot access the selected file:\n{order_form}"
         )
         return
-    except Exception as e:
+    except (OSError, IOError) as e:
         messagebox.showerror("File Error", f"Error accessing file:\n{str(e)}")
         return
 
@@ -178,7 +180,7 @@ def process_order():
         try:
             # Create OrderData from GUI selections
             order_data = create_order_data_from_gui(
-                selected_agency,
+                selected_agency,  # Not used in function but kept for signature consistency
                 selected_order_type,
                 selected_order_date,
                 selected_order_number,
@@ -191,7 +193,9 @@ def process_order():
             # Authenticate the cloud service
             try:
                 cloud_service.authenticate()
-            except Exception as auth_error:
+            except (
+                Exception
+            ) as auth_error:  # noqa: E722 - Authentication can raise various error types
                 progress_window.close()
                 messagebox.showerror(
                     "Authentication Error",
@@ -204,8 +208,6 @@ def process_order():
             order_processor = OrderProcessorService(cloud_service, progress_window)
 
             # Process order end-to-end
-            from pathlib import Path
-
             # Convert GUI agency to enum
             agency_enum = (
                 AgencyType.NMSLO if selected_agency == "NMSLO" else AgencyType.BLM
@@ -230,14 +232,14 @@ def process_order():
             )
             reset_gui()
 
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             progress_window.close()
             messagebox.showerror(
                 "File Not Found",
                 f"Could not find the order form file:\n{order_form}\n\nPlease check the file path and try again.",
             )
             return
-        except PermissionError as e:
+        except PermissionError:
             progress_window.close()
             messagebox.showerror(
                 "File Access Error",
@@ -251,20 +253,18 @@ def process_order():
                 f"Invalid data in the order form:\n{str(e)}\n\nPlease check the Excel file format and try again.",
             )
             return
-        except ConnectionError as e:
+        except ConnectionError:
             progress_window.close()
             messagebox.showerror(
                 "Connection Error",
                 "Unable to connect to Dropbox.\n\nPlease check your internet connection and Dropbox authentication.",
             )
             return
-        except Exception as e:
+        except Exception as e:  # noqa: E722 - Catch-all for unexpected errors
             progress_window.close()
             error_msg = str(e)
 
             # ALWAYS log errors to console for debugging
-            import traceback
-
             print(f"\n❌ ERROR in process_order(): {error_msg}")
             traceback.print_exc()
 
@@ -404,6 +404,7 @@ file_entry.pack(side="left", padx=(10, 5))
 
 
 def browse_file():
+    """Open file dialog to select Excel order form."""
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
     file_path = filedialog.askopenfilename(
         initialdir=downloads_path,
