@@ -84,7 +84,7 @@ class ExcelExporterService:
                 "Legal Description": item.legal_description,
                 "Start Date": item.start_date,
                 "End Date": item.end_date,
-                "Notes": item.notes,
+                "Report Notes": item.report_notes,
                 "Report Directory Link": item.report_directory_link,
                 "Report Directory Path": item.report_directory_path,
                 "Previous Report Found": item.previous_report_found,
@@ -93,8 +93,8 @@ class ExcelExporterService:
             row["Documents Links"] = (
                 ", ".join(item.documents_links) if item.documents_links else ""
             )
-            row["Lease Index Links"] = (
-                ", ".join(item.lease_index_links) if item.lease_index_links else ""
+            row["Misc Index Links"] = (
+                ", ".join(item.misc_index_links) if item.misc_index_links else ""
             )
             data.append(row)
 
@@ -116,7 +116,7 @@ class ExcelExporterService:
         for column in df.columns:
             if "Link" in column or "Path" in column:
                 widths[column] = 50  # Wider for URLs/paths
-            elif column in ["Legal Description", "Notes"]:
+            elif column in ["Legal Description", "Report Notes"]:
                 widths[column] = 40  # Wider for text content
             elif column in ["Agency", "Lease"]:
                 widths[column] = 15  # Standard width

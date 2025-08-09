@@ -1,5 +1,5 @@
 """
-Unit tests for Order Worksheet Exporter Service with Strategy Pattern.
+Unit tests for Simplified Order Worksheet Exporter Service.
 """
 
 import pytest
@@ -7,14 +7,11 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 import pandas as pd
 import tempfile
+from datetime import datetime
 
 from src.core.services.order_worksheet_exporter import (
-    OrderWorksheetExporterService,
-    LegacyFormatStrategy,
-    MinimalFormatStrategy,
+    WorksheetExporter,
     export_order_items_to_worksheet,
-    export_order_items_legacy_format,
-    export_order_items_minimal_format,
 )
 from src.core.models import OrderItemData, AgencyType
 
@@ -26,17 +23,22 @@ def sample_order_items():
         OrderItemData(
             agency=AgencyType.NMSLO,
             lease_number="12345",
-            legal_description="T1N R1E S1",
-            notes="Test notes",
-            report_directory_link="https://example.com/12345",
+            legal_description="Section 1, Township 2N, Range 3E",
+            start_date=datetime(2024, 1, 1),
+            end_date=datetime(2024, 12, 31),
+            report_notes="Test notes",
+            report_directory_link="https://example.com/link1",
             previous_report_found=True,
-            documents_links=["https://example.com/doc1", "https://example.com/doc2"],
-            lease_index_links=["https://example.com/index1"],
+            documents_links=["https://example.com/doc1"],
+            misc_index_links=["https://example.com/index1"],
+            tractstar_needed=True,
+            documents_needed=False,
+            misc_index_needed=True,
         ),
         OrderItemData(
             agency=AgencyType.BLM,
             lease_number="67890",
-            legal_description="T2N R2E S2",
+            legal_description="Section 2, Township 3N, Range 4E",
             previous_report_found=False,
         ),
     ]
@@ -49,192 +51,159 @@ def temp_output_dir():
         yield Path(temp_dir)
 
 
-class TestLegacyFormatStrategy:
-    """Test cases for LegacyFormatStrategy."""
+class TestWorksheetExporter:
+    """Test cases for WorksheetExporter."""
+
+    def test_map_order_item_to_columns(self, sample_order_items):
+        """Test mapping OrderItemData to worksheet columns."""
+        exporter = WorksheetExporter()
+        item = sample_order_items[0]
+
+        columns = exporter._map_order_item_to_columns(item)
+
+        # Check basic fields
+        assert columns["Agency"] == "NMSLO"
+        assert columns["Lease"] == "12345"
+        assert columns["Legal Description"] == "Section 1, Township 2N, Range 3E"
+        assert columns["Report Notes"] == "Test notes"
+        assert columns["Report Directory Link"] == "https://example.com/link1"
+
+        # Check boolean fields
+        assert columns["Previous Report Found"] == "Yes"
+        assert columns["Tractstar Needed"] == "Yes"
+        assert columns["Documents Needed"] == "No"
+        assert columns["Misc Index Needed"] == "Yes"
+
+        # Check list fields
+        assert columns["Documents Links"] == "https://example.com/doc1"
+        assert columns["Misc Index Links"] == "https://example.com/index1"
 
     def test_convert_to_dataframe(self, sample_order_items):
-        """Test converting OrderItemData to DataFrame with legacy format."""
-        strategy = LegacyFormatStrategy()
-        df = strategy.convert_to_dataframe(sample_order_items)
+        """Test converting OrderItemData to DataFrame with all configured columns."""
+        exporter = WorksheetExporter()
+        df = exporter.convert_to_dataframe(sample_order_items, AgencyType.NMSLO)
 
-        # Check basic columns
-        assert "Agency" in df.columns
-        assert "Lease" in df.columns
-        assert "Legal Description" in df.columns
-        assert "Previous Report Found" in df.columns
-        assert "Link" in df.columns
+        # Check that all configured columns are present
+        expected_columns = [
+            "Agency",
+            "Order Type",
+            "Order Number",
+            "Order Date",
+            "Lease",
+            "Legal Description",
+            "Report Start Date",
+            "Report End Date",
+            "Report Notes",
+            "Report Directory Link",
+            "Previous Report Found",
+            "Tractstar Needed",
+            "Documents Needed",
+            "Misc Index Needed",
+            "Documents Links",
+            "Misc Index Links",
+            "Documents",
+            "Search Notes",
+        ]
+
+        for col in expected_columns:
+            assert col in df.columns, f"Column {col} not found in DataFrame"
 
         # Check values
         assert df.iloc[0]["Agency"] == "NMSLO"
         assert df.iloc[0]["Lease"] == "12345"
-        assert df.iloc[0]["Previous Report Found"] == True  # Boolean for legacy
-        assert df.iloc[1]["Previous Report Found"] == False
-
-    @patch("src.core.services.order_worksheet_exporter.ParsedColumnGenerator")
-    @patch("src.core.services.order_worksheet_exporter.ColumnManager")
-    def test_add_agency_columns_nmslo(
-        self, mock_column_manager, mock_parsed_generator, sample_order_items
-    ):
-        """Test adding NMSLO agency-specific columns."""
-        strategy = LegacyFormatStrategy()
-        df = pd.DataFrame({"test": [1, 2]})
-
-        mock_column_manager.add_metadata_columns.return_value = df
-        mock_parsed_generator.add_nmslo_search_columns.return_value = df
-
-        result = strategy.add_agency_columns(df, AgencyType.NMSLO)
-
-        mock_column_manager.add_metadata_columns.assert_called_once()
-        mock_parsed_generator.add_nmslo_search_columns.assert_called_once_with(df)
-        mock_parsed_generator.add_federal_search_columns.assert_not_called()
-
-    @patch("src.core.services.order_worksheet_exporter.ParsedColumnGenerator")
-    @patch("src.core.services.order_worksheet_exporter.ColumnManager")
-    def test_add_agency_columns_blm(
-        self, mock_column_manager, mock_parsed_generator, sample_order_items
-    ):
-        """Test adding BLM agency-specific columns."""
-        strategy = LegacyFormatStrategy()
-        df = pd.DataFrame({"test": [1, 2]})
-
-        mock_column_manager.add_metadata_columns.return_value = df
-        mock_parsed_generator.add_federal_search_columns.return_value = df
-
-        result = strategy.add_agency_columns(df, AgencyType.BLM)
-
-        mock_column_manager.add_metadata_columns.assert_called_once()
-        mock_parsed_generator.add_federal_search_columns.assert_called_once_with(df)
-        mock_parsed_generator.add_nmslo_search_columns.assert_not_called()
-
-    def test_get_column_widths(self):
-        """Test column width calculation for legacy format."""
-        strategy = LegacyFormatStrategy()
-        df = pd.DataFrame(
-            {
-                "Link": ["test"],
-                "Legal Description": ["test"],
-                "Agency": ["test"],
-                "Other": ["test"],
-            }
-        )
-
-        widths = strategy.get_column_widths(df)
-
-        assert widths["Link"] == 50
-        assert widths["Legal Description"] == 40
-        assert widths["Agency"] == 15
-        assert widths["Other"] == 20
-
-
-class TestMinimalFormatStrategy:
-    """Test cases for MinimalFormatStrategy."""
-
-    def test_convert_to_dataframe(self, sample_order_items):
-        """Test converting OrderItemData to DataFrame with minimal format."""
-        strategy = MinimalFormatStrategy()
-        df = strategy.convert_to_dataframe(sample_order_items)
-
-        # Check basic columns
-        assert "Agency" in df.columns
-        assert "Lease" in df.columns
-        assert "Legal Description" in df.columns
-        assert "Previous Report Found" in df.columns
-
-        # Check boolean to Yes/No conversion
         assert df.iloc[0]["Previous Report Found"] == "Yes"
+        assert df.iloc[0]["Tractstar Needed"] == "Yes"
+        assert df.iloc[0]["Documents Needed"] == "No"
+        assert df.iloc[0]["Misc Index Needed"] == "Yes"
+
+        # Check that BLM item has correct values
+        assert df.iloc[1]["Agency"] == "BLM"
         assert df.iloc[1]["Previous Report Found"] == "No"
 
+    def test_convert_to_dataframe_with_blank_columns(self, sample_order_items):
+        """Test that missing columns are added as blank."""
+        exporter = WorksheetExporter()
+        df = exporter.convert_to_dataframe(sample_order_items, AgencyType.NMSLO)
+
+        # Check that blank columns are added
+        assert "Documents" in df.columns
+        assert "Search Notes" in df.columns
+
+        # Check that blank columns are empty
+        assert df.iloc[0]["Documents"] == ""
+        assert df.iloc[0]["Search Notes"] == ""
+
     @patch("src.core.services.order_worksheet_exporter.ColumnManager")
-    def test_add_agency_columns_minimal(self, mock_column_manager, sample_order_items):
-        """Test adding minimal agency-specific columns (no parsed columns)."""
-        strategy = MinimalFormatStrategy()
+    def test_add_metadata_columns(self, mock_column_manager, sample_order_items):
+        """Test adding metadata columns."""
+        exporter = WorksheetExporter()
         df = pd.DataFrame({"test": [1, 2]})
 
         mock_column_manager.add_metadata_columns.return_value = df
 
-        result = strategy.add_agency_columns(df, AgencyType.NMSLO)
-
-        mock_column_manager.add_metadata_columns.assert_called_once()
-        # Should not call any parsed column generators
-
-    def test_get_column_widths(self):
-        """Test column width calculation for minimal format."""
-        strategy = MinimalFormatStrategy()
-        df = pd.DataFrame(
-            {
-                "Report Directory Link": ["test"],
-                "Legal Description": ["test"],
-                "Agency": ["test"],
-                "Other": ["test"],
-            }
+        result = exporter.add_metadata_columns(
+            df, AgencyType.NMSLO, "test-123", "Runsheet", datetime.now().date()
         )
 
-        widths = strategy.get_column_widths(df)
+        mock_column_manager.add_metadata_columns.assert_called_once()
+        assert result is df
 
-        assert widths["Report Directory Link"] == 50
-        assert widths["Legal Description"] == 40
+    def test_get_column_widths(self, sample_order_items):
+        """Test getting column widths from config."""
+        exporter = WorksheetExporter()
+        df = exporter.convert_to_dataframe(sample_order_items, AgencyType.NMSLO)
+        widths = exporter.get_column_widths(df, AgencyType.NMSLO)
+
+        # Check that widths are retrieved from config
         assert widths["Agency"] == 15
-        assert widths["Other"] == 20
+        assert widths["Lease"] == 15
+        assert widths["Legal Description"] == 25
+        assert widths["Report Notes"] == 30
 
-
-class TestOrderWorksheetExporterService:
-    """Test cases for OrderWorksheetExporterService."""
-
-    def test_init(self):
-        """Test service initialization with strategy."""
-        strategy = LegacyFormatStrategy()
-        service = OrderWorksheetExporterService(strategy)
-        assert service.strategy == strategy
+        # Check fallback widths for columns not in config
+        assert "test" not in widths  # This shouldn't be in the DataFrame anyway
 
     @patch("src.core.services.order_worksheet_exporter.ExcelWriter")
     @patch("src.core.services.order_worksheet_exporter.FilenameGenerator")
     def test_export_order_items_success(
         self, mock_filename_gen, mock_excel_writer, sample_order_items, temp_output_dir
     ):
-        """Test successful export using strategy."""
-        # Setup mocks
-        mock_filename_gen.generate_order_filename.return_value = "test_output.xlsx"
+        """Test successful export of order items."""
+        exporter = WorksheetExporter()
+
+        # Mock the dependencies
+        mock_filename_gen.generate_order_filename.return_value = "test_order.xlsx"
         mock_excel_writer.save_with_formatting.return_value = str(
-            temp_output_dir / "test_output.xlsx"
+            temp_output_dir / "test_order.xlsx"
         )
 
-        # Create service with mock strategy
-        mock_strategy = Mock()
-        mock_strategy.convert_to_dataframe.return_value = pd.DataFrame({"test": [1, 2]})
-        mock_strategy.add_agency_columns.return_value = pd.DataFrame({"test": [1, 2]})
-        mock_strategy.get_column_widths.return_value = {"test": 20}
-
-        service = OrderWorksheetExporterService(mock_strategy)
-
-        # Execute
-        result = service.export_order_items(
-            sample_order_items, AgencyType.NMSLO, temp_output_dir, "123", "Test"
+        result = exporter.export_order_items(
+            sample_order_items,
+            AgencyType.NMSLO,
+            temp_output_dir,
+            "test-123",
+            "Runsheet",
+            datetime.now().date(),
         )
 
-        # Verify strategy methods called
-        mock_strategy.convert_to_dataframe.assert_called_once_with(sample_order_items)
-        mock_strategy.add_agency_columns.assert_called_once()
-        mock_strategy.get_column_widths.assert_called_once()
-
-        # Verify file operations
+        # Verify the result
+        assert result == str(temp_output_dir / "test_order.xlsx")
         mock_filename_gen.generate_order_filename.assert_called_once()
         mock_excel_writer.save_with_formatting.assert_called_once()
 
     def test_export_empty_order_items(self, temp_output_dir):
-        """Test error handling for empty order items."""
-        strategy = LegacyFormatStrategy()
-        service = OrderWorksheetExporterService(strategy)
+        """Test that empty order items raises an error."""
+        exporter = WorksheetExporter()
 
         with pytest.raises(ValueError, match="order_items cannot be empty"):
-            service.export_order_items([], AgencyType.NMSLO, temp_output_dir)
+            exporter.export_order_items([], AgencyType.NMSLO, temp_output_dir)
 
     def test_export_invalid_directory(self, sample_order_items):
-        """Test error handling for invalid directory."""
-        strategy = LegacyFormatStrategy()
-        service = OrderWorksheetExporterService(strategy)
+        """Test that invalid directory raises an error."""
+        exporter = WorksheetExporter()
 
         with pytest.raises(ValueError, match="output_directory must be a Path object"):
-            service.export_order_items(
+            exporter.export_order_items(
                 sample_order_items, AgencyType.NMSLO, "not_a_path"
             )
 
@@ -242,72 +211,25 @@ class TestOrderWorksheetExporterService:
 class TestConvenienceFunctions:
     """Test cases for convenience functions."""
 
-    @patch("src.core.services.order_worksheet_exporter.OrderWorksheetExporterService")
-    def test_export_order_items_to_worksheet_legacy(
-        self, mock_service_class, sample_order_items, temp_output_dir
+    @patch("src.core.services.order_worksheet_exporter.WorksheetExporter")
+    def test_export_order_items_to_worksheet(
+        self, mock_exporter_class, sample_order_items, temp_output_dir
     ):
-        """Test convenience function with legacy format."""
-        mock_service = Mock()
-        mock_service_class.return_value = mock_service
+        """Test the convenience function."""
+        mock_exporter = Mock()
+        mock_exporter_class.return_value = mock_exporter
+        mock_exporter.export_order_items.return_value = str(
+            temp_output_dir / "test.xlsx"
+        )
 
-        export_order_items_to_worksheet(
+        result = export_order_items_to_worksheet(
             sample_order_items,
             AgencyType.NMSLO,
             temp_output_dir,
-            use_legacy_format=True,
+            "test-123",
+            "Runsheet",
+            datetime.now().date(),
         )
 
-        # Verify LegacyFormatStrategy was used
-        args, kwargs = mock_service_class.call_args
-        assert isinstance(args[0], LegacyFormatStrategy)
-
-    @patch("src.core.services.order_worksheet_exporter.OrderWorksheetExporterService")
-    def test_export_order_items_to_worksheet_minimal(
-        self, mock_service_class, sample_order_items, temp_output_dir
-    ):
-        """Test convenience function with minimal format."""
-        mock_service = Mock()
-        mock_service_class.return_value = mock_service
-
-        export_order_items_to_worksheet(
-            sample_order_items,
-            AgencyType.NMSLO,
-            temp_output_dir,
-            use_legacy_format=False,
-        )
-
-        # Verify MinimalFormatStrategy was used
-        args, kwargs = mock_service_class.call_args
-        assert isinstance(args[0], MinimalFormatStrategy)
-
-    @patch("src.core.services.order_worksheet_exporter.OrderWorksheetExporterService")
-    def test_export_order_items_legacy_format(
-        self, mock_service_class, sample_order_items, temp_output_dir
-    ):
-        """Test legacy format convenience function."""
-        mock_service = Mock()
-        mock_service_class.return_value = mock_service
-
-        export_order_items_legacy_format(
-            sample_order_items, AgencyType.NMSLO, temp_output_dir
-        )
-
-        # Verify LegacyFormatStrategy was used
-        args, kwargs = mock_service_class.call_args
-        assert isinstance(args[0], LegacyFormatStrategy)
-
-    @patch("src.core.services.order_worksheet_exporter.OrderWorksheetExporterService")
-    def test_export_order_items_minimal_format(
-        self, mock_service_class, sample_order_items, temp_output_dir
-    ):
-        """Test minimal format convenience function."""
-        mock_service = Mock()
-        mock_service_class.return_value = mock_service
-
-        export_order_items_minimal_format(
-            sample_order_items, AgencyType.NMSLO, temp_output_dir
-        )
-
-        # Verify MinimalFormatStrategy was used
-        args, kwargs = mock_service_class.call_args
-        assert isinstance(args[0], MinimalFormatStrategy)
+        assert result == str(temp_output_dir / "test.xlsx")
+        mock_exporter.export_order_items.assert_called_once()

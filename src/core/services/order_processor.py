@@ -8,7 +8,6 @@ from typing import List, Optional, Protocol
 from src.core.models import OrderData, OrderItemData, AgencyType
 from src.core.services.order_form_parser import parse_order_form_to_order_items
 from src.core.services.workflow_orchestrator import WorkflowOrchestrator
-from src.core.services.order_worksheet_exporter import export_order_items_minimal_format
 from src.integrations.cloud.protocols import CloudOperations
 
 
@@ -39,7 +38,6 @@ class OrderProcessorService:
         order_form_path: Path,
         output_directory: Path,
         agency: AgencyType,
-        use_legacy_format: bool = False,
     ) -> str:
         """
         Process complete order from start to finish.
@@ -49,7 +47,6 @@ class OrderProcessorService:
             order_form_path: Path to Excel order form file
             output_directory: Directory for output file
             agency: Agency type for parsing order form
-            use_legacy_format: If True, exports in legacy format
 
         Returns:
             str: Path to created output file
@@ -71,7 +68,7 @@ class OrderProcessorService:
         # Step 3: Export to worksheet
         self._update_progress("Generating output file...", 80)
         output_path = self._export_worksheet(
-            processed_items, order_data, output_directory, use_legacy_format
+            processed_items, order_data, output_directory
         )
 
         self._update_progress("Order processing complete!", 100)
@@ -102,22 +99,16 @@ class OrderProcessorService:
         order_items: List[OrderItemData],
         order_data: OrderData,
         output_directory: Path,
-        use_legacy_format: bool,
     ) -> str:
         """Export processed items to worksheet."""
-        if use_legacy_format:
-            from src.core.services.order_worksheet_exporter import (
-                export_order_items_legacy_format,
-            )
-
-            export_func = export_order_items_legacy_format
-        else:
-            export_func = export_order_items_minimal_format
+        from src.core.services.order_worksheet_exporter import (
+            export_order_items_to_worksheet,
+        )
 
         # Get agency from first order item (all items should have same agency)
         item_agency = order_items[0].agency if order_items else AgencyType.NMSLO
 
-        return export_func(
+        return export_order_items_to_worksheet(
             order_items=order_items,
             agency=item_agency,
             output_directory=output_directory,
@@ -138,7 +129,6 @@ def process_order_end_to_end(
     output_directory: Path,
     cloud_service: CloudOperations,
     progress_callback: Optional[ProgressCallback] = None,
-    use_legacy_format: bool = False,
 ) -> str:
     """
     Convenience function for end-to-end order processing.
@@ -149,12 +139,15 @@ def process_order_end_to_end(
         output_directory: Directory for output file
         cloud_service: Cloud service for workflows
         progress_callback: Optional progress callback
-        use_legacy_format: If True, exports in legacy format
 
     Returns:
         str: Path to created output file
     """
     processor = OrderProcessorService(cloud_service, progress_callback)
+    # Get agency from the first order item, or default to NMSLO
+    agency = (
+        order_data.order_items[0].agency if order_data.order_items else AgencyType.NMSLO
+    )
     return processor.process_order(
-        order_data, order_form_path, output_directory, use_legacy_format
+        order_data, order_form_path, output_directory, agency
     )

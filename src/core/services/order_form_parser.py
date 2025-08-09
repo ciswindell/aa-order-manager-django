@@ -63,7 +63,9 @@ class OrderFormParser:
                 legal_description=str(row.get("Requested Legal", "")),
                 start_date=start_date,
                 end_date=end_date,
-                notes=str(row.get("Notes", "")) if pd.notna(row.get("Notes")) else None,
+                report_notes=(
+                    str(row.get("Notes", "")) if pd.notna(row.get("Notes")) else None
+                ),
             )
             order_items.append(order_item)
         return order_items

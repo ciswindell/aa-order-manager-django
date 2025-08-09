@@ -38,7 +38,7 @@ def test_parse_valid_order_form():
         assert len(order_items) == 2
         assert order_items[0].lease_number == "NMNM 123456"
         assert order_items[0].agency == AgencyType.NMSLO
-        assert order_items[0].notes == "Test note 1"
+        assert order_items[0].report_notes == "Test note 1"
 
         # Test convenience function
         order_items2 = parse_order_form_to_order_items(tmp_path, AgencyType.BLM)
@@ -96,7 +96,7 @@ def test_minimal_order_form():
         assert order_items[0].lease_number == "NMNM 123456"
         assert order_items[0].start_date is None
         assert order_items[0].end_date is None
-        assert order_items[0].notes is None
+        assert order_items[0].report_notes is None
 
     finally:
         os.unlink(tmp_path)

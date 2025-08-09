@@ -1,9 +1,11 @@
 """
-Order Worksheet Exporter Service for OrderItemData export functionality.
+Simplified Order Worksheet Exporter Service for OrderItemData export functionality.
+
+This exporter uses config as the single source of truth for all column operations.
 """
 
 from pathlib import Path
-from typing import List, Dict, Protocol
+from typing import List, Dict, Any
 import pandas as pd
 
 from src.core.models import OrderItemData, AgencyType
@@ -11,59 +13,103 @@ from src.core.utils import (
     ColumnManager,
     ExcelWriter,
     FilenameGenerator,
-    ParsedColumnGenerator,
 )
+from src import config
 
 
-class WorksheetExportStrategy(Protocol):
-    """Strategy protocol for different worksheet export formats."""
+class ColumnMapper:
+    """Centralized column mapping using config as single source of truth."""
 
-    def convert_to_dataframe(self, order_items: List[OrderItemData]) -> pd.DataFrame:
-        """Convert OrderItemData list to pandas DataFrame with format-specific columns."""
-        ...
+    @staticmethod
+    def map_item_to_row(item: OrderItemData, agency: AgencyType) -> Dict[str, Any]:
+        """
+        Map OrderItemData to row dict with only configured columns for the agency.
 
-    def add_agency_columns(self, df: pd.DataFrame, agency: AgencyType) -> pd.DataFrame:
-        """Add agency-specific columns based on format requirements."""
-        ...
+        This is the single source of truth for field-to-column mapping.
+        Only creates columns that exist in the agency's configuration.
+        """
+        configured_columns = set(config.get_column_order(agency.value))
+        row = {}
 
-    def get_column_widths(self, df: pd.DataFrame) -> Dict[str, int]:
-        """Get column widths appropriate for this format."""
-        ...
+        # Map each configured column to its value
+        for column in configured_columns:
+            if column == "Agency":
+                row[column] = item.agency.value
+            elif column == "Lease":
+                row[column] = item.lease_number
+            elif column == "Legal Description":
+                row[column] = item.legal_description
+            elif column == "Report Start Date":
+                row[column] = item.start_date
+            elif column == "Report End Date":
+                row[column] = item.end_date
+            elif column == "Report Notes":
+                row[column] = item.report_notes or ""
+            elif column == "Report Directory Link":
+                row[column] = item.report_directory_link or ""
+            elif column == "Previous Report Found":
+                row[column] = (
+                    "Yes"
+                    if item.previous_report_found
+                    else "No" if item.previous_report_found is not None else ""
+                )
+            elif column == "Tractstar Needed" or column == "Tractstar":
+                row[column] = (
+                    "Yes"
+                    if item.tractstar_needed
+                    else "No" if item.tractstar_needed is not None else ""
+                )
+            elif column == "Documents Needed":
+                row[column] = (
+                    "Yes"
+                    if item.documents_needed
+                    else "No" if item.documents_needed is not None else ""
+                )
+            elif column == "Misc Index Needed":
+                row[column] = (
+                    "Yes"
+                    if item.misc_index_needed
+                    else "No" if item.misc_index_needed is not None else ""
+                )
+            elif column == "Documents Links":
+                row[column] = (
+                    ", ".join(item.documents_links) if item.documents_links else ""
+                )
+            elif column == "Misc Index Links":
+                row[column] = (
+                    ", ".join(item.misc_index_links) if item.misc_index_links else ""
+                )
+            else:
+                # For any other configured columns, set as blank
+                row[column] = ""
+
+        return row
 
 
-class LegacyFormatStrategy:
-    """Legacy format with all columns including blank search columns and parsed lease columns."""
+class WorksheetExporter:
+    """Simplified worksheet exporter that dynamically handles columns based on config."""
 
-    def convert_to_dataframe(self, order_items: List[OrderItemData]) -> pd.DataFrame:
-        """Convert to DataFrame with legacy column structure."""
-        data = []
-        for item in order_items:
-            row = {
-                "Agency": item.agency.value,
-                "Lease": item.lease_number,
-                "Legal Description": item.legal_description,
-                "Report Start Date": item.start_date,
-                "Report End Date": item.end_date,
-                "Notes": item.notes,
-                "Link": item.report_directory_link or "",
-                "Previous Report Found": item.previous_report_found,
-            }
-            # Add document and lease index links
-            row["Documents Links"] = (
-                ", ".join(item.documents_links) if item.documents_links else ""
-            )
-            row["Lease Index Links"] = (
-                ", ".join(item.lease_index_links) if item.lease_index_links else ""
-            )
-            data.append(row)
+    def convert_to_dataframe(
+        self, order_items: List[OrderItemData], agency: AgencyType
+    ) -> pd.DataFrame:
+        """
+        Convert OrderItemData list to DataFrame with only configured columns.
 
-        df = pd.DataFrame(data)
+        Uses ColumnMapper as single source of truth for column handling.
+        """
+        if not order_items:
+            raise ValueError("order_items cannot be empty")
 
-        # No parsed columns here - will be added in add_agency_columns based on agency
+        # Convert each item using centralized mapper
+        data = [ColumnMapper.map_item_to_row(item, agency) for item in order_items]
+
+        # Create DataFrame with exact column order from config
+        column_order = config.get_column_order(agency.value)
+        df = pd.DataFrame(data, columns=column_order)
 
         return df
 
-    def add_agency_columns(
+    def add_metadata_columns(
         self,
         df: pd.DataFrame,
         agency: AgencyType,
@@ -71,9 +117,8 @@ class LegacyFormatStrategy:
         order_type: str = "",
         order_date=None,
     ) -> pd.DataFrame:
-        """Add legacy agency-specific columns including blank search columns."""
-        # Add metadata columns
-        df = ColumnManager.add_metadata_columns(
+        """Add metadata columns (Order Type, Order Number, Order Date) to the DataFrame."""
+        return ColumnManager.add_metadata_columns(
             df,
             agency=agency.value,
             order_type=order_type,
@@ -81,102 +126,9 @@ class LegacyFormatStrategy:
             order_number=order_number,
         )
 
-        # Add agency-specific parsed columns
-        if agency == AgencyType.NMSLO:
-            df = ParsedColumnGenerator.add_nmslo_search_columns(df)
-        elif agency == AgencyType.BLM:
-            df = ParsedColumnGenerator.add_federal_search_columns(df)
-
-        return df
-
-    def get_column_widths(self, df: pd.DataFrame) -> Dict[str, int]:
-        """Get legacy column widths."""
-        widths = {}
-        for column in df.columns:
-            if "Link" in column:
-                widths[column] = 50
-            elif column in ["Legal Description", "Notes"]:
-                widths[column] = 40
-            elif column in ["Agency", "Lease"]:
-                widths[column] = 15
-            else:
-                widths[column] = 20
-        return widths
-
-
-class MinimalFormatStrategy:
-    """Minimal format with only essential columns, no blank search columns."""
-
-    def convert_to_dataframe(self, order_items: List[OrderItemData]) -> pd.DataFrame:
-        """Convert to DataFrame with minimal column structure."""
-        data = []
-        for item in order_items:
-            # Convert boolean to Yes/No for Previous Report Found
-            previous_report = ""
-            if item.previous_report_found is not None:
-                previous_report = "Yes" if item.previous_report_found else "No"
-
-            row = {
-                "Agency": item.agency.value,
-                "Lease": item.lease_number,
-                "Legal Description": item.legal_description,
-                "Report Start Date": item.start_date,
-                "Report End Date": item.end_date,
-                "Notes": item.notes,
-                "Report Directory Link": item.report_directory_link or "",
-                "Previous Report Found": previous_report,
-            }
-            # Add document and lease index links
-            row["Documents Links"] = (
-                ", ".join(item.documents_links) if item.documents_links else ""
-            )
-            row["Lease Index Links"] = (
-                ", ".join(item.lease_index_links) if item.lease_index_links else ""
-            )
-            data.append(row)
-
-        return pd.DataFrame(data)
-
-    def add_agency_columns(
-        self,
-        df: pd.DataFrame,
-        agency: AgencyType,
-        order_number: str = "",
-        order_type: str = "",
-        order_date=None,
-    ) -> pd.DataFrame:
-        """Add minimal agency-specific columns (no blank search columns)."""
-        # Only add metadata columns, no blank search columns
-        df = ColumnManager.add_metadata_columns(
-            df,
-            agency=agency.value,
-            order_type=order_type,
-            order_date=order_date,
-            order_number=order_number,
-        )
-        return df
-
-    def get_column_widths(self, df: pd.DataFrame) -> Dict[str, int]:
-        """Get minimal format column widths."""
-        widths = {}
-        for column in df.columns:
-            if "Link" in column:
-                widths[column] = 50
-            elif column in ["Legal Description", "Notes"]:
-                widths[column] = 40
-            elif column in ["Agency", "Lease"]:
-                widths[column] = 15
-            else:
-                widths[column] = 20
-        return widths
-
-
-class OrderWorksheetExporterService:
-    """Service for exporting OrderItemData using different format strategies."""
-
-    def __init__(self, strategy: WorksheetExportStrategy):
-        """Initialize with a specific export strategy."""
-        self.strategy = strategy
+    def get_column_widths(self, df: pd.DataFrame, agency: AgencyType) -> Dict[str, int]:
+        """Get column widths from config - all columns should be configured."""
+        return config.get_column_widths(agency.value)
 
     def export_order_items(
         self,
@@ -187,7 +139,24 @@ class OrderWorksheetExporterService:
         order_type: str = None,
         order_date=None,
     ) -> str:
-        """Export using the configured strategy."""
+        """
+        Export OrderItemData to worksheet using dynamic column generation.
+
+        Args:
+            order_items: List of OrderItemData instances to export
+            agency: Agency type for agency-specific formatting
+            output_directory: Directory where order worksheet file will be saved
+            order_number: Optional order number for filename and metadata
+            order_type: Optional order type for filename and metadata
+            order_date: Optional order date for metadata
+
+        Returns:
+            str: Path to created order worksheet file
+
+        Raises:
+            ValueError: If order_items is empty or invalid parameters
+            IOError: If file cannot be written
+        """
         if not order_items:
             raise ValueError("order_items cannot be empty")
         if not isinstance(output_directory, Path):
@@ -195,16 +164,15 @@ class OrderWorksheetExporterService:
         if not output_directory.exists():
             output_directory.mkdir(parents=True, exist_ok=True)
 
-        # Use strategy to convert data
-        df = self.strategy.convert_to_dataframe(order_items)
-        df = self.strategy.add_agency_columns(
-            df, agency, order_number, order_type, order_date
-        )
+        # Step 1: Convert to DataFrame with all configured columns
+        df = self.convert_to_dataframe(order_items, agency)
 
-        # Clean data (skip data cleaning for now as method doesn't exist)
-        # df = DataCleaner.clean_order_data(df)
+        # Step 2: Add metadata columns
+        df = self.add_metadata_columns(df, agency, order_number, order_type, order_date)
 
-        # Generate filename and output path
+        # No need to reorder - DataFrame already has correct columns in correct order
+
+        # Step 3: Generate filename and output path
         filename = FilenameGenerator.generate_order_filename(
             order_number=order_number,
             agency=agency.value,
@@ -212,10 +180,10 @@ class OrderWorksheetExporterService:
         )
         output_path = output_directory / filename
 
-        # Get column widths from strategy
-        column_widths = self.strategy.get_column_widths(df)
+        # Step 4: Get column widths from config
+        column_widths = self.get_column_widths(df, agency)
 
-        # Export with formatting
+        # Step 5: Export with formatting
         return ExcelWriter.save_with_formatting(df, output_path, column_widths)
 
 
@@ -226,7 +194,6 @@ def export_order_items_to_worksheet(
     order_number: str = None,
     order_type: str = None,
     order_date=None,
-    use_legacy_format: bool = False,
 ) -> str:
     """
     Convenience function for exporting OrderItemData to order worksheet.
@@ -235,71 +202,14 @@ def export_order_items_to_worksheet(
         order_items: List of OrderItemData instances to export
         agency: Agency type for agency-specific formatting
         output_directory: Directory where order worksheet file will be saved
-        order_number: Optional order number for filename
-        order_type: Optional order type for filename
-        use_legacy_format: If True, uses legacy format with all columns
+        order_number: Optional order number for filename and metadata
+        order_type: Optional order type for filename and metadata
+        order_date: Optional order date for metadata
 
     Returns:
         str: Path to created order worksheet file
     """
-    strategy = LegacyFormatStrategy() if use_legacy_format else MinimalFormatStrategy()
-    exporter = OrderWorksheetExporterService(strategy)
-    return exporter.export_order_items(
-        order_items, agency, output_directory, order_number, order_type, order_date
-    )
-
-
-def export_order_items_legacy_format(
-    order_items: List[OrderItemData],
-    agency: AgencyType,
-    output_directory: Path,
-    order_number: str = None,
-    order_type: str = None,
-    order_date=None,
-) -> str:
-    """
-    Convenience function for exporting OrderItemData in legacy format.
-
-    Args:
-        order_items: List of OrderItemData instances to export
-        agency: Agency type for agency-specific formatting
-        output_directory: Directory where order worksheet file will be saved
-        order_number: Optional order number for filename
-        order_type: Optional order type for filename
-
-    Returns:
-        str: Path to created order worksheet file
-    """
-    strategy = LegacyFormatStrategy()
-    exporter = OrderWorksheetExporterService(strategy)
-    return exporter.export_order_items(
-        order_items, agency, output_directory, order_number, order_type, order_date
-    )
-
-
-def export_order_items_minimal_format(
-    order_items: List[OrderItemData],
-    agency: AgencyType,
-    output_directory: Path,
-    order_number: str = None,
-    order_type: str = None,
-    order_date=None,
-) -> str:
-    """
-    Convenience function for exporting OrderItemData in minimal format.
-
-    Args:
-        order_items: List of OrderItemData instances to export
-        agency: Agency type for agency-specific formatting
-        output_directory: Directory where order worksheet file will be saved
-        order_number: Optional order number for filename
-        order_type: Optional order type for filename
-
-    Returns:
-        str: Path to created order worksheet file
-    """
-    strategy = MinimalFormatStrategy()
-    exporter = OrderWorksheetExporterService(strategy)
+    exporter = WorksheetExporter()
     return exporter.export_order_items(
         order_items, agency, output_directory, order_number, order_type, order_date
     )

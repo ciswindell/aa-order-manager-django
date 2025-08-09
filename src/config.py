@@ -46,17 +46,19 @@ AGENCY_CONFIGS = {
             "Order Number": 15,
             "Order Date": 15,
             "Lease": 15,
-            "Requested Legal": 25,
+            "Legal Description": 25,
             "Report Start Date": 20,
-            "Full Search": 14,
-            "Partial Search": 14,
-            "New Format": 12,
-            "Tractstar": 12,
-            "Old Format": 12,
-            "MI Index": 12,
+            "Report End Date": 20,
+            "Report Notes": 30,
+            "Report Directory Link": 30,
+            "Previous Report Found": 20,
+            "Tractstar Needed": 12,
+            "Documents Needed": 12,
+            "Misc Index Needed": 12,
+            # "Documents Links": 30,
+            "Misc Index Links": 30,
             "Documents": 12,
             "Search Notes": 30,
-            "Link": 30,
         },
         folder_structure=["^Document Archive", "^MI Index", "Runsheets"],
     ),
@@ -69,20 +71,23 @@ AGENCY_CONFIGS = {
             "Order Number": 15,
             "Order Date": 15,
             "Lease": 15,
-            "Requested Legal": 25,
+            "Legal Description": 25,
             "Report Start Date": 20,
-            "Notes": 30,
-            "Files Search": 14,
-            "Tractstar Search": 14,
-            "New Format": 12,
-            "Tractstar": 12,
-            "Documents": 12,
+            "Report End Date": 20,
+            "Report Notes": 30,
+            "Report Directory Link": 30,
+            "Previous Report Found": 20,
+            "Tractstar Needed": 12,
+            # "Documents Links": 30,
+            "Documents Needed": 12,
             "Search Notes": 30,
-            "Link": 30,
         },
         folder_structure=["^Document Archive", "Runsheets"],
     ),
 }
+
+# Create BLM as alias for Federal config
+AGENCY_CONFIGS["BLM"] = AGENCY_CONFIGS["Federal"]
 
 
 # Simple accessors
@@ -104,6 +109,11 @@ def get_lease_file_directory_path(agency: str) -> str:
 def get_column_widths(agency: str) -> Dict[str, int]:
     """Get column widths for an agency."""
     return get_agency_config(agency).column_widths
+
+
+def get_column_order(agency: str) -> List[str]:
+    """Get column order for an agency based on column_widths keys."""
+    return list(get_agency_config(agency).column_widths.keys())
 
 
 # Cloud provider configuration

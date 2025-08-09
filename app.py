@@ -5,7 +5,6 @@ from tkinter import filedialog, messagebox
 
 from tkcalendar import DateEntry
 
-from src.core.legacy_processors import FederalOrderProcessor, NMSLOOrderProcessor
 from src.core.services.order_processor import OrderProcessorService
 from src.core.models import OrderData, AgencyType, ReportType
 from src.integrations.dropbox.auth import create_dropbox_auth
@@ -221,7 +220,6 @@ def process_order():
                 order_form_path=input_file_path,
                 output_directory=output_directory,
                 agency=agency_enum,
-                use_legacy_format=False,  # Use new minimal format
             )
 
             progress_window.close()
