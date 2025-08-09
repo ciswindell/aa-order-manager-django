@@ -130,18 +130,6 @@ class MainWindow:
         )
         browse_button.pack(side="left")
 
-        # Options frame for future configuration options
-        options_frame = tk.Frame(main_frame, bg="lightgray", relief="ridge", bd=1)
-        options_frame.pack(fill="x", pady=10)
-        tk.Label(
-            options_frame,
-            text="Options:",
-            width=12,
-            anchor="w",
-            bg="lightgray",
-            font=("Arial", 10),
-        ).pack(side="left")
-
         # Button frame for centered button
         button_frame = tk.Frame(main_frame, bg="lightgray")
         button_frame.pack(fill="x", pady=20)
