@@ -124,7 +124,7 @@ def process_order(main_window):
             # Create order processor with progress callback
             order_processor = OrderProcessorService(cloud_service, progress_window)
 
-            # Process order end-to-end
+            # Process order using OrderProcessorService
             # Convert GUI agency to enum using service
             agency_enum = OrderProcessorService.map_agency_type(form_data["agency"])
 

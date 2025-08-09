@@ -190,33 +190,3 @@ class OrderProcessorService:
             raise ValueError(f"Unknown order type: {order_type_str}")
 
         return type_mapping[order_type_str]
-
-
-def process_order_end_to_end(
-    order_data: OrderData,
-    order_form_path: Path,
-    output_directory: Path,
-    cloud_service: CloudOperations,
-    progress_callback: Optional[ProgressCallback] = None,
-) -> str:
-    """
-    Convenience function for end-to-end order processing.
-
-    Args:
-        order_data: Basic order information
-        order_form_path: Path to Excel order form file
-        output_directory: Directory for output file
-        cloud_service: Cloud service for workflows
-        progress_callback: Optional progress callback
-
-    Returns:
-        str: Path to created output file
-    """
-    processor = OrderProcessorService(cloud_service, progress_callback)
-    # Get agency from the first order item, or default to NMSLO
-    agency = (
-        order_data.order_items[0].agency if order_data.order_items else AgencyType.NMSLO
-    )
-    return processor.process_order(
-        order_data, order_form_path, output_directory, agency
-    )

@@ -9,10 +9,7 @@ import tempfile
 import pandas as pd
 from datetime import datetime
 
-from src.core.services.order_processor import (
-    OrderProcessorService,
-    process_order_end_to_end,
-)
+from src.core.services.order_processor import OrderProcessorService
 from src.core.models import OrderData, AgencyType, ReportType
 
 
@@ -74,7 +71,7 @@ class TestOrderProcessorServiceIntegration:
         assert processor.workflow_orchestrator is not None
 
     @patch("src.core.services.order_processor.parse_order_form_to_order_items")
-    @patch("src.core.services.order_processor.export_order_items_minimal_format")
+    @patch("src.core.services.order_processor.export_order_items_to_worksheet")
     def test_process_order_minimal_format(
         self,
         mock_export,
@@ -108,11 +105,11 @@ class TestOrderProcessorServiceIntegration:
                 order_data=sample_order_data,
                 order_form_path=sample_order_form,
                 output_directory=temp_output_dir,
-                use_legacy_format=False,
+                agency=AgencyType.NMSLO,
             )
 
             # Verify calls
-            mock_parse.assert_called_once_with(str(sample_order_form))
+            mock_parse.assert_called_once_with(str(sample_order_form), AgencyType.NMSLO)
             mock_workflow.assert_called_once()
             mock_export.assert_called_once()
 
@@ -129,7 +126,7 @@ class TestOrderProcessorServiceIntegration:
             assert result == str(temp_output_dir / "test_output.xlsx")
 
     @patch("src.core.services.order_processor.parse_order_form_to_order_items")
-    @patch("src.core.services.order_processor.export_order_items_legacy_format")
+    @patch("src.core.services.order_processor.export_order_items_to_worksheet")
     def test_process_order_legacy_format(
         self,
         mock_export,
@@ -158,12 +155,12 @@ class TestOrderProcessorServiceIntegration:
         with patch.object(
             processor.workflow_orchestrator, "execute_workflows_for_order_item"
         ) as mock_workflow:
-            # Execute with legacy format
+            # Execute
             result = processor.process_order(
                 order_data=sample_order_data,
                 order_form_path=sample_order_form,
                 output_directory=temp_output_dir,
-                use_legacy_format=True,
+                agency=AgencyType.BLM,
             )
 
             # Verify legacy export was called
@@ -185,14 +182,14 @@ class TestOrderProcessorServiceIntegration:
         with patch.object(
             processor.workflow_orchestrator, "execute_workflows_for_order_item"
         ) as mock_workflow:
-            mock_workflow.side_effect = Exception("Workflow error")
+            mock_workflow.side_effect = RuntimeError("Workflow error")
 
             # Should continue processing despite workflow error
             with patch(
                 "src.core.services.order_processor.parse_order_form_to_order_items"
             ) as mock_parse:
                 with patch(
-                    "src.core.services.order_processor.export_order_items_minimal_format"
+                    "src.core.services.order_processor.export_order_items_to_worksheet"
                 ) as mock_export:
                     mock_parse.return_value = [Mock()]
                     mock_export.return_value = str(temp_output_dir / "output.xlsx")
@@ -202,50 +199,11 @@ class TestOrderProcessorServiceIntegration:
                         order_data=sample_order_data,
                         order_form_path=sample_order_form,
                         output_directory=temp_output_dir,
+                        agency=AgencyType.NMSLO,
                     )
 
                     # Should still complete and export
                     assert result is not None
-
-
-class TestConvenienceFunction:
-    """Test the convenience function."""
-
-    @patch("src.core.services.order_processor.OrderProcessorService")
-    def test_process_order_end_to_end(
-        self,
-        mock_service_class,
-        sample_order_data,
-        sample_order_form,
-        temp_output_dir,
-        mock_cloud_service,
-        mock_progress_callback,
-    ):
-        """Test the convenience function creates service and processes order."""
-        mock_service = Mock()
-        mock_service_class.return_value = mock_service
-        mock_service.process_order.return_value = "test_output.xlsx"
-
-        result = process_order_end_to_end(
-            order_data=sample_order_data,
-            order_form_path=sample_order_form,
-            output_directory=temp_output_dir,
-            cloud_service=mock_cloud_service,
-            progress_callback=mock_progress_callback,
-            use_legacy_format=True,
-        )
-
-        # Verify service was created with correct parameters
-        mock_service_class.assert_called_once_with(
-            mock_cloud_service, mock_progress_callback
-        )
-
-        # Verify process_order was called with correct parameters
-        mock_service.process_order.assert_called_once_with(
-            sample_order_data, sample_order_form, temp_output_dir, True
-        )
-
-        assert result == "test_output.xlsx"
 
 
 class TestGUIIntegration:
