@@ -39,12 +39,12 @@
   - [x] 3.1 Write `requirements.txt` with `Django>=5.2,<6.0`, `dropbox`, `pandas`, `openpyxl`
   - [x] 3.2 Install: `python3 -m pip install -r requirements.txt`
 
-- [ ] 4.0 Initialize Django project in `web/` and create `orders` app
+- [x] 4.0 Initialize Django project in `web/` and create `orders` app
   - [x] 4.1 Create project: `django-admin startproject order_manager_project web`
   - [x] 4.2 Create app: `python3 web/manage.py startapp orders`
   - [x] 4.3 If app created at repo root by mistake, move to `web/orders/`
 
-- [ ] 5.0 Configure development settings (SQLite, `America/Denver`, static/media, installed apps, admin URL)
+- [x] 5.0 Configure development settings (SQLite, `America/Denver`, static/media, installed apps, admin URL)
   - [x] 5.1 In `settings.py`, add `'orders'` to `INSTALLED_APPS`
   - [x] 5.2 Set `TIME_ZONE = 'America/Denver'`, `USE_TZ = True`, `LANGUAGE_CODE = 'en-us'`
   - [x] 5.3 Set `STATIC_URL = '/static/'`; create directory `web/static/`
