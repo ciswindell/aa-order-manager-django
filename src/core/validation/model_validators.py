@@ -29,7 +29,7 @@ class OrderDataValidator(ValidatorBase):
             Tuple[bool, str]: (True, "") if valid, (False, technical_error) if invalid
         """
         from datetime import date
-        from ..models import ReportType, OrderItemData
+        from src.core.models import ReportType, OrderItemData
 
         # Validate order_number - required, non-empty string with proper format
         is_valid, error = self.validate_required_field(
@@ -202,7 +202,7 @@ class OrderItemDataValidator(ValidatorBase):
             Tuple[bool, str]: (True, "") if valid, (False, technical_error) if invalid
         """
         from datetime import datetime
-        from ..models import AgencyType
+        from src.core.models import AgencyType
 
         # 1. Validate agency - required, must be AgencyType enum
         if not isinstance(item_data.agency, AgencyType):

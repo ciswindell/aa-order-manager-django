@@ -249,7 +249,7 @@ class BusinessRulesValidator(ValidatorBase):
         Returns:
             Tuple[bool, str]: (True, "") if valid, (False, technical_error) if invalid
         """
-        from ..models import ReportType
+        from src.core.models import ReportType
 
         supported_types = [ReportType.RUNSHEET]
         unsupported_types = [

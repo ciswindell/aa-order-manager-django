@@ -7,6 +7,7 @@ Simple service to execute workflows in sequence for order items.
 from typing import List
 
 from src.core.models import OrderItemData, ReportType
+from src.core.validation import BusinessRulesValidator
 from src.core.workflows import (
     LeaseDirectorySearchWorkflow,
     PreviousReportDetectionWorkflow,
@@ -24,8 +25,6 @@ class WorkflowOrchestrator:
         self, order_item: OrderItemData, order_type: ReportType
     ) -> OrderItemData:
         """Execute workflows for a single order item based on order type."""
-        from ..validation import BusinessRulesValidator
-
         # Validate order type is supported using centralized validation
         validator = BusinessRulesValidator()
         is_valid, error = validator.validate_order_type_support(order_type)

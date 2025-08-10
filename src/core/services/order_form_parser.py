@@ -4,13 +4,13 @@ Order Form Parser Service
 Service to parse order form files into OrderItemData instances using SOLID principles.
 """
 
-import os
 from typing import List
 
 import pandas as pd
 
 from src.core.models import OrderItemData, AgencyType
 from src.core.utils.data_utils import DataCleaner
+from src.core.validation import ExcelFileValidator, OrderFormStructureValidator
 
 
 class OrderFormParser:
@@ -22,8 +22,6 @@ class OrderFormParser:
 
     def _validate_file(self) -> None:
         """Validate file exists and is accessible using centralized validation service."""
-        from ..validation import ExcelFileValidator
-
         validator = ExcelFileValidator()
         is_valid, error = validator.validate(self.file_path)
         if not is_valid:
@@ -36,8 +34,6 @@ class OrderFormParser:
 
     def _validate_columns(self, data: pd.DataFrame) -> None:
         """Validate required columns exist using centralized validation service."""
-        from ..validation import OrderFormStructureValidator
-
         validator = OrderFormStructureValidator()
         is_valid, error = validator.validate(data)
         if not is_valid:

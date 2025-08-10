@@ -99,7 +99,7 @@ class OrderData:
         Raises:
             ValueError: If any field validation fails
         """
-        from .validation import OrderDataValidator
+        from src.core.validation import OrderDataValidator
 
         validator = OrderDataValidator()
         is_valid, error = validator.validate(self)
@@ -175,7 +175,7 @@ class OrderItemData:
         Validate OrderItemData fields after initialization.
         Uses the centralized validation service to ensure data integrity.
         """
-        from .validation import OrderItemDataValidator
+        from src.core.validation import OrderItemDataValidator
 
         validator = OrderItemDataValidator()
         is_valid, error = validator.validate(self)
