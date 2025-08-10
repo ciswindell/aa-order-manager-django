@@ -146,7 +146,7 @@ class OrderProcessorService:
     @staticmethod
     def map_agency_type(agency_str: str) -> AgencyType:
         """
-        Convert GUI agency string to AgencyType enum.
+        Convert GUI agency string to AgencyType enum using centralized validation.
 
         Args:
             agency_str: Agency string from GUI ("NMSLO", "Federal", etc.)
@@ -157,14 +157,19 @@ class OrderProcessorService:
         Raises:
             ValueError: If agency string is invalid
         """
+        from ..validation import FormDataValidator
+
+        # Validate agency using centralized validator
+        validator = FormDataValidator()
+        is_valid, error = validator.validate_agency(agency_str)
+        if not is_valid:
+            raise ValueError(error)
+
+        # Convert to enum after validation
         agency_mapping = {
             "NMSLO": AgencyType.NMSLO,
             "Federal": AgencyType.BLM,  # "Federal" in GUI maps to BLM in business
         }
-
-        if agency_str not in agency_mapping:
-            raise ValueError(f"Unknown agency: {agency_str}")
-
         return agency_mapping[agency_str]
 
     @staticmethod

@@ -93,41 +93,18 @@ class OrderData:
         """
         Validate OrderData fields after initialization.
 
-        Performs validation on required fields and data types to ensure
-        data integrity. Called automatically by dataclass after __init__.
+        Uses the centralized validation service to ensure data integrity.
+        Called automatically by dataclass after __init__.
 
         Raises:
             ValueError: If any field validation fails
         """
-        # Validate order_number - required, non-empty string
-        if not isinstance(self.order_number, str):
-            raise ValueError("order_number must be a string")
-        if not self.order_number.strip():
-            raise ValueError("order_number cannot be empty")
+        from .validation import OrderDataValidator
 
-        # Validate order_date - required, must be date object
-        if not isinstance(self.order_date, date):
-            raise ValueError("order_date must be a date object")
-
-        # Validate order_type - required, must be ReportType enum
-        if not isinstance(self.order_type, ReportType):
-            raise ValueError("order_type must be a ReportType enum value")
-
-        # Validate order_items - required, must be list
-        if not isinstance(self.order_items, list):
-            raise ValueError("order_items must be a list")
-
-        # Validate each order item is OrderItemData instance
-        for i, item in enumerate(self.order_items):
-            if not isinstance(item, OrderItemData):
-                raise ValueError(f"order_items[{i}] must be an OrderItemData instance")
-
-        # Validate optional fields have correct types when provided
-        if self.order_notes is not None and not isinstance(self.order_notes, str):
-            raise ValueError("order_notes must be a string or None")
-
-        if self.delivery_link is not None and not isinstance(self.delivery_link, str):
-            raise ValueError("delivery_link must be a string or None")
+        validator = OrderDataValidator()
+        is_valid, error = validator.validate(self)
+        if not is_valid:
+            raise ValueError(error)
 
 
 @dataclass
@@ -196,88 +173,11 @@ class OrderItemData:
     def __post_init__(self):
         """
         Validate OrderItemData fields after initialization.
-
-        Performs validation on required fields, data types, and business rules
-        to ensure data integrity. Called automatically by dataclass after __init__.
-
-        Raises:
-            ValueError: If any field validation fails
+        Uses the centralized validation service to ensure data integrity.
         """
-        # Validate agency - required, must be AgencyType enum
-        if not isinstance(self.agency, AgencyType):
-            raise ValueError("agency must be an AgencyType enum value")
+        from .validation import OrderItemDataValidator
 
-        # Validate lease_number - required, non-empty string
-        if not isinstance(self.lease_number, str):
-            raise ValueError("lease_number must be a string")
-        if not self.lease_number.strip():
-            raise ValueError("lease_number cannot be empty")
-
-        # Validate legal_description - required, non-empty string
-        if not isinstance(self.legal_description, str):
-            raise ValueError("legal_description must be a string")
-        if not self.legal_description.strip():
-            raise ValueError("legal_description cannot be empty")
-
-        # Validate start_date - optional, must be datetime object if provided
-        if self.start_date is not None and not isinstance(self.start_date, datetime):
-            raise ValueError("start_date must be a datetime object or None")
-
-        # Validate end_date - optional, must be datetime object if provided
-        if self.end_date is not None and not isinstance(self.end_date, datetime):
-            raise ValueError("end_date must be a datetime object or None")
-
-        # Validate date range - end_date must be after start_date if both provided
-        if self.start_date is not None and self.end_date is not None:
-            if self.end_date <= self.start_date:
-                raise ValueError("end_date must be after start_date")
-
-        # Validate report_notes - optional, must be string if provided
-        if self.report_notes is not None and not isinstance(self.report_notes, str):
-            raise ValueError("report_notes must be a string or None")
-
-        # Validate optional workflow fields have correct types when provided
-        if self.report_directory_link is not None and not isinstance(
-            self.report_directory_link, str
-        ):
-            raise ValueError("report_directory_link must be a string or None")
-
-        if self.report_directory_path is not None:
-            if not isinstance(self.report_directory_path, str):
-                raise ValueError("report_directory_path must be a string or None")
-            if not self.report_directory_path.strip():
-                raise ValueError("report_directory_path cannot be empty when provided")
-
-        if self.previous_report_found is not None and not isinstance(
-            self.previous_report_found, bool
-        ):
-            raise ValueError("previous_report_found must be a boolean or None")
-
-        # Validate new boolean fields
-        if self.tractstar_needed is not None and not isinstance(
-            self.tractstar_needed, bool
-        ):
-            raise ValueError("tractstar_needed must be a boolean or None")
-
-        if self.documents_needed is not None and not isinstance(
-            self.documents_needed, bool
-        ):
-            raise ValueError("documents_needed must be a boolean or None")
-
-        if self.misc_index_needed is not None and not isinstance(
-            self.misc_index_needed, bool
-        ):
-            raise ValueError("misc_index_needed must be a boolean or None")
-
-        # Validate list fields are lists with string elements
-        if not isinstance(self.documents_links, list):
-            raise ValueError("documents_links must be a list")
-        for i, link in enumerate(self.documents_links):
-            if not isinstance(link, str):
-                raise ValueError(f"documents_links[{i}] must be a string")
-
-        if not isinstance(self.misc_index_links, list):
-            raise ValueError("misc_index_links must be a list")
-        for i, link in enumerate(self.misc_index_links):
-            if not isinstance(link, str):
-                raise ValueError(f"misc_index_links[{i}] must be a string")
+        validator = OrderItemDataValidator()
+        is_valid, error = validator.validate(self)
+        if not is_valid:
+            raise ValueError(error)

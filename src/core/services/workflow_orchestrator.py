@@ -24,6 +24,14 @@ class WorkflowOrchestrator:
         self, order_item: OrderItemData, order_type: ReportType
     ) -> OrderItemData:
         """Execute workflows for a single order item based on order type."""
+        from ..validation import BusinessRulesValidator
+
+        # Validate order type is supported using centralized validation
+        validator = BusinessRulesValidator()
+        is_valid, error = validator.validate_order_type_support(order_type)
+        if not is_valid:
+            raise ValueError(error)
+
         if order_type == ReportType.RUNSHEET:
             self._execute_runsheet_workflows(order_item)
         elif order_type in [
@@ -32,8 +40,6 @@ class WorkflowOrchestrator:
             ReportType.DOL_ABSTRACT,
         ]:
             self._execute_abstract_workflows(order_item)
-        else:
-            raise ValueError(f"Unsupported order type: {order_type}")
 
         return order_item
 

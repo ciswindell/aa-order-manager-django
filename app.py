@@ -6,7 +6,11 @@ from pathlib import Path
 from tkinter import messagebox
 
 from src.core.services.order_processor import OrderProcessorService
-
+from src.core.validation import (
+    FormDataValidator,
+    ExcelFileValidator,
+    BusinessRulesValidator,
+)
 
 from src.integrations.cloud.factory import CloudServiceFactory
 from src.gui.progress_window import ProgressWindow
@@ -21,77 +25,40 @@ def process_order(main_window):
     # Create progress window
     progress_window = ProgressWindow(main_window.root)
 
-    # Validate Agency selection
-    if form_data["agency"] == "Select Agency":
-        messagebox.showwarning(
-            "No Agency Selected",
-            "Please select an agency (NMSLO or Federal) before processing.",
-        )
+    # Validate Agency selection using centralized validation service
+    form_validator = FormDataValidator()
+    is_valid, error = form_validator.validate_agency(form_data["agency"])
+    if not is_valid:
+        messagebox.showwarning("Invalid Agency Selection", error)
         return
 
-    # Validate Order Type selection
-    if form_data["order_type"] == "Select Order Type":
-        messagebox.showwarning(
-            "No Order Type Selected",
-            "Please select an order type (Runsheet or Abstract) before processing.",
-        )
+    # Validate Order Type selection using centralized validation service
+    is_valid, error = form_validator.validate_order_type(form_data["order_type"])
+    if not is_valid:
+        messagebox.showwarning("Invalid Order Type Selection", error)
         return
 
-    # Check if Abstract is selected
-    if form_data["order_type"] == "Abstract":
-        messagebox.showinfo(
-            "Not Implemented", "Abstract workflow is not yet implemented"
-        )
+    # Check feature availability using centralized validation service
+    business_validator = BusinessRulesValidator()
+    is_valid, error = business_validator.validate_feature_availability(
+        form_data["order_type"]
+    )
+    if not is_valid:
+        messagebox.showinfo("Feature Not Available", error)
         return
 
-    # Validate Order Number format (optional but helpful)
-    if (
-        form_data["order_number"]
-        and not form_data["order_number"].replace("-", "").replace("_", "").isalnum()
-    ):
-        messagebox.showwarning(
-            "Invalid Order Number",
-            "Order number should contain only letters, numbers, hyphens, and underscores.",
-        )
+    # Validate Order Number format using centralized validation service
+    is_valid, error = form_validator.validate_order_number(form_data["order_number"])
+    if not is_valid:
+        messagebox.showwarning("Invalid Order Number", error)
         return
 
-    # Get the selected file from GUI
+    # Validate Excel file selection using centralized validation service
     order_form = form_data["file_path"]
-
-    # Check if file is selected
-    if not order_form:
-        messagebox.showwarning(
-            "No File Selected",
-            "Please select an Excel order form file before processing.\n\nClick 'Browse' to select your order form.",
-        )
-        return
-
-    # Validate selected file
-    if not os.path.exists(order_form):
-        messagebox.showerror(
-            "File Not Found",
-            f"The selected file no longer exists:\n{order_form}\n\nPlease select a different file.",
-        )
-        return
-
-    if not order_form.lower().endswith((".xlsx", ".xls")):
-        messagebox.showerror(
-            "Invalid File Type",
-            f"Selected file is not an Excel file:\n{order_form}\n\nPlease select an Excel file (.xlsx or .xls)",
-        )
-        return
-
-    try:
-        # Test if file is accessible/readable
-        with open(order_form, "rb"):
-            pass
-    except PermissionError:
-        messagebox.showerror(
-            "Access Denied", f"Cannot access the selected file:\n{order_form}"
-        )
-        return
-    except (OSError, IOError) as e:
-        messagebox.showerror("File Error", f"Error accessing file:\n{str(e)}")
+    excel_validator = ExcelFileValidator()
+    is_valid, error = excel_validator.validate(order_form)
+    if not is_valid:
+        messagebox.showerror("File Validation Error", error)
         return
 
     if order_form:

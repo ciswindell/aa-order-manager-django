@@ -21,20 +21,27 @@ class OrderFormParser:
         self.agency = agency
 
     def _validate_file(self) -> None:
-        """Validate file exists and is accessible."""
-        if not os.path.exists(self.file_path):
-            raise FileNotFoundError(f"Order form file not found: {self.file_path}")
+        """Validate file exists and is accessible using centralized validation service."""
+        from ..validation import ExcelFileValidator
+
+        validator = ExcelFileValidator()
+        is_valid, error = validator.validate(self.file_path)
+        if not is_valid:
+            # Convert user-friendly message to FileNotFoundError for consistency
+            raise FileNotFoundError(error)
 
     def _load_data(self) -> pd.DataFrame:
         """Load data from Excel file."""
         return pd.read_excel(self.file_path)
 
     def _validate_columns(self, data: pd.DataFrame) -> None:
-        """Validate required columns exist."""
-        if "Lease" not in data.columns:
-            raise ValueError("Order form must contain 'Lease' column")
-        if "Requested Legal" not in data.columns:
-            raise ValueError("Order form must contain 'Requested Legal' column")
+        """Validate required columns exist using centralized validation service."""
+        from ..validation import OrderFormStructureValidator
+
+        validator = OrderFormStructureValidator()
+        is_valid, error = validator.validate(data)
+        if not is_valid:
+            raise ValueError(error)
 
     def _clean_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """Clean data using existing utilities."""

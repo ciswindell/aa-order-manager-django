@@ -21,7 +21,7 @@ def test_parse_valid_order_form():
     # Create test Excel file
     test_data = {
         "Lease": ["NMNM 123456", "NMNM 789012"],
-        "Legal Description": ["Section 1, Township 2N", "Section 2, Township 3N"],
+        "Requested Legal": ["Section 1, Township 2N", "Section 2, Township 3N"],
         "Notes": ["Test note 1", "Test note 2"],
     }
     df = pd.DataFrame(test_data)
@@ -81,7 +81,7 @@ def test_minimal_order_form():
     """Test parsing order form with only required columns."""
     test_data = {
         "Lease": ["NMNM 123456"],
-        "Legal Description": ["Section 1, Township 2N"],
+        "Requested Legal": ["Section 1, Township 2N"],
     }
     df = pd.DataFrame(test_data)
 

@@ -75,8 +75,8 @@ class TestWorkflowOrchestrator:
         assert result == sample_order_item
 
     def test_execute_abstract_workflows(self, orchestrator, sample_order_item):
-        """Test execution of Abstract workflows (placeholder)."""
-        # Test all abstract types
+        """Test that Abstract workflows are correctly rejected as unsupported."""
+        # Test all abstract types are now blocked by business rules validation
         abstract_types = [
             ReportType.BASE_ABSTRACT,
             ReportType.SUPPLEMENTAL_ABSTRACT,
@@ -84,10 +84,10 @@ class TestWorkflowOrchestrator:
         ]
 
         for report_type in abstract_types:
-            result = orchestrator.execute_workflows_for_order_item(
-                sample_order_item, report_type
-            )
-            assert result == sample_order_item
+            with pytest.raises(ValueError, match="is not yet supported"):
+                orchestrator.execute_workflows_for_order_item(
+                    sample_order_item, report_type
+                )
 
     def test_unsupported_order_type(self, orchestrator, sample_order_item):
         """Test handling of unsupported order types."""
@@ -95,7 +95,7 @@ class TestWorkflowOrchestrator:
         with patch("src.core.models.ReportType") as mock_report_type:
             mock_report_type.UNSUPPORTED = "UNSUPPORTED"
 
-            with pytest.raises(ValueError, match="Unsupported order type"):
+            with pytest.raises(ValueError, match="is not a valid order type"):
                 orchestrator.execute_workflows_for_order_item(
                     sample_order_item, "UNSUPPORTED"
                 )
