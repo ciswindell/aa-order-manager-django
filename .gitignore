@@ -35,6 +35,11 @@ dist/
 build/
 *.egg-info/
 
+# Django
+db.sqlite3
+media/
+staticfiles/
+
 # Dropbox integration secrets and credentials
 *.token
 *.secret

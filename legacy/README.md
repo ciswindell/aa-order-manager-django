@@ -1,3 +1,5 @@
+> DEPRECATED — Legacy documentation. Reference-only on branch `django-migration`. Do not modify. New development is under `web/`.
+
 # 🏢 AA Order Manager
 
 > **Professional order processing application for State and Federal lease management**

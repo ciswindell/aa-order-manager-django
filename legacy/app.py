@@ -1,4 +1,7 @@
-"""GUI application for processing order forms with cloud integration."""
+"""DEPRECATED: Reference-only on branch `django-migration`. Do not modify.
+
+GUI application for processing order forms with cloud integration.
+"""
 
 import traceback
 from tkinter import messagebox
