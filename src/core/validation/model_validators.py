@@ -5,7 +5,7 @@ Validators for business object validation including OrderData and OrderItemData.
 These validators handle validation of dataclass instances and business logic.
 """
 
-from typing import Tuple, Any
+from typing import Tuple
 from .protocols import ValidatorBase
 from .messages import ValidationMessages, MessageType
 
@@ -31,12 +31,20 @@ class OrderDataValidator(ValidatorBase):
         from datetime import date
         from ..models import ReportType, OrderItemData
 
-        # Validate order_number - required, non-empty string
+        # Validate order_number - required, non-empty string with proper format
         is_valid, error = self.validate_required_field(
             order_data.order_number, "order_number", str
         )
         if not is_valid:
             return False, error
+
+        # Validate order number format if not "Unknown" (GUI may set this default)
+        if order_data.order_number != "Unknown":
+            is_valid, error = self._validate_order_number_format(
+                order_data.order_number
+            )
+            if not is_valid:
+                return False, error
 
         # Validate order_date - required, must be date object
         if not isinstance(order_data.order_date, date):
@@ -100,6 +108,32 @@ class OrderDataValidator(ValidatorBase):
                 "wrong_type",
                 field="delivery_link",
                 expected_type="str or None",
+            )
+            return False, error
+
+        return True, ""
+
+    def _validate_order_number_format(self, order_number: str) -> Tuple[bool, str]:
+        """
+        Validate order number format - should contain only letters, numbers, hyphens, and underscores.
+
+        Args:
+            order_number: Order number string to validate
+
+        Returns:
+            Tuple[bool, str]: (True, "") if valid, (False, technical_error) if invalid
+        """
+        if not order_number or order_number.strip() == "":
+            return True, ""  # Empty is handled by required field validation
+
+        # Check if order number contains only letters, numbers, hyphens, and underscores
+        cleaned_number = order_number.replace("-", "").replace("_", "")
+        if not cleaned_number.isalnum():
+            error = ValidationMessages.format_message(
+                MessageType.TECHNICAL,
+                "invalid_format",
+                field="order_number",
+                requirement="should contain only letters, numbers, hyphens, and underscores",
             )
             return False, error
 

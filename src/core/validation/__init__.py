@@ -16,6 +16,7 @@ from .file_validators import ExcelFileValidator, OrderFormStructureValidator
 from .model_validators import OrderDataValidator, OrderItemDataValidator
 from .workflow_validators import WorkflowInputValidator
 from .messages import ValidationMessages, MessageType
+from .error_handler import ApplicationErrorHandler
 
 __all__ = [
     "Validator",
@@ -29,4 +30,5 @@ __all__ = [
     "BusinessRulesValidator",
     "ValidationMessages",
     "MessageType",
+    "ApplicationErrorHandler",
 ]

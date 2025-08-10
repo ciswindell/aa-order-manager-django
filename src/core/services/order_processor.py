@@ -3,13 +3,14 @@ Main Order Processor Service - Coordinates the entire order processing pipeline.
 """
 
 from pathlib import Path
-from typing import List, Optional, Protocol, Dict, Any
+from typing import List, Optional, Protocol, Dict, Any, Tuple
 
 from src.core.models import OrderData, OrderItemData, AgencyType, ReportType
 from src.core.services.order_form_parser import parse_order_form_to_order_items
 from src.core.services.order_worksheet_exporter import export_order_items_to_worksheet
 from src.core.services.workflow_orchestrator import WorkflowOrchestrator
 from src.integrations.cloud.protocols import CloudOperations
+from src.integrations.cloud.factory import CloudServiceFactory
 
 
 class ProgressCallback(Protocol):
@@ -25,13 +26,14 @@ class OrderProcessorService:
 
     def __init__(
         self,
-        cloud_service: CloudOperations,
+        cloud_service: Optional[CloudOperations] = None,
         progress_callback: Optional[ProgressCallback] = None,
     ):
-        """Initialize with cloud service and optional progress callback."""
+        """Initialize with optional cloud service and progress callback."""
         self.cloud_service = cloud_service
         self.progress_callback = progress_callback
-        self.workflow_orchestrator = WorkflowOrchestrator(cloud_service)
+        if cloud_service:
+            self.workflow_orchestrator = WorkflowOrchestrator(cloud_service)
 
     def process_order(
         self,
@@ -195,3 +197,53 @@ class OrderProcessorService:
             raise ValueError(f"Unknown order type: {order_type_str}")
 
         return type_mapping[order_type_str]
+
+    def process_order_from_gui(
+        self, form_data: Dict[str, Any]
+    ) -> Tuple[bool, str, str]:
+        """
+        Process order from GUI form data with centralized error handling.
+
+        Args:
+            form_data: Dictionary with GUI form data including file_path, agency, etc.
+
+        Returns:
+            Tuple[bool, str, str]: (success, output_path_or_user_message, technical_details)
+        """
+        from ..validation import ApplicationErrorHandler
+
+        error_handler = ApplicationErrorHandler()
+
+        try:
+            self._update_progress("Initializing cloud service...", 0)
+
+            # Initialize and authenticate cloud service
+            self.cloud_service = CloudServiceFactory.create_service("dropbox")
+            self.cloud_service.authenticate()
+            self.workflow_orchestrator = WorkflowOrchestrator(self.cloud_service)
+
+            # Create OrderData from form
+            order_data = self.create_order_data_from_form(form_data)
+
+            # Convert GUI agency to enum
+            agency_enum = self.map_agency_type(form_data["agency"])
+
+            # Setup paths
+            input_file_path = Path(form_data["file_path"])
+            output_directory = input_file_path.parent
+
+            # Process the order
+            output_path = self.process_order(
+                order_data=order_data,
+                order_form_path=input_file_path,
+                output_directory=output_directory,
+                agency=agency_enum,
+            )
+
+            return True, output_path, ""
+
+        except Exception as e:
+            user_message, technical_details = error_handler.handle_exception(
+                e, "OrderProcessorService.process_order_from_gui"
+            )
+            return False, user_message, technical_details

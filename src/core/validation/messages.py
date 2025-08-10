@@ -60,6 +60,12 @@ class ValidationMessages:
             # General validation messages
             "validation_failed": "Validation failed: {reason}",
             "missing_required": "Please provide {field}",
+            # Application error messages
+            "authentication_error": "Failed to authenticate with Dropbox. Please check your access token in the .env file",
+            "connection_error": "Unable to connect to Dropbox. Please check your internet connection and authentication",
+            "excel_format_error": "Problem with Excel file format: {details}. Please ensure your order form has the required columns",
+            "workflow_error": "Error during processing: {details}. Some items may not have been processed completely",
+            "processing_error": "An unexpected error occurred: {details}. Please contact support if the problem persists",
         },
         MessageType.TECHNICAL: {
             # Type validation messages
@@ -83,6 +89,12 @@ class ValidationMessages:
             "file_not_found_technical": "File not found: {file_path}",
             "file_access_denied": "Permission denied: {file_path}",
             "invalid_file_format": "Invalid file format: expected {expected_format}",
+            # Application error messages (technical)
+            "authentication_error_technical": "Authentication failed: {error_details}",
+            "connection_error_technical": "Connection error: {error_details}",
+            "excel_format_error_technical": "Excel parsing failed: {error_details}",
+            "workflow_error_technical": "Workflow execution failed: {error_details}",
+            "processing_error_technical": "Processing failed: {error_details}",
         },
     }
 
