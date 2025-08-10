@@ -8,6 +8,7 @@ These validators primarily return user-friendly error messages suitable for GUI 
 from typing import Tuple, Dict, Any
 from .protocols import ValidatorBase
 from .messages import ValidationMessages, MessageType
+from src.core.models import AgencyType
 
 
 class FormDataValidator(ValidatorBase):
@@ -46,7 +47,7 @@ class FormDataValidator(ValidatorBase):
 
     Expected form_data structure:
     {
-        "agency": str,           # "NMSLO", "Federal", or "Select Agency"
+        "agency": str,           # "NMSLO", "BLM", or "Select Agency"
         "order_type": str,       # "Runsheet", "Abstract", or "Select Order Type"
         "order_number": str,     # Optional, user-provided order number
         "file_path": str,        # Path to selected Excel file
@@ -78,18 +79,18 @@ class FormDataValidator(ValidatorBase):
         Validate agency string from GUI form.
 
         Args:
-            agency_str: Agency string from GUI ("NMSLO", "Federal", etc.)
+            agency_str: Agency string from GUI ("NMSLO", "BLM", etc.)
 
         Returns:
             Tuple[bool, str]: (True, "") if valid, (False, user_friendly_error) if invalid
         """
-        valid_agencies = ["NMSLO", "Federal"]
+        valid_agencies = [agency.value for agency in AgencyType]
 
         if not agency_str or agency_str.strip() == "" or agency_str == "Select Agency":
             error = ValidationMessages.format_message(
                 MessageType.USER_FRIENDLY,
                 "required_selection",
-                field="an agency (NMSLO or Federal)",
+                field="an agency",
             )
             return False, error
 

@@ -163,7 +163,7 @@ class MainWindow:
             self.agency,
             UIConstants.DEFAULT_AGENCY,
             "NMSLO",
-            "Federal",
+            "BLM",
         )
 
         # Order Type row

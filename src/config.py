@@ -62,7 +62,7 @@ AGENCY_CONFIGS = {
         },
         folder_structure=["^Document Archive", "^MI Index", "Runsheets"],
     ),
-    "Federal": AgencyConfig(
+    "BLM": AgencyConfig(
         runsheet_report_directory_path="/Federal Workspace/^Runsheet Workspace/Runsheet Archive/",
         lease_file_directory_path="/Federal/",
         column_widths={
@@ -85,9 +85,6 @@ AGENCY_CONFIGS = {
         folder_structure=["^Document Archive", "Runsheets"],
     ),
 }
-
-# Create BLM as alias for Federal config
-AGENCY_CONFIGS["BLM"] = AGENCY_CONFIGS["Federal"]
 
 
 # Simple accessors

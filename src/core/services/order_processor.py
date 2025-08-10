@@ -147,33 +147,6 @@ class OrderProcessorService:
         )
 
     @staticmethod
-    def map_agency_type(agency_str: str) -> AgencyType:
-        """
-        Convert GUI agency string to AgencyType enum using centralized validation.
-
-        Args:
-            agency_str: Agency string from GUI ("NMSLO", "Federal", etc.)
-
-        Returns:
-            AgencyType: Corresponding enum value
-
-        Raises:
-            ValueError: If agency string is invalid
-        """
-        # Validate agency using centralized validator
-        validator = FormDataValidator()
-        is_valid, error = validator.validate_agency(agency_str)
-        if not is_valid:
-            raise ValueError(error)
-
-        # Convert to enum after validation
-        agency_mapping = {
-            "NMSLO": AgencyType.NMSLO,
-            "Federal": AgencyType.BLM,  # "Federal" in GUI maps to BLM in business
-        }
-        return agency_mapping[agency_str]
-
-    @staticmethod
     def _map_order_type(order_type_str: str) -> ReportType:
         """
         Convert GUI order type string to ReportType enum.
@@ -223,7 +196,7 @@ class OrderProcessorService:
             order_data = self.create_order_data_from_form(form_data)
 
             # Convert GUI agency to enum
-            agency_enum = self.map_agency_type(form_data["agency"])
+            agency_enum = AgencyType(form_data["agency"])
 
             # Setup paths
             input_file_path = Path(form_data["file_path"])

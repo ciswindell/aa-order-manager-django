@@ -209,20 +209,6 @@ class TestOrderProcessorServiceIntegration:
 class TestGUIIntegration:
     """Test GUI integration aspects."""
 
-    def test_agency_conversion(self):
-        """Test converting GUI agency strings to AgencyType enum."""
-        # This would test the create_order_data_from_gui function from app.py
-        # but since it's in the GUI file, we'll test the enum conversion logic
-
-        test_cases = [
-            ("NMSLO", AgencyType.NMSLO),
-            ("Federal", AgencyType.BLM),  # Federal maps to BLM in GUI
-        ]
-
-        for gui_value, expected_enum in test_cases:
-            agency = AgencyType.NMSLO if gui_value == "NMSLO" else AgencyType.BLM
-            assert agency == expected_enum
-
     def test_report_type_conversion(self):
         """Test converting GUI report type strings to ReportType enum."""
         test_cases = [

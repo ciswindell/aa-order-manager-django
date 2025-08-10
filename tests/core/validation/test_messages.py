@@ -298,9 +298,9 @@ class TestValidationMessagesIntegration:
         msg1 = ValidationMessages.format_message(
             MessageType.USER_FRIENDLY,
             "required_selection",
-            field="an agency (NMSLO or Federal)",
+            field="an agency",
         )
-        assert "Please select an agency (NMSLO or Federal)" == msg1
+        assert "Please select an agency" == msg1
 
         # Invalid order number format
         msg2 = ValidationMessages.format_message(

@@ -29,9 +29,9 @@ class ValidationMessages:
         msg = ValidationMessages.format_message(
             MessageType.USER_FRIENDLY,
             "required_selection",
-            field="an agency (NMSLO or Federal)"
+            field="an agency"
         )
-        # Result: "Please select an agency (NMSLO or Federal)"
+        # Result: "Please select an agency"
 
         # Technical message for business logic
         msg = ValidationMessages.format_message(

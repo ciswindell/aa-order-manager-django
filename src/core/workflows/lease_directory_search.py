@@ -103,16 +103,13 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
         agency = order_item_data.agency
         lease_number = order_item_data.lease_number.strip()
 
-        # Map AgencyType enum to DropboxService agency string
-        agency_name = self._map_agency_type_to_string(agency)
-
         self.logger.info(
-            "Searching for lease directory: %s (agency: %s)", lease_number, agency_name
+            "Searching for lease directory: %s (agency: %s)", lease_number, agency.value
         )
 
         try:
-            # Build the directory path based on agency mapping
-            directory_path = self._build_directory_path(agency_name, lease_number)
+            # Build the directory path based on agency
+            directory_path = self._build_directory_path(agency.value, lease_number)
 
             # Use CloudOperations with the resolved path
             # Check if directory exists by listing files
@@ -145,7 +142,7 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
                     "success": True,
                     "shareable_link": shareable_link,
                     "directory_path": found_path,
-                    "agency": agency_name,
+                    "agency": agency.value,
                     "lease_number": lease_number,
                     "message": f"Successfully found directory for lease {lease_number}",
                 }
@@ -156,7 +153,7 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
                     "success": True,
                     "shareable_link": None,
                     "directory_path": None,
-                    "agency": agency_name,
+                    "agency": agency.value,
                     "lease_number": lease_number,
                     "message": f"No directory found for lease {lease_number}",
                 }
@@ -169,23 +166,6 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
             # Let the base class handle the error
             raise error
 
-    def _map_agency_type_to_string(self, agency: AgencyType) -> str:
-        """
-        Map AgencyType enum to agency string for directory mapping.
-
-        Args:
-            agency: AgencyType enum value
-
-        Returns:
-            str: Agency string for directory path construction
-        """
-        if agency == AgencyType.NMSLO:
-            return "NMSLO"
-        elif agency == AgencyType.BLM:
-            return "Federal"  # BLM uses "Federal" directory structure
-        else:
-            raise ValueError(f"Unsupported agency type: {agency}")
-
     def _build_directory_path(self, agency_string: str, lease_number: str) -> str:
         """
         Build the full directory path for a given agency and lease number.
@@ -194,14 +174,14 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
         directory structures, keeping DropboxService focused on API operations.
 
         Args:
-            agency_string: Agency identifier ("NMSLO" or "Federal")
+            agency_string: Agency identifier ("NMSLO" or "BLM")
             lease_number: Lease number to search for
 
         Returns:
             str: Full directory path for searching
 
         Examples:
-            _build_directory_path("Federal", "NMNM 0501759") → "/Federal Workspace/^Runsheet Workspace/Runsheet Archive/NMNM 0501759"
+            _build_directory_path("BLM", "NMNM 0501759") → "/Federal Workspace/^Runsheet Workspace/Runsheet Archive/NMNM 0501759"
             _build_directory_path("NMSLO", "12345") → "/State Workspace/^Runsheet Workspace/Runsheet Report Archive - New Format/12345"
         """
         # Get base directory path from config system
@@ -236,7 +216,6 @@ class LeaseDirectorySearchWorkflow(WorkflowBase):
                 "workflow_specific": {
                     "supported_agencies": ["NMSLO", "BLM"],
                     "cloud_service_available": self.cloud_service is not None,
-                    "agency_mappings": {"NMSLO": "NMSLO", "BLM": "Federal"},
                 }
             }
         )

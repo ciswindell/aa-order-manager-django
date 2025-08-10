@@ -111,7 +111,7 @@ class ParsedColumnGenerator:
     @classmethod
     def add_federal_search_columns(cls, data: pd.DataFrame) -> pd.DataFrame:
         """
-        Add "Files Search" and "Tractstar Search" columns for Federal agency processing.
+        Add "Files Search" and "Tractstar Search" columns for BLM agency processing.
 
         This method extracts the parsed column generation logic that was
         duplicated in the FederalOrderProcessor. It uses LeaseNumberParser
@@ -133,7 +133,7 @@ class ParsedColumnGenerator:
 
         data_copy = data.copy()
 
-        # Add Federal agency search columns - extracted from existing processor
+        # Add BLM agency search columns - extracted from existing processor
         data_copy["Files Search"] = data_copy["Lease"].apply(
             lambda x: LeaseNumberParser(x).search_file()
         )

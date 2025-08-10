@@ -9,7 +9,11 @@ import os
 from datetime import datetime
 
 # Add the project root to the path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+sys.path.append(
+    os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
+)
 
 from src.core.workflows.lease_directory_search import LeaseDirectorySearchWorkflow
 from src.core.models import OrderItemData, AgencyType
@@ -48,7 +52,7 @@ class TestLeaseDirectorySearchIntegration:
             result["success"] is True
         ), f"Workflow should succeed: {result.get('message', '')}"
         assert result["lease_number"] == "NMLC 0028446A"
-        assert result["agency"] == "Federal"
+        assert result["agency"] == "BLM"
 
         # Check if directory was found (either path or link should be present)
         directory_found = result.get("directory_path") or result.get("shareable_link")
