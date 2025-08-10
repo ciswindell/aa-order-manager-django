@@ -243,6 +243,10 @@ class OrderProcessorService:
             return True, output_path, ""
 
         except Exception as e:
+            # Let ProcessingCancelledException bubble up to app.py
+            if e.__class__.__name__ == "ProcessingCancelledException":
+                raise
+
             user_message, technical_details = error_handler.handle_exception(
                 e, "OrderProcessorService.process_order_from_gui"
             )

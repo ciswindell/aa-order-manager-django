@@ -4,8 +4,7 @@ import traceback
 from tkinter import messagebox
 
 from src.core.services.order_processor import OrderProcessorService
-from src.gui.progress_window import ProgressWindow
-from src.gui.main_window import MainWindow
+from src.gui.main_window import MainWindow, ProcessingCancelledException
 
 
 def process_order(main_window):
@@ -16,32 +15,45 @@ def process_order(main_window):
     if not form_data["file_path"]:
         return
 
-    # Create progress window
-    progress_window = ProgressWindow(main_window.root)
-    progress_window.show()
+    # Start processing - enable cancel and disable form
+    main_window.start_processing()
 
-    # Create order processor with progress callback
-    order_processor = OrderProcessorService(progress_callback=progress_window)
+    try:
+        # Create order processor with MainWindow as progress callback
+        order_processor = OrderProcessorService(progress_callback=main_window)
 
-    # Process order from GUI data
-    success, message, technical_details = order_processor.process_order_from_gui(
-        form_data
-    )
-
-    progress_window.close()
-
-    if success:
-        messagebox.showinfo(
-            "Success", f"Order processed successfully!\nOutput: {message}"
+        # Process order from GUI data
+        success, message, technical_details = order_processor.process_order_from_gui(
+            form_data
         )
-        main_window.reset_form()
-    else:
-        # Log technical details for debugging
-        if technical_details:
-            print(f"\n❌ ERROR in process_order(): {technical_details}")
-            traceback.print_exc()
 
-        messagebox.showerror("Error", message)
+        # Stop processing - disable cancel and re-enable form
+        main_window.stop_processing()
+
+        if success:
+            messagebox.showinfo(
+                "Success", f"Order processed successfully!\nOutput: {message}"
+            )
+            main_window.reset_form()
+        else:
+            # Log technical details for debugging
+            if technical_details:
+                print(f"\n❌ ERROR in process_order(): {technical_details}")
+                traceback.print_exc()
+
+            messagebox.showerror("Error", message)
+
+    except ProcessingCancelledException:
+        # User cancelled processing
+        main_window.stop_processing()
+        messagebox.showinfo("Cancelled", "Order processing was cancelled by user.")
+
+    except Exception as e:
+        # Unexpected error during processing
+        main_window.stop_processing()
+        print(f"\n❌ UNEXPECTED ERROR in process_order(): {str(e)}")
+        traceback.print_exc()
+        messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
 
 
 def main():
