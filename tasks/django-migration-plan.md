@@ -167,6 +167,43 @@ cp -r legacy/src/core/utils/* web/orders/utils/
 ```
 
 
+### Notes: Model changes introduced during Phase 2 (applies now)
+
+- Models
+  - Introduced `orders.models.Lease` with unique `(agency, lease_number)`.
+  - Introduced `orders.models.Report` (renamed from conceptual OrderItem) with `report_type`, required `legal_description`, optional `start_date`/`end_date`, and M2M `leases`.
+  - Kept `orders.models.Order` with unique `order_number`.
+  - Replaced `Lease.documents_links` JSONField with `orders.models.DocumentImagesLink` (FK to `Lease`, `url` URLField). `Lease.misc_index_link` remains a single URL.
+- Relationships
+  - `Order` 1→N `Report` (`Order.reports`).
+  - `Report` N↔N `Lease` (`Report.leases`).
+- Validation
+  - All `Report` rows require `legal_description`.
+  - Runsheet reports must reference exactly 1 lease; Abstract reports (Base/Supplemental/DOL) must reference ≥1 lease.
+- Admin
+  - `Lease` admin uses an inline for `DocumentImagesLink` (clean multi-URL input).
+- Naming
+  - We do not use UUIDs for these models; rely on `order_number` and natural keys.
+
+Dev/migration tips observed
+- If the admin changelist errors with a removed column (e.g., `documents_links`), it may be due to a stale sort parameter or old server process.
+  - Hard refresh the changelist (e.g., `/admin/orders/lease/?o=`) or clear cookies/incognito.
+  - Restart the dev server without `--noreload`.
+  - In development only, removing the SQLite DB and re-running migrations can clear inconsistencies.
+
+Downstream impact (consider in future phases)
+- Services/workflows
+  - Parsing and processing must create/link `Lease` rows and attach them to `Report` rows; remove any assumptions of a single `agency` on an order item.
+  - Where legacy services wrote document links to a list, now create `DocumentImagesLink` rows instead.
+- Forms/views/APIs
+  - Report creation forms should accept: `order`, `report_type`, `legal_description`, optional dates, and selected leases (M2M selector or lease-lookup by number+agency).
+  - Lease forms now manage document image links via inline rows, preserving URL validation.
+- Queries/filters
+  - Report lookups should filter via `report_type` and `leases__lease_number`/`leases__agency` as needed.
+- Data import
+  - When importing legacy data with embedded link arrays, transform them into `DocumentImagesLink` rows.
+
+
 
 ## Phase 3: Django Views and Forms
 

@@ -11,9 +11,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Load .env from repo root (one level above web/)
+load_dotenv(BASE_DIR.parent / ".env", override=True)
 
 
 # Quick-start development settings - unsuitable for production
@@ -38,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "orders",
+    "integrations",
 ]
 
 MIDDLEWARE = [
@@ -125,3 +130,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Integrations – Dropbox OAuth (env-backed)
+DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY", "")
+DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET", "")
+DROPBOX_REDIRECT_URI = os.getenv(
+    "DROPBOX_REDIRECT_URI",
+    "http://localhost:8000/integrations/dropbox/callback/",
+)
