@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Lease, Order, Report
+from .models import DocumentImagesLink, Lease, Order, Report
 
 
 @admin.register(Order)
@@ -14,6 +14,12 @@ class LeaseAdmin(admin.ModelAdmin):
     list_display = ("agency", "lease_number")
     search_fields = ("lease_number",)
     list_filter = ("agency",)
+
+    class DocumentImagesLinkInline(admin.TabularInline):
+        model = DocumentImagesLink
+        extra = 1
+
+    inlines = [DocumentImagesLinkInline]
 
 
 @admin.register(Report)

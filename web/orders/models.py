@@ -40,7 +40,6 @@ class Lease(models.Model):
 
     agency = models.CharField(max_length=16, choices=AgencyType.choices)
     lease_number = models.CharField(max_length=128)
-    documents_links = models.JSONField(default=list, blank=True)
     misc_index_link = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -56,6 +55,20 @@ class Lease(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.agency} {self.lease_number}"
+
+
+class DocumentImagesLink(models.Model):
+    """URL for a document images location associated with a lease."""
+
+    lease = models.ForeignKey(
+        Lease, on_delete=models.CASCADE, related_name="document_images_links"
+    )
+    url = models.URLField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:  # pragma: no cover
+        return self.url
 
 
 class Report(models.Model):
