@@ -1,1 +1,0 @@
-# Dropbox integration tests package

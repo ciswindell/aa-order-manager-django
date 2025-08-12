@@ -6,11 +6,12 @@ Factory for creating cloud-agnostic service instances based on configuration.
 
 import logging
 import os
-from typing import Optional
 
-from .protocols import CloudAuthentication, CloudOperations
+
+from .protocols import CloudOperations
 from .errors import CloudServiceError
 from . import config
+from ..dropbox.dropbox_service import DropboxCloudService
 
 logger = logging.getLogger(__name__)
 
@@ -46,14 +47,13 @@ class CloudServiceFactory:
             logger.error(
                 "Failed to create cloud service for provider '%s': %s", provider, e
             )
-            raise CloudServiceError(f"Service creation failed: {str(e)}", provider)
+            raise CloudServiceError(
+                f"Service creation failed: {str(e)}", provider
+            ) from e
 
     @classmethod
     def _create_dropbox_service(cls, user=None) -> CloudOperations:
         """Create Dropbox cloud service instance."""
-        from ..dropbox.dropbox_service import DropboxCloudService
-        from ..dropbox.auth import create_dropbox_auth
-
         # Create and return cloud service bound to user
         return DropboxCloudService(auth_type=config.get_dropbox_auth_type(), user=user)
 

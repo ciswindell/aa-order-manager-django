@@ -40,6 +40,7 @@ class Lease(models.Model):
 
     agency = models.CharField(max_length=16, choices=AgencyType.choices)
     lease_number = models.CharField(max_length=128)
+    runsheet_link = models.URLField(blank=True, null=True)
     misc_index_link = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
