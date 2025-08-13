@@ -15,6 +15,7 @@ from django.http import (
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import DropboxAccount  # local
 from .utils.token_store import save_tokens_for_user, get_tokens_for_user
@@ -25,6 +26,10 @@ from .cloud.factory import get_cloud_service
 @require_GET
 def dropbox_connect(request: HttpRequest) -> HttpResponse:
     """Start Dropbox OAuth by redirecting to the consent URL."""
+    # Store optional next URL to redirect back after OAuth
+    next_url = request.GET.get("next")
+    if next_url:
+        request.session["post_oauth_next"] = next_url
     auth_flow = dropbox.oauth.DropboxOAuth2Flow(
         consumer_key=settings.DROPBOX_APP_KEY,
         consumer_secret=settings.DROPBOX_APP_SECRET,
@@ -60,7 +65,15 @@ def dropbox_callback(request: HttpRequest) -> HttpResponse:
         "token_type": getattr(result, "token_type", ""),
     }
     save_tokens_for_user(request.user, tokens)
-    return HttpResponse("Dropbox connected.")
+    # Safe redirect to next URL or dashboard
+    next_url = request.session.pop("post_oauth_next", None)
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return HttpResponseRedirect(next_url)
+    return HttpResponseRedirect("/")
 
 
 @login_required
