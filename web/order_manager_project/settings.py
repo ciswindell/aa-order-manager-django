@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "orders",
     "integrations",
+    "core",
 ]
 
 MIDDLEWARE = [
@@ -169,3 +170,8 @@ CELERY_TASK_ANNOTATIONS = {
 if os.getenv("CELERY_TASK_ALWAYS_EAGER") in {"1", "true", "True"}:
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
+
+# Authentication settings
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
