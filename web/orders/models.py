@@ -42,6 +42,10 @@ class Lease(models.Model):
     lease_number = models.CharField(max_length=128)
     runsheet_link = models.URLField(blank=True, null=True)
     misc_index_link = models.URLField(blank=True, null=True)
+    runsheet_report_found = models.BooleanField(default=False)
+    runsheet_directory = models.ForeignKey(
+        "integrations.CloudLocation", null=True, blank=True, on_delete=models.SET_NULL
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

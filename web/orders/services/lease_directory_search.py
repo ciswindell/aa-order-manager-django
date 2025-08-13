@@ -1,0 +1,146 @@
+"""
+Lease Directory Search Service
+
+Service to find agency-specific lease directories in Dropbox and create shareable links.
+"""
+
+import logging
+from typing import Dict, Any
+
+from django.contrib.auth.models import User
+
+from orders.models import Lease
+from integrations.utils import get_agency_storage_config, AgencyStorageConfigError
+from integrations.cloud.factory import get_cloud_service
+from integrations.cloud.errors import CloudServiceError
+from integrations.models import CloudLocation
+
+logger = logging.getLogger(__name__)
+
+
+def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
+    """
+    Search for a lease directory in Dropbox and create a shareable link if found.
+
+    Args:
+        lease_id: ID of the lease to search for
+        user_id: ID of the user initiating the search (for Dropbox auth)
+
+    Returns:
+        Dict containing search results: {found, path, share_url, location_id}
+
+    Raises:
+        Lease.DoesNotExist: If lease not found
+        User.DoesNotExist: If user not found
+        AgencyStorageConfigError: If agency config missing/disabled
+        CloudServiceError: If Dropbox operations fail
+    """
+    # Load lease and user
+    lease = Lease.objects.get(id=lease_id)
+    user = User.objects.get(id=user_id)
+
+    logger.info(
+        "Starting lease directory search for lease %s (agency: %s, lease_number: %s)",
+        lease_id,
+        lease.agency,
+        lease.lease_number,
+    )
+
+    try:
+        # Resolve agency config
+        agency_config = get_agency_storage_config(lease.agency)
+
+        # Build directory path
+        directory_path = (
+            f"{agency_config.runsheet_archive_base_path}/{lease.lease_number}"
+        )
+
+        logger.info("Searching directory path: %s", directory_path)
+
+        # Get Dropbox client for user
+        cloud_service = get_cloud_service(provider="dropbox", user=user)
+
+        # Authenticate then verify
+        try:
+            cloud_service.authenticate()
+        except Exception:
+            # Fallback to state check even if authenticate() is a no-op
+            pass
+        if not cloud_service.is_authenticated():
+            raise CloudServiceError("Dropbox client is not authenticated", "dropbox")
+
+        # Check directory existence via listing
+        files = cloud_service.list_files(directory_path)
+
+        if files:
+            # Directory exists, create share link
+            logger.info("Directory found, creating share link")
+            share_link = cloud_service.create_share_link(directory_path, is_public=True)
+
+            if share_link:
+                # Upsert CloudLocation and update Lease
+                cloud_location, created = CloudLocation.objects.update_or_create(
+                    provider="dropbox",
+                    path=directory_path,
+                    defaults={
+                        "name": lease.lease_number,
+                        "is_directory": True,
+                        "share_url": share_link.url,
+                        "share_expires_at": share_link.expires_at,
+                        "is_public": share_link.is_public,
+                    },
+                )
+
+                # Update lease with the cloud location
+                lease.runsheet_directory = cloud_location
+                lease.save(update_fields=["runsheet_directory"])
+
+                action = "created" if created else "updated"
+                logger.info(
+                    "Successfully %s share link and updated lease. Location ID: %s",
+                    action,
+                    cloud_location.id,
+                )
+
+                return {
+                    "found": True,
+                    "path": directory_path,
+                    "share_url": share_link.url,
+                    "location_id": cloud_location.id,
+                }
+
+            logger.warning(
+                "Failed to create share link for directory: %s", directory_path
+            )
+            return {
+                "found": True,
+                "path": directory_path,
+                "share_url": None,
+                "location_id": None,
+            }
+        else:
+            # Directory doesn't exist
+            logger.info("Directory not found: %s", directory_path)
+            return {
+                "found": False,
+                "path": directory_path,
+                "share_url": None,
+                "location_id": None,
+            }
+
+    except AgencyStorageConfigError as e:
+        logger.error("Agency storage config error for lease %s: %s", lease_id, str(e))
+        # Agency config errors are not retriable - they require admin action
+        raise
+    except CloudServiceError as e:
+        logger.error("Cloud service error for lease %s: %s", lease_id, str(e))
+        # Cloud service errors (auth, network) are retriable
+        raise
+    except Exception as e:
+        logger.error(
+            "Unexpected error in lease directory search for lease %s: %s",
+            lease_id,
+            str(e),
+        )
+        # Map unexpected errors to CloudServiceError for retry handling
+        raise CloudServiceError(f"Unexpected error: {str(e)}", "dropbox")

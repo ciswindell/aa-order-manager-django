@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "orders.middleware.CurrentUserMiddleware",
 ]
 
 ROOT_URLCONF = "order_manager_project.urls"
@@ -138,3 +139,33 @@ DROPBOX_REDIRECT_URI = os.getenv(
     "DROPBOX_REDIRECT_URI",
     "http://localhost:8000/integrations/dropbox/callback/",
 )
+
+# Runsheet detection pattern (case-insensitive used in code)
+RUNSHEET_PREVIOUS_REPORT_PATTERN = r".*master documents.*"
+
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# Celery task routing
+CELERY_TASK_ROUTES = {
+    "orders.tasks.*": {"queue": "orders"},
+}
+
+# Celery task retry settings
+CELERY_TASK_ANNOTATIONS = {
+    "*": {
+        "retry_backoff": True,
+        "retry_backoff_max": 600,
+        "max_retries": 5,
+    }
+}
+
+# Dev convenience: allow eager tasks via env flag (no Redis/worker needed)
+if os.getenv("CELERY_TASK_ALWAYS_EAGER") in {"1", "true", "True"}:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True

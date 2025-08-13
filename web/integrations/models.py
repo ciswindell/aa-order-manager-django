@@ -2,6 +2,7 @@
 
 from django.db import models
 from django.conf import settings
+from orders.models import AgencyType
 
 
 class DropboxAccount(models.Model):
@@ -32,7 +33,81 @@ class DropboxAccount(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"DropboxAccount(user={self.user.pk}, account_id={self.account_id})"
+        return f"DropboxAccount(user={self.user}, account_id={self.account_id})"
+
+
+class CloudLocation(models.Model):
+    """Generic, reusable cloud location store for files and directories."""
+
+    provider = models.CharField(max_length=32, default="dropbox", db_index=True)
+    path = models.CharField(max_length=1024, db_index=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
+    is_directory = models.BooleanField(default=True)
+    file_id = models.CharField(max_length=256, blank=True, null=True)
+    share_url = models.URLField(blank=True, null=True)
+    share_expires_at = models.DateTimeField(blank=True, null=True)
+    is_public = models.BooleanField(default=True)
+    size_bytes = models.BigIntegerField(blank=True, null=True)
+    modified_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "integrations_cloud_location"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "path"], name="uniq_provider_path"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["provider", "path"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"CloudLocation(provider={self.provider}, path={self.path})"
+
+
+class AgencyStorageConfig(models.Model):
+    """Per-agency storage configuration for cloud paths."""
+
+    agency = models.CharField(max_length=16, choices=AgencyType.choices, unique=True)
+    runsheet_archive_base_path = models.CharField(
+        max_length=1024, blank=True, null=True
+    )
+    documents_base_path = models.CharField(max_length=1024, blank=True, null=True)
+    misc_index_base_path = models.CharField(max_length=1024, blank=True, null=True)
+    enabled = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "integrations_agency_storage_config"
+        verbose_name = "Agency Storage Configuration"
+        verbose_name_plural = "Agency Storage Configurations"
+
+    def __str__(self) -> str:
+        return f"AgencyStorageConfig(agency={self.agency})"
+
+    # Normalization helpers
+    @staticmethod
+    def _normalize_path(path: str | None) -> str | None:
+        if path is None:
+            return None
+        cleaned = str(path).strip().replace("\\", "/")
+        if cleaned == "":
+            return None
+        # Ensure single leading slash and no trailing slash
+        cleaned = "/" + cleaned.lstrip("/")
+        cleaned = cleaned.rstrip("/")
+        return cleaned
+
+    def save(self, *args, **kwargs):  # pragma: no cover
+        self.runsheet_archive_base_path = self._normalize_path(
+            self.runsheet_archive_base_path
+        )
+        self.documents_base_path = self._normalize_path(self.documents_base_path)
+        self.misc_index_base_path = self._normalize_path(self.misc_index_base_path)
+        super().save(*args, **kwargs)
 
 
 # Create your models here.
