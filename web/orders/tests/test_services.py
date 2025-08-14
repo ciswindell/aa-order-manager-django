@@ -104,6 +104,34 @@ class TestLeaseDirectorySearch(TestCase):
         with self.assertRaises(CloudServiceError):
             run_lease_directory_search(self.lease.id, self.user.id)
 
+    @patch("orders.services.lease_directory_search.get_cloud_service")
+    def test_lease_directory_search_cloud_error_propagates(
+        self, mock_get_cloud_service
+    ):
+        """CloudServiceError from cloud client should propagate (for retries)."""
+        mock_cloud_service = Mock()
+        mock_cloud_service.is_authenticated.return_value = True
+        mock_cloud_service.list_files.side_effect = CloudServiceError(
+            "network", "dropbox"
+        )
+        mock_get_cloud_service.return_value = mock_cloud_service
+
+        with self.assertRaises(CloudServiceError):
+            run_lease_directory_search(self.lease.id, self.user.id)
+
+    @patch("orders.services.lease_directory_search.get_cloud_service")
+    def test_lease_directory_search_unexpected_error_propagates(
+        self, mock_get_cloud_service
+    ):
+        """Unexpected exceptions should not be wrapped; they should propagate."""
+        mock_cloud_service = Mock()
+        mock_cloud_service.is_authenticated.return_value = True
+        mock_cloud_service.list_files.side_effect = RuntimeError("boom")
+        mock_get_cloud_service.return_value = mock_cloud_service
+
+        with self.assertRaises(RuntimeError):
+            run_lease_directory_search(self.lease.id, self.user.id)
+
     def test_lease_directory_search_missing_agency_config(self):
         """Test directory search when agency config is missing."""
         # Delete agency config
@@ -228,4 +256,32 @@ class TestPreviousReportDetection(TestCase):
 
         # Run service and expect error
         with self.assertRaises(CloudServiceError):
+            run_previous_report_detection(self.lease.id, self.user.id)
+
+    @patch("orders.services.previous_report_detection.get_cloud_service")
+    def test_previous_report_detection_cloud_error_propagates(
+        self, mock_get_cloud_service
+    ):
+        """CloudServiceError from cloud client should propagate (for retries)."""
+        mock_cloud_service = Mock()
+        mock_cloud_service.is_authenticated.return_value = True
+        mock_cloud_service.list_files.side_effect = CloudServiceError(
+            "network", "dropbox"
+        )
+        mock_get_cloud_service.return_value = mock_cloud_service
+
+        with self.assertRaises(CloudServiceError):
+            run_previous_report_detection(self.lease.id, self.user.id)
+
+    @patch("orders.services.previous_report_detection.get_cloud_service")
+    def test_previous_report_detection_unexpected_error_propagates(
+        self, mock_get_cloud_service
+    ):
+        """Unexpected exceptions should not be wrapped; they should propagate."""
+        mock_cloud_service = Mock()
+        mock_cloud_service.is_authenticated.return_value = True
+        mock_cloud_service.list_files.side_effect = ValueError("bad state")
+        mock_get_cloud_service.return_value = mock_cloud_service
+
+        with self.assertRaises(ValueError):
             run_previous_report_detection(self.lease.id, self.user.id)

@@ -6,6 +6,9 @@ import logging
 from django.db.models.signals import post_save
 from django.db import transaction
 from django.dispatch import receiver
+from django.conf import settings
+
+import redis
 
 from orders.models import Lease
 from orders.tasks import full_runsheet_discovery_task
@@ -36,8 +39,31 @@ def enqueue_runsheet_discovery_on_save(
 
     user_id = get_current_user_id()
     if user_id:
-        # Avoid SQLite locking by enqueuing after the transaction commits
+        # Avoid DB locking by enqueuing after the transaction commits
         def _enqueue():
+            # Best-effort global dedup per lease_id using Redis SETNX with TTL
+            try:
+                broker_url = getattr(settings, "CELERY_BROKER_URL", "")
+                if broker_url.startswith("redis://"):
+                    client = redis.from_url(broker_url)
+                    task_name = getattr(
+                        full_runsheet_discovery_task,
+                        "name",
+                        "full_runsheet_discovery_task",
+                    )
+                    dedup_key = f"orders:dedup:task:{task_name}:lease:{instance.id}"
+                    # TTL 120s per PRD
+                    locked = client.set(name=dedup_key, value="1", nx=True, ex=120)
+                    if not locked:
+                        logger.info(
+                            "Skipping enqueue due to dedup key present for lease %s",
+                            instance.id,
+                        )
+                        return
+            except Exception as dedup_exc:  # pragma: no cover
+                # Best-effort: do not block enqueue on Redis issues
+                logger.debug("Dedup check failed: %s", str(dedup_exc))
+
             try:
                 full_runsheet_discovery_task.delay(instance.id, user_id)
                 logger.info(

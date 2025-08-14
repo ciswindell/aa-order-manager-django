@@ -142,5 +142,5 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
             lease_id,
             str(e),
         )
-        # Map unexpected errors to CloudServiceError for retry handling
-        raise CloudServiceError(f"Unexpected error: {str(e)}", "dropbox")
+        # Let unexpected errors propagate to avoid retrying non-transient bugs
+        raise

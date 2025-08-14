@@ -157,14 +157,7 @@ CELERY_TASK_ROUTES = {
     "orders.tasks.*": {"queue": "orders"},
 }
 
-# Celery task retry settings
-CELERY_TASK_ANNOTATIONS = {
-    "*": {
-        "retry_backoff": True,
-        "retry_backoff_max": 600,
-        "max_retries": 5,
-    }
-}
+# Celery task retry settings are defined per-task via decorators in app code
 
 # Dev convenience: allow eager tasks via env flag (no Redis/worker needed)
 if os.getenv("CELERY_TASK_ALWAYS_EAGER") in {"1", "true", "True"}:
