@@ -71,6 +71,7 @@ class DropboxCloudService(CloudOperations):
         self._auth_service.authenticate()  # Raises CloudAuthError on failure
         self._client = self._auth_service.get_client()
         self._workspace_handler = DropboxWorkspaceHandler(self._client)
+        self._workspace_handler.reset_shared_folders_cache()
         return True
 
     def is_authenticated(self) -> bool:
@@ -124,33 +125,26 @@ class DropboxCloudService(CloudOperations):
 
     def _list_items(self, path: str) -> List[CloudFile]:
         """List all items (files and directories) in path."""
-        try:
-            result = self._list_folder(path)
+        result = self._list_folder(path)
+        if result and hasattr(result, "entries"):
             return [
                 self._convert_metadata_to_cloud_file(entry) for entry in result.entries
             ]
-        except dropbox.exceptions.ApiError:
-            # Try workspace logic
-            workspace_result = self._workspace_handler.workspace_call(
-                path, lambda client, rel_path: client.files_list_folder(rel_path)
-            )
-            if workspace_result and hasattr(workspace_result, "entries"):
-                return [
-                    self._convert_metadata_to_cloud_file(entry)
-                    for entry in workspace_result.entries
-                ]
-            else:
-                return []
+        return []
 
     def _list_folder(self, path: str):
         """List folder - handles both regular and workspace paths."""
-        try:
-            normalized_path = "" if path == "/" else path
-            return self._client.files_list_folder(normalized_path)
-        except dropbox.exceptions.ApiError:
-            return self._workspace_handler.workspace_call(
-                path, lambda client, rel_path: client.files_list_folder(rel_path)
-            )
+        normalized_path = "" if path == "/" else path
+        workspace_result = self._workspace_handler.workspace_call(
+            path, lambda client, rel_path: client.files_list_folder(rel_path)
+        )
+        if workspace_result is not None:
+            logger.debug("dropbox: list_folder using workspace mode for path=%s", path)
+            return workspace_result
+        logger.debug(
+            "dropbox: list_folder using regular mode for path=%s", normalized_path
+        )
+        return self._client.files_list_folder(normalized_path)
 
     def _convert_metadata_to_cloud_file(self, metadata) -> CloudFile:
         """Convert Dropbox metadata to CloudFile."""
@@ -173,12 +167,14 @@ class DropboxCloudService(CloudOperations):
 
     def _get_metadata(self, path: str):
         """Get metadata - handles both regular and workspace paths."""
-        try:
-            return self._client.files_get_metadata(path)
-        except dropbox.exceptions.ApiError:
-            return self._workspace_handler.workspace_call(
-                path, lambda client, rel_path: client.files_get_metadata(rel_path)
-            )
+        workspace_result = self._workspace_handler.workspace_call(
+            path, lambda client, rel_path: client.files_get_metadata(rel_path)
+        )
+        if workspace_result is not None:
+            logger.debug("dropbox: get_metadata using workspace mode for path=%s", path)
+            return workspace_result
+        logger.debug("dropbox: get_metadata using regular mode for path=%s", path)
+        return self._client.files_get_metadata(path)
 
     def _get_existing_link(self, file_id: str) -> Optional[str]:
         """Get existing share link for file ID."""

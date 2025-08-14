@@ -103,19 +103,4 @@ def dropbox_me(request: HttpRequest) -> HttpResponse:
     return HttpResponse(f"Connected as: {account.name.display_name}")
 
 
-@login_required
-@require_GET
-def dropbox_list(request: HttpRequest) -> JsonResponse:
-    """List directories and files via OAuth-bound service.
-
-    Dev-only: remove this endpoint before production.
-    """
-    path = request.GET.get("path", "/")
-    service = get_cloud_service("dropbox", user=request.user)
-    service.authenticate()
-    dirs = [d.__dict__ for d in service.list_directories(path)]
-    files = [f.__dict__ for f in service.list_files(path)]
-    return JsonResponse({"path": path, "directories": dirs, "files": files})
-
-
 # Create your views here.
