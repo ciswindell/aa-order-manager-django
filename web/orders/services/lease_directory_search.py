@@ -121,6 +121,116 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
         else:
             # Directory doesn't exist
             logger.info("Directory not found: %s", directory_path)
+
+            # Optional: attempt creation of the root lease directory if enabled and base exists
+            try:
+                if getattr(agency_config, "auto_create_lease_directories", True):
+                    base_path = agency_config.runsheet_archive_base_path
+                    # Probe base path existence by metadata; workspace-first inside service
+                    base_exists = False
+                    try:
+                        md = cloud_service._get_metadata(base_path)  # type: ignore[attr-defined]
+                        base_exists = md is not None
+                    except Exception:
+                        base_exists = False
+
+                    if base_exists:
+                        logger.info(
+                            "Attempting to create lease directory at: %s",
+                            directory_path,
+                        )
+                        # Explicit console output for live debugging
+                        print(
+                            f"[lease-dir-create] attempting creation: {directory_path}",
+                            flush=True,
+                        )
+                        try:
+                            # Create only if subfolders are configured (safety gate)
+                            subfolders = [
+                                f
+                                for f in [
+                                    getattr(
+                                        agency_config,
+                                        "runsheet_subfolder_documents_name",
+                                        None,
+                                    ),
+                                    getattr(
+                                        agency_config,
+                                        "runsheet_subfolder_misc_index_name",
+                                        None,
+                                    ),
+                                    getattr(
+                                        agency_config,
+                                        "runsheet_subfolder_runsheets_name",
+                                        None,
+                                    ),
+                                ]
+                                if f
+                            ]
+
+                            if subfolders:
+                                created_dir = cloud_service.create_directory(
+                                    directory_path, parents=True
+                                )
+                                if created_dir:
+                                    cloud_service.create_directory_tree(
+                                        directory_path, subfolders, exists_ok=True
+                                    )
+
+                                    # Create share link for the lease directory
+                                    share_link = cloud_service.create_share_link(
+                                        directory_path, is_public=True
+                                    )
+
+                                    # Upsert cloud location and update lease
+                                    defaults = {
+                                        "name": lease.lease_number,
+                                        "is_directory": True,
+                                    }
+                                    if share_link:
+                                        defaults.update(
+                                            {
+                                                "share_url": share_link.url,
+                                                "share_expires_at": getattr(
+                                                    share_link, "expires_at", None
+                                                ),
+                                                "is_public": share_link.is_public,
+                                            }
+                                        )
+
+                                    cloud_location, _ = (
+                                        CloudLocation.objects.update_or_create(
+                                            provider="dropbox",
+                                            path=directory_path,
+                                            defaults=defaults,
+                                        )
+                                    )
+                                    lease.runsheet_directory = cloud_location
+                                    lease.runsheet_report_found = False
+                                    lease.save(
+                                        update_fields=[
+                                            "runsheet_directory",
+                                            "runsheet_report_found",
+                                        ]
+                                    )
+                                    logger.info(
+                                        "Created lease directory and subfolders for %s",
+                                        lease.lease_number,
+                                    )
+                        except Exception as create_err:
+                            logger.warning(
+                                "Lease directory create skipped/failed at %s: %s",
+                                directory_path,
+                                str(create_err),
+                            )
+                    else:
+                        logger.warning(
+                            "Base path missing, skipping directory creation. base=%s",
+                            base_path,
+                        )
+            except Exception as e:
+                logger.warning("Creation attempt error (ignored): %s", str(e))
+
             return {
                 "found": False,
                 "path": directory_path,

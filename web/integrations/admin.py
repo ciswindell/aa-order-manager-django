@@ -46,11 +46,50 @@ class CloudLocationAdmin(admin.ModelAdmin):
 class AgencyStorageConfigAdmin(admin.ModelAdmin):
     """Admin for agency storage configuration."""
 
-    list_display = ("agency", "enabled", "runsheet_archive_base_path", "updated_at")
+    list_display = (
+        "agency",
+        "enabled",
+        "auto_create_lease_directories",
+        "runsheet_archive_base_path",
+        "updated_at",
+    )
     search_fields = ("agency",)
     list_filter = ("enabled", "agency")
     readonly_fields = ("created_at", "updated_at")
     ordering = ("agency",)
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "agency",
+                    "enabled",
+                    "auto_create_lease_directories",
+                )
+            },
+        ),
+        (
+            "Base Paths",
+            {
+                "fields": (
+                    "runsheet_archive_base_path",
+                    "documents_base_path",
+                    "misc_index_base_path",
+                )
+            },
+        ),
+        (
+            "Runsheet Subfolders",
+            {
+                "fields": (
+                    "runsheet_subfolder_documents_name",
+                    "runsheet_subfolder_misc_index_name",
+                    "runsheet_subfolder_runsheets_name",
+                )
+            },
+        ),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
 
 
 # Register your models here.

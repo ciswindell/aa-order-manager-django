@@ -79,12 +79,27 @@ class CloudOperations(Protocol):
             Optional[ShareLink]: The share link if created successfully, None otherwise
         """
 
-    def create_directory(self, path: str) -> Optional[CloudFile]:
+    def create_directory(self, path: str, parents: bool = True) -> Optional[CloudFile]:
         """Create a new directory at the specified path.
 
         Args:
             path: The path where the directory should be created
+            parents: If True, create missing parents under the existing base path
 
         Returns:
             Optional[CloudFile]: The created directory if successful, None otherwise
+        """
+
+    def create_directory_tree(
+        self, root_path: str, subfolders: list[str], exists_ok: bool = True
+    ) -> list[CloudFile]:
+        """Create multiple subfolders under a root path.
+
+        Args:
+            root_path: The existing or newly created root directory
+            subfolders: Folder names to create directly under root
+            exists_ok: If True, treat already-existing folders as success
+
+        Returns:
+            list[CloudFile]: List of created or existing directory representations
         """

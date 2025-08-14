@@ -74,6 +74,37 @@ class DropboxCloudService(CloudOperations):
         self._workspace_handler.reset_shared_folders_cache()
         return True
 
+    # ----------------------
+    # Internal path helpers
+    # ----------------------
+    def _normalize_path_str(self, path: str) -> str:
+        """Normalize Dropbox paths: leading slash, no trailing slash (except '/')."""
+        cleaned = (path or "").replace("\\", "/").strip()
+        if cleaned == "" or cleaned == "/":
+            return "/"
+        cleaned = "/" + cleaned.lstrip("/")
+        cleaned = cleaned.rstrip("/")
+        return cleaned
+
+    def _get_parent_path(self, path: str) -> str:
+        """Return normalized parent directory of a path."""
+        path = self._normalize_path_str(path)
+        if path == "/":
+            return "/"
+        parts = path.strip("/").split("/")
+        if len(parts) <= 1:
+            return "/"
+        parent = "/" + "/".join(parts[:-1])
+        return self._normalize_path_str(parent)
+
+    def _path_exists(self, path: str) -> bool:
+        """Return True if metadata exists for path (file or folder)."""
+        try:
+            md = self._get_metadata(path)
+            return md is not None
+        except Exception:
+            return False
+
     def is_authenticated(self) -> bool:
         """Check if authenticated using the auth service."""
         return self._auth_service.is_authenticated()
@@ -119,9 +150,84 @@ class DropboxCloudService(CloudOperations):
         new_link = self._create_new_link(file_id, is_public)
         return ShareLink(url=new_link, is_public=is_public)
 
-    def create_directory(self, path: str) -> Optional[CloudFile]:
-        """Create a new directory (placeholder for future)."""
-        raise NotImplementedError("Directory creation not yet implemented")
+    @_require_auth
+    @_handle_dropbox_errors
+    def create_directory(self, path: str, parents: bool = True) -> Optional[CloudFile]:
+        """Create a new directory using Dropbox SDK (workspace-first).
+
+        Note: Parent creation and base-path checks are handled separately.
+        """
+        path = self._normalize_path_str(path)
+        parent = self._get_parent_path(path)
+        # Require parent to exist; do not attempt to create it
+        if parent and parent != "/" and not self._path_exists(parent):
+            logger.info("dropbox: skip create, missing base/parent path=%s", parent)
+            return None
+        # Try workspace-scoped create first
+        result = self._workspace_handler.workspace_call(
+            path,
+            lambda client, rel_path: client.files_create_folder_v2(
+                rel_path, autorename=False
+            ),
+        )
+        if result and hasattr(result, "metadata"):
+            logger.info("dropbox: created directory (workspace) path=%s", path)
+            return self._convert_metadata_to_cloud_file(result.metadata)
+
+        # Fallback to regular client
+        try:
+            created = self._client.files_create_folder_v2(path, autorename=False)
+            logger.info("dropbox: created directory (regular) path=%s", path)
+            return self._convert_metadata_to_cloud_file(created.metadata)
+        except dropbox.exceptions.ApiError:
+            # Conflict or already exists => treat as success if metadata retrievable
+            try:
+                md = self._get_metadata(path)
+                if md:
+                    logger.info("dropbox: directory already existed path=%s", path)
+                    return self._convert_metadata_to_cloud_file(md)
+            except Exception:
+                pass
+            raise
+
+    @_require_auth
+    @_handle_dropbox_errors
+    def create_directory_tree(
+        self, root_path: str, subfolders: List[str], exists_ok: bool = True
+    ) -> List[CloudFile]:
+        """Create multiple subfolders directly under root_path.
+
+        Does not create share links. Returns created/existing directories as CloudFile.
+        """
+        root_path = self._normalize_path_str(root_path)
+        # Root must already exist; do not create it here
+        if not self._path_exists(root_path):
+            logger.info("dropbox: skip create_tree, missing root path=%s", root_path)
+            return []
+
+        created_dirs: List[CloudFile] = []
+        for name in subfolders:
+            if not name:
+                continue
+            sub_path = f"{root_path.rstrip('/')}/{name.strip('/')}"
+            try:
+                created = self.create_directory(sub_path, parents=False)
+                if created:
+                    logger.info("dropbox: created subdirectory path=%s", sub_path)
+                    created_dirs.append(created)
+            except Exception:
+                if not exists_ok:
+                    raise
+                # When exists_ok=True, best-effort: return existing metadata if present
+                metadata = None
+                try:
+                    metadata = self._get_metadata(sub_path)
+                except Exception:
+                    metadata = None
+                if metadata:
+                    logger.info("dropbox: subdirectory existed path=%s", sub_path)
+                    created_dirs.append(self._convert_metadata_to_cloud_file(metadata))
+        return created_dirs
 
     def _list_items(self, path: str) -> List[CloudFile]:
         """List all items (files and directories) in path."""
@@ -144,7 +250,11 @@ class DropboxCloudService(CloudOperations):
         logger.debug(
             "dropbox: list_folder using regular mode for path=%s", normalized_path
         )
-        return self._client.files_list_folder(normalized_path)
+        try:
+            return self._client.files_list_folder(normalized_path)
+        except dropbox.exceptions.ApiError:
+            # Treat not found as empty to allow callers to decide on creation
+            return None
 
     def _convert_metadata_to_cloud_file(self, metadata) -> CloudFile:
         """Convert Dropbox metadata to CloudFile."""

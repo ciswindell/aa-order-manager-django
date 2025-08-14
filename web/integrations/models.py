@@ -76,6 +76,18 @@ class AgencyStorageConfig(models.Model):
     )
     documents_base_path = models.CharField(max_length=1024, blank=True, null=True)
     misc_index_base_path = models.CharField(max_length=1024, blank=True, null=True)
+    # Runsheet subfolder configuration (optional per agency)
+    runsheet_subfolder_documents_name = models.CharField(
+        max_length=255, blank=True, null=True
+    )
+    runsheet_subfolder_misc_index_name = models.CharField(
+        max_length=255, blank=True, null=True
+    )
+    runsheet_subfolder_runsheets_name = models.CharField(
+        max_length=255, blank=True, null=True
+    )
+    # Toggle for automatic lease directory creation
+    auto_create_lease_directories = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -101,12 +113,33 @@ class AgencyStorageConfig(models.Model):
         cleaned = cleaned.rstrip("/")
         return cleaned
 
+    @staticmethod
+    def _normalize_subfolder_name(name: str | None) -> str | None:
+        if name is None:
+            return None
+        cleaned = str(name).strip()
+        if cleaned == "":
+            return None
+        # Subfolder names should not start or end with a slash
+        cleaned = cleaned.strip("/\\")
+        # Trim again to remove any spaces adjacent to removed slashes
+        return cleaned.strip()
+
     def save(self, *args, **kwargs):  # pragma: no cover
         self.runsheet_archive_base_path = self._normalize_path(
             self.runsheet_archive_base_path
         )
         self.documents_base_path = self._normalize_path(self.documents_base_path)
         self.misc_index_base_path = self._normalize_path(self.misc_index_base_path)
+        self.runsheet_subfolder_documents_name = self._normalize_subfolder_name(
+            self.runsheet_subfolder_documents_name
+        )
+        self.runsheet_subfolder_misc_index_name = self._normalize_subfolder_name(
+            self.runsheet_subfolder_misc_index_name
+        )
+        self.runsheet_subfolder_runsheets_name = self._normalize_subfolder_name(
+            self.runsheet_subfolder_runsheets_name
+        )
         super().save(*args, **kwargs)
 
 
