@@ -26,6 +26,8 @@ class TestLeaseDirectoryCreationFlow(TestCase):
 
         service = cloud_factory.get_cloud_service(provider="dropbox", user=self.user)
         service._auth_service.is_authenticated = lambda: True  # type: ignore[attr-defined]
+        # Satisfy service-level is_authenticated guard which now also requires workspace handler
+        service._workspace_handler = object()  # type: ignore[attr-defined]
         # Simulate base exists, but lease directory missing initially
         base = (
             "/State Workspace/^Runsheet Workspace/Runsheet Report Archive - New Format"
@@ -62,6 +64,7 @@ class TestLeaseDirectoryCreationFlow(TestCase):
 
         service = cloud_factory.get_cloud_service(provider="dropbox", user=self.user)
         service._auth_service.is_authenticated = lambda: True  # type: ignore[attr-defined]
+        service._workspace_handler = object()  # type: ignore[attr-defined]
 
         base = (
             "/State Workspace/^Runsheet Workspace/Runsheet Report Archive - New Format"

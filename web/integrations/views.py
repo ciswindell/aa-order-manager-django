@@ -36,6 +36,7 @@ def dropbox_connect(request: HttpRequest) -> HttpResponse:
         redirect_uri=settings.DROPBOX_REDIRECT_URI,
         session=request.session,
         csrf_token_session_key="dropbox-auth-csrf-token",
+        token_access_type="offline",
     )
     authorize_url = auth_flow.start()
     return HttpResponseRedirect(authorize_url)
@@ -51,6 +52,7 @@ def dropbox_callback(request: HttpRequest) -> HttpResponse:
         redirect_uri=settings.DROPBOX_REDIRECT_URI,
         session=request.session,
         csrf_token_session_key="dropbox-auth-csrf-token",
+        token_access_type="offline",
     )
     try:
         result = auth_flow.finish(request.GET)

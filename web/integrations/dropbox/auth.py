@@ -56,6 +56,8 @@ class DropboxTokenAuth(DropboxAuthBase):
             )
             return True
         except Exception as e:
+            # Ensure unauthenticated state on failure
+            self._client = None
             logger.error("Token authentication failed: %s", e)
             raise CloudAuthError(
                 f"Token authentication failed: {e}", "dropbox", e
@@ -91,6 +93,8 @@ class DropboxOAuthAuth(DropboxAuthBase):
             logger.info("✅ OAuth authentication successful")
             return True
         except Exception as e:  # pragma: no cover
+            # Ensure unauthenticated state on failure
+            self._client = None
             logger.error("OAuth authentication failed: %s", e)
             raise CloudAuthError(
                 f"OAuth authentication failed: {e}", "dropbox", e
