@@ -86,8 +86,8 @@ class AgencyStorageConfig(models.Model):
     runsheet_subfolder_runsheets_name = models.CharField(
         max_length=255, blank=True, null=True
     )
-    # Toggle for automatic lease directory creation
-    auto_create_lease_directories = models.BooleanField(default=True)
+    # Toggle for automatic runsheet archive creation
+    auto_create_runsheet_archives = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -49,7 +49,7 @@ class AgencyStorageConfigAdmin(admin.ModelAdmin):
     list_display = (
         "agency",
         "enabled",
-        "auto_create_lease_directories",
+        "auto_create_runsheet_archives",
         "runsheet_archive_base_path",
         "updated_at",
     )
@@ -64,7 +64,7 @@ class AgencyStorageConfigAdmin(admin.ModelAdmin):
                 "fields": (
                     "agency",
                     "enabled",
-                    "auto_create_lease_directories",
+                    "auto_create_runsheet_archives",
                 )
             },
         ),

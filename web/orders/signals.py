@@ -27,7 +27,7 @@ def enqueue_runsheet_discovery_on_save(
     to prevent enqueue loops.
     """
     update_fields = kwargs.get("update_fields")
-    task_only_fields = {"runsheet_directory", "runsheet_report_found"}
+    task_only_fields = {"runsheet_archive", "runsheet_report_found"}
     if update_fields:
         # If all updated fields are task-only fields, skip
         try:

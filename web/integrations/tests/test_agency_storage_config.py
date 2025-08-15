@@ -27,4 +27,4 @@ class TestAgencyStorageConfig(TestCase):
             runsheet_archive_base_path="/Federal Workspace/Runsheet Archive",
         )
         cfg.refresh_from_db()
-        assert cfg.auto_create_lease_directories is True
+        assert cfg.auto_create_runsheet_archives is True

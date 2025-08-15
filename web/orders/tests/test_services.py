@@ -7,15 +7,15 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 
 from orders.models import Lease, AgencyType
-from orders.services.lease_directory_search import run_lease_directory_search
+from orders.services.runsheet_archive_search import run_runsheet_archive_search
 from orders.services.previous_report_detection import run_previous_report_detection
 from integrations.models import CloudLocation, AgencyStorageConfig
 from integrations.utils import AgencyStorageConfigError
 from integrations.cloud.errors import CloudServiceError
 
 
-class TestLeaseDirectorySearch(TestCase):
-    """Test the lease directory search service."""
+class TestRunsheetArchiveSearch(TestCase):
+    """Test the runsheet archive search service."""
 
     def setUp(self):
         """Set up test data."""
@@ -34,7 +34,7 @@ class TestLeaseDirectorySearch(TestCase):
             enabled=True,
         )
 
-    @patch("orders.services.lease_directory_search.get_cloud_service")
+    @patch("orders.services.runsheet_archive_search.get_cloud_service")
     def test_lease_directory_search_found(self, mock_get_cloud_service):
         """Test successful directory search when directory is found."""
         # Mock cloud service
@@ -51,7 +51,7 @@ class TestLeaseDirectorySearch(TestCase):
         mock_get_cloud_service.return_value = mock_cloud_service
 
         # Run service
-        result = run_lease_directory_search(self.lease.id, self.user.id)
+        result = run_runsheet_archive_search(self.lease.id, self.user.id)
 
         # Verify results
         self.assertTrue(result["found"])
@@ -61,12 +61,12 @@ class TestLeaseDirectorySearch(TestCase):
 
         # Verify lease was updated
         self.lease.refresh_from_db()
-        self.assertIsNotNone(self.lease.runsheet_directory)
+        self.assertIsNotNone(self.lease.runsheet_archive)
         self.assertEqual(
-            self.lease.runsheet_directory.path, "/test/runsheet/archive/12345"
+            self.lease.runsheet_archive.path, "/test/runsheet/archive/12345"
         )
 
-    @patch("orders.services.lease_directory_search.get_cloud_service")
+    @patch("orders.services.runsheet_archive_search.get_cloud_service")
     def test_lease_directory_search_not_found(self, mock_get_cloud_service):
         """Test directory search when directory is not found."""
         # Mock cloud service
@@ -79,7 +79,7 @@ class TestLeaseDirectorySearch(TestCase):
         mock_get_cloud_service.return_value = mock_cloud_service
 
         # Run service
-        result = run_lease_directory_search(self.lease.id, self.user.id)
+        result = run_runsheet_archive_search(self.lease.id, self.user.id)
 
         # Verify results
         self.assertFalse(result["found"])
@@ -89,9 +89,9 @@ class TestLeaseDirectorySearch(TestCase):
 
         # Verify lease was not updated
         self.lease.refresh_from_db()
-        self.assertIsNone(self.lease.runsheet_directory)
+        self.assertIsNone(self.lease.runsheet_archive)
 
-    @patch("orders.services.lease_directory_search.get_cloud_service")
+    @patch("orders.services.runsheet_archive_search.get_cloud_service")
     def test_lease_directory_search_not_authenticated(self, mock_get_cloud_service):
         """Test directory search when cloud service is not authenticated."""
         # Mock cloud service
@@ -102,9 +102,9 @@ class TestLeaseDirectorySearch(TestCase):
 
         # Run service and expect error
         with self.assertRaises(CloudServiceError):
-            run_lease_directory_search(self.lease.id, self.user.id)
+            run_runsheet_archive_search(self.lease.id, self.user.id)
 
-    @patch("orders.services.lease_directory_search.get_cloud_service")
+    @patch("orders.services.runsheet_archive_search.get_cloud_service")
     def test_lease_directory_search_cloud_error_propagates(
         self, mock_get_cloud_service
     ):
@@ -117,9 +117,9 @@ class TestLeaseDirectorySearch(TestCase):
         mock_get_cloud_service.return_value = mock_cloud_service
 
         with self.assertRaises(CloudServiceError):
-            run_lease_directory_search(self.lease.id, self.user.id)
+            run_runsheet_archive_search(self.lease.id, self.user.id)
 
-    @patch("orders.services.lease_directory_search.get_cloud_service")
+    @patch("orders.services.runsheet_archive_search.get_cloud_service")
     def test_lease_directory_search_unexpected_error_propagates(
         self, mock_get_cloud_service
     ):
@@ -130,7 +130,7 @@ class TestLeaseDirectorySearch(TestCase):
         mock_get_cloud_service.return_value = mock_cloud_service
 
         with self.assertRaises(RuntimeError):
-            run_lease_directory_search(self.lease.id, self.user.id)
+            run_runsheet_archive_search(self.lease.id, self.user.id)
 
     def test_lease_directory_search_missing_agency_config(self):
         """Test directory search when agency config is missing."""
@@ -139,7 +139,7 @@ class TestLeaseDirectorySearch(TestCase):
 
         # Run service and expect error
         with self.assertRaises(AgencyStorageConfigError):
-            run_lease_directory_search(self.lease.id, self.user.id)
+            run_runsheet_archive_search(self.lease.id, self.user.id)
 
     def test_lease_directory_search_disabled_agency_config(self):
         """Test directory search when agency config is disabled."""
@@ -149,7 +149,7 @@ class TestLeaseDirectorySearch(TestCase):
 
         # Run service and expect error
         with self.assertRaises(AgencyStorageConfigError):
-            run_lease_directory_search(self.lease.id, self.user.id)
+            run_runsheet_archive_search(self.lease.id, self.user.id)
 
 
 class TestPreviousReportDetection(TestCase):
@@ -170,7 +170,7 @@ class TestPreviousReportDetection(TestCase):
             name="12345",
             is_directory=True,
         )
-        self.lease.runsheet_directory = self.cloud_location
+        self.lease.runsheet_archive = self.cloud_location
         self.lease.save()
 
     @patch("orders.services.previous_report_detection.get_cloud_service")
@@ -230,8 +230,8 @@ class TestPreviousReportDetection(TestCase):
 
     def test_previous_report_detection_no_directory(self):
         """Test detection when no runsheet directory is present."""
-        # Remove runsheet directory
-        self.lease.runsheet_directory = None
+        # Remove runsheet archive
+        self.lease.runsheet_archive = None
         self.lease.save()
 
         # Run service

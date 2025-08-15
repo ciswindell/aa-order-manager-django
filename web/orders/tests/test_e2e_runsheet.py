@@ -25,7 +25,7 @@ class TestRunsheetE2E(TestCase):
         )
 
     @patch("orders.services.previous_report_detection.get_cloud_service")
-    @patch("orders.services.lease_directory_search.get_cloud_service")
+    @patch("orders.services.runsheet_archive_search.get_cloud_service")
     def test_full_runsheet_discovery(
         self, mock_get_cloud_service_search, mock_get_cloud_service_detect
     ):
@@ -59,8 +59,8 @@ class TestRunsheetE2E(TestCase):
         self.assertEqual(result["search"]["share_url"], "https://share/link")
 
         lease.refresh_from_db()
-        self.assertIsNotNone(lease.runsheet_directory)
-        self.assertEqual(lease.runsheet_directory.path, "/root/runsheet/XYZ123")
+        self.assertIsNotNone(lease.runsheet_archive)
+        self.assertEqual(lease.runsheet_archive.path, "/root/runsheet/XYZ123")
 
         # Verify detection results
         self.assertTrue(result["detection"]["found"])

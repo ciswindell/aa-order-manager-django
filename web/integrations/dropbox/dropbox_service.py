@@ -107,7 +107,11 @@ class DropboxCloudService(CloudOperations):
 
     def is_authenticated(self) -> bool:
         """Check if authenticated using the auth service."""
-        return self._auth_service.is_authenticated()
+        # Consider fully authenticated only when both client and workspace handler exist
+        return (
+            self._auth_service.is_authenticated()
+            and self._workspace_handler is not None
+        )
 
     @_require_auth
     @_handle_dropbox_errors
