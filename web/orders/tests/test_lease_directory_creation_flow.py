@@ -35,6 +35,8 @@ class TestLeaseDirectoryCreationFlow(TestCase):
         service.list_files = lambda p: []  # type: ignore[method-assign]
         # list_directories works for base
         service.list_directories = lambda p: []  # type: ignore[method-assign]
+        # _get_metadata returns metadata for base path (simulating base exists)
+        service._get_metadata = lambda p: type("MD", (), {"path": p, "is_directory": True})() if p == base else None  # type: ignore[method-assign]
         # create_directory returns a CloudFile-like object
         service.create_directory = lambda p, parents=True: type(
             "CF", (), {"path": p, "name": p.rsplit("/", 1)[-1], "is_directory": True}
