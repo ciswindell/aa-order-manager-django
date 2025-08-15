@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def run_previous_report_detection(lease_id: int, user_id: int) -> Dict[str, Any]:
     """
-    Scan a lease directory for existing Master Documents files.
+    Scan a runsheet archive for existing Master Documents files.
 
     Args:
         lease_id: ID of the lease to scan
@@ -45,10 +45,10 @@ def run_previous_report_detection(lease_id: int, user_id: int) -> Dict[str, Any]
         lease.lease_number,
     )
 
-    # Require runsheet_directory to be present
-    if not lease.runsheet_directory:
+    # Require runsheet_archive to be present
+    if not lease.runsheet_archive:
         logger.info(
-            "No runsheet directory found for lease %s, skipping detection", lease_id
+            "No runsheet archive found for lease %s, skipping detection", lease_id
         )
         return {
             "found": False,
@@ -57,7 +57,7 @@ def run_previous_report_detection(lease_id: int, user_id: int) -> Dict[str, Any]
 
     try:
         # Get the directory path from the cloud location
-        directory_path = lease.runsheet_directory.path
+        directory_path = lease.runsheet_archive.path
 
         logger.info("Scanning directory for Master Documents: %s", directory_path)
 

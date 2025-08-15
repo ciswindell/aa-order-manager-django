@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 
 from orders.models import Lease, AgencyType
 from orders.tasks import (
-    lease_directory_search_task,
+    runsheet_archive_search_task,
     previous_report_detection_task,
     full_runsheet_discovery_task,
 )
@@ -21,13 +21,13 @@ class TestOrdersTasks(TestCase):
         )
         self.lease = Lease.objects.create(agency=AgencyType.NMSLO, lease_number="T1")
 
-    @patch("orders.tasks.run_lease_directory_search")
+    @patch("orders.tasks.run_runsheet_archive_search")
     @patch("orders.tasks.logger.info")
-    def test_lease_directory_search_task_logs_and_calls_service(
+    def test_runsheet_archive_search_task_logs_and_calls_service(
         self, mock_logger_info, mock_service
     ):
         mock_service.return_value = {"ok": True}
-        result = lease_directory_search_task.run(self.lease.id, self.user.id)
+        result = runsheet_archive_search_task.run(self.lease.id, self.user.id)
         self.assertEqual(result, {"ok": True})
         mock_service.assert_called_once_with(self.lease.id, self.user.id)
         mock_logger_info.assert_called()
@@ -44,7 +44,7 @@ class TestOrdersTasks(TestCase):
         mock_logger_info.assert_called()
 
     @patch("orders.tasks.run_previous_report_detection")
-    @patch("orders.tasks.run_lease_directory_search")
+    @patch("orders.tasks.run_runsheet_archive_search")
     @patch("orders.tasks.logger.info")
     def test_full_runsheet_discovery_calls_detection_when_found(
         self, mock_logger_info, mock_search, mock_detect
@@ -64,7 +64,7 @@ class TestOrdersTasks(TestCase):
         mock_logger_info.assert_called()
 
     @patch("orders.tasks.run_previous_report_detection")
-    @patch("orders.tasks.run_lease_directory_search")
+    @patch("orders.tasks.run_runsheet_archive_search")
     @patch("orders.tasks.logger.info")
     def test_full_runsheet_discovery_skips_detection_when_not_found(
         self, mock_logger_info, mock_search, mock_detect

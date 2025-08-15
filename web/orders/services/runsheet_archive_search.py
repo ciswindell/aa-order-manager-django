@@ -1,7 +1,7 @@
 """
-Lease Directory Search Service
+Runsheet Archive Search Service
 
-Service to find agency-specific lease directories in Dropbox and create shareable links.
+Service to find agency-specific runsheet archives in Dropbox and create shareable links.
 """
 
 import logging
@@ -18,9 +18,9 @@ from integrations.models import CloudLocation
 logger = logging.getLogger(__name__)
 
 
-def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
+def run_runsheet_archive_search(lease_id: int, user_id: int) -> Dict[str, Any]:
     """
-    Search for a lease directory in Dropbox and create a shareable link if found.
+    Search for a runsheet archive in Dropbox and create a shareable link if found.
 
     Args:
         lease_id: ID of the lease to search for
@@ -40,7 +40,7 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
     user = User.objects.get(id=user_id)
 
     logger.info(
-        "Starting lease directory search for lease %s (agency: %s, lease_number: %s)",
+        "Starting runsheet archive search for lease %s (agency: %s, lease_number: %s)",
         lease_id,
         lease.agency,
         lease.lease_number,
@@ -92,8 +92,8 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
                 )
 
                 # Update lease with the cloud location
-                lease.runsheet_directory = cloud_location
-                lease.save(update_fields=["runsheet_directory"])
+                lease.runsheet_archive = cloud_location
+                lease.save(update_fields=["runsheet_archive"])
 
                 action = "created" if created else "updated"
                 logger.info(
@@ -122,9 +122,9 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
             # Directory doesn't exist
             logger.info("Directory not found: %s", directory_path)
 
-            # Optional: attempt creation of the root lease directory if enabled and base exists
+            # Optional: attempt creation of the root runsheet archive if enabled and base exists
             try:
-                if getattr(agency_config, "auto_create_lease_directories", True):
+                if getattr(agency_config, "auto_create_runsheet_archives", True):
                     base_path = agency_config.runsheet_archive_base_path
                     # Probe base path existence by metadata; workspace-first inside service
                     base_exists = False
@@ -136,12 +136,12 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
 
                     if base_exists:
                         logger.info(
-                            "Attempting to create lease directory at: %s",
+                            "Attempting to create runsheet archive at: %s",
                             directory_path,
                         )
                         # Explicit console output for live debugging
                         print(
-                            f"[lease-dir-create] attempting creation: {directory_path}",
+                            f"[runsheet-archive-create] attempting creation: {directory_path}",
                             flush=True,
                         )
                         try:
@@ -177,7 +177,7 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
                                         directory_path, subfolders, exists_ok=True
                                     )
 
-                                    # Create share link for the lease directory
+                                    # Create share link for the runsheet archive
                                     share_link = cloud_service.create_share_link(
                                         directory_path, is_public=True
                                     )
@@ -205,21 +205,21 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
                                             defaults=defaults,
                                         )
                                     )
-                                    lease.runsheet_directory = cloud_location
+                                    lease.runsheet_archive = cloud_location
                                     lease.runsheet_report_found = False
                                     lease.save(
                                         update_fields=[
-                                            "runsheet_directory",
+                                            "runsheet_archive",
                                             "runsheet_report_found",
                                         ]
                                     )
                                     logger.info(
-                                        "Created lease directory and subfolders for %s",
+                                        "Created runsheet archive and subfolders for %s",
                                         lease.lease_number,
                                     )
                         except Exception as create_err:
                             logger.warning(
-                                "Lease directory create skipped/failed at %s: %s",
+                                "Runsheet archive create skipped/failed at %s: %s",
                                 directory_path,
                                 str(create_err),
                             )
@@ -248,7 +248,7 @@ def run_lease_directory_search(lease_id: int, user_id: int) -> Dict[str, Any]:
         raise
     except Exception as e:
         logger.error(
-            "Unexpected error in lease directory search for lease %s: %s",
+            "Unexpected error in runsheet archive search for lease %s: %s",
             lease_id,
             str(e),
         )

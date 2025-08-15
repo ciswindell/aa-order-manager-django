@@ -16,13 +16,13 @@ class TestLeaseDirectoryCreationFlow(TestCase):
             runsheet_subfolder_misc_index_name="^MI Index",
             runsheet_subfolder_runsheets_name="Runsheets",
             enabled=True,
-            auto_create_lease_directories=True,
+            auto_create_runsheet_archives=True,
         )
         self.lease = Lease.objects.create(agency=AgencyType.NMSLO, lease_number="12345")
 
     def test_missing_directory_triggers_creation_and_updates_lease(self):
         # Build a fake service and inject into the module under test
-        from orders.services import lease_directory_search as lds
+        from orders.services import runsheet_archive_search as lds
 
         service = cloud_factory.get_cloud_service(provider="dropbox", user=self.user)
         service._auth_service.is_authenticated = lambda: True  # type: ignore[attr-defined]
@@ -45,18 +45,18 @@ class TestLeaseDirectoryCreationFlow(TestCase):
         # Monkeypatch the symbol used by the service module
         lds.get_cloud_service = lambda provider, user: service  # type: ignore[assignment]
 
-        result = lds.run_lease_directory_search(self.lease.id, self.user.id)
+        result = lds.run_runsheet_archive_search(self.lease.id, self.user.id)
         assert result["found"] is False
         assert result["path"].endswith("/12345")
 
         self.lease.refresh_from_db()
-        assert self.lease.runsheet_directory is not None
+        assert self.lease.runsheet_archive is not None
         assert self.lease.runsheet_report_found is False
         cl = CloudLocation.objects.get(path=lease_dir)
         assert cl.is_directory is True
 
     def test_rerun_on_existing_directory_is_noop_success(self):
-        from orders.services import lease_directory_search as lds
+        from orders.services import runsheet_archive_search as lds
 
         service = cloud_factory.get_cloud_service(provider="dropbox", user=self.user)
         service._auth_service.is_authenticated = lambda: True  # type: ignore[attr-defined]
@@ -78,5 +78,5 @@ class TestLeaseDirectoryCreationFlow(TestCase):
         # Patch symbol in module
         lds.get_cloud_service = lambda provider, user: service  # type: ignore[assignment]
 
-        result = lds.run_lease_directory_search(self.lease.id, self.user.id)
+        result = lds.run_runsheet_archive_search(self.lease.id, self.user.id)
         assert result["found"] is True

@@ -6,7 +6,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 
 from integrations.cloud.errors import CloudServiceError
-from orders.services.lease_directory_search import run_lease_directory_search
+from orders.services.runsheet_archive_search import run_runsheet_archive_search
 from orders.services.previous_report_detection import run_previous_report_detection
 
 logger = get_task_logger(__name__)
@@ -24,12 +24,12 @@ logger = get_task_logger(__name__)
     time_limit=120,
     ignore_result=True,
 )
-def lease_directory_search_task(self, lease_id: int, user_id: int) -> dict:
-    """Task: run lease directory search with retry/backoff on cloud errors."""
+def runsheet_archive_search_task(self, lease_id: int, user_id: int) -> dict:
+    """Task: run runsheet archive search with retry/backoff on cloud errors."""
     logger.info(
-        "lease_directory_search_task start lease_id=%s user_id=%s", lease_id, user_id
+        "runsheet_archive_search_task start lease_id=%s user_id=%s", lease_id, user_id
     )
-    return run_lease_directory_search(lease_id, user_id)
+    return run_runsheet_archive_search(lease_id, user_id)
 
 
 @shared_task(
@@ -69,7 +69,7 @@ def full_runsheet_discovery_task(self, lease_id: int, user_id: int) -> dict:
     logger.info(
         "full_runsheet_discovery_task start lease_id=%s user_id=%s", lease_id, user_id
     )
-    search_result = run_lease_directory_search(lease_id, user_id)
+    search_result = run_runsheet_archive_search(lease_id, user_id)
     detection_result: dict | None = None
     if search_result.get("found"):
         detection_result = run_previous_report_detection(lease_id, user_id)

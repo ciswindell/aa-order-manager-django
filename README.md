@@ -29,14 +29,14 @@ This runs tasks inline (no Redis/worker needed). Unset to return to real backgro
 
 ### Configuration fields (per agency)
 - `runsheet_archive_base_path` (required): The base path under the workspace. Must already exist; the app will not create it.
-- `runsheet_subfolder_documents_name` (optional): Subfolder name to create under the lease directory.
-- `runsheet_subfolder_misc_index_name` (optional): Subfolder name to create under the lease directory.
-- `runsheet_subfolder_runsheets_name` (optional): Subfolder name to create under the lease directory.
-- `auto_create_lease_directories` (bool): If true, when a lease directory is missing the system will create `<base>/<lease_number>` and configured subfolders.
+- `runsheet_subfolder_documents_name` (optional): Subfolder name to create under the runsheet archive.
+- `runsheet_subfolder_misc_index_name` (optional): Subfolder name to create under the runsheet archive.
+- `runsheet_subfolder_runsheets_name` (optional): Subfolder name to create under the runsheet archive.
+- `auto_create_runsheet_archives` (bool): If true, when a runsheet archive is missing the system will create `<base>/<lease_number>` and configured subfolders.
 
 ### Directory creation behavior
-- Trigger: Background runsheet search does not find the lease directory.
+- Trigger: Background runsheet search does not find the runsheet archive.
 - Preconditions: `runsheet_archive_base_path` must exist. The app will not create the base path.
 - Actions: Create `<base>/<lease_number>`; create configured subfolders; no share links are created.
-- Lease updates: Upsert `CloudLocation` for the lease directory, assign `lease.runsheet_directory`, and set `lease.runsheet_report_found = False`.
+- Lease updates: Upsert `CloudLocation` for the runsheet archive, assign `lease.runsheet_archive`, and set `lease.runsheet_report_found = False`.
 

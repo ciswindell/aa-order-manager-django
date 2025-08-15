@@ -1,8 +1,9 @@
 """Django models for orders, leases, and reports."""
 
+from typing import Any, cast
+
 from django.db import models
 from django.core.exceptions import ValidationError
-from typing import Any, cast
 
 
 class ReportType(models.TextChoices):
@@ -43,7 +44,7 @@ class Lease(models.Model):
     runsheet_link = models.URLField(blank=True, null=True)
     misc_index_link = models.URLField(blank=True, null=True)
     runsheet_report_found = models.BooleanField(default=False)
-    runsheet_directory = models.ForeignKey(
+    runsheet_archive = models.ForeignKey(
         "integrations.CloudLocation", null=True, blank=True, on_delete=models.SET_NULL
     )
     created_at = models.DateTimeField(auto_now_add=True)
