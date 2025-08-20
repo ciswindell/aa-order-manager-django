@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional, TypedDict
+from django.apps import apps
 
-from django.contrib.auth import get_user_model
-
-from ..models import DropboxAccount
 from .crypto import encrypt_text, decrypt_text
 
 
 class OAuthTokens(TypedDict, total=False):
+    """Typed mapping for persisted Dropbox OAuth token fields."""
+
     access_token: str
     refresh_token: str
     expires_at: Optional[datetime]
@@ -20,13 +20,19 @@ class OAuthTokens(TypedDict, total=False):
     token_type: str
 
 
+def _get_dropbox_account_model():
+    """Return the `integrations.DropboxAccount` model class lazily."""
+    return apps.get_model("integrations", "DropboxAccount")
+
+
 def get_tokens_for_user(user) -> Optional[OAuthTokens]:
     """Return OAuth tokens for a user or None if not connected."""
     if not user or not getattr(user, "pk", None):
         return None
+    acct_model = _get_dropbox_account_model()
     try:
-        acct = DropboxAccount.objects.get(user=user)
-    except DropboxAccount.DoesNotExist:
+        acct = acct_model.objects.get(user=user)
+    except acct_model.DoesNotExist:  # type: ignore[attr-defined]
         return None
     return OAuthTokens(
         access_token=acct.access_token,
@@ -38,11 +44,12 @@ def get_tokens_for_user(user) -> Optional[OAuthTokens]:
     )
 
 
-def save_tokens_for_user(user, tokens: OAuthTokens) -> DropboxAccount:
+def save_tokens_for_user(user, tokens: OAuthTokens):
     """Create/update the user's DropboxAccount with provided tokens."""
     if not user or not getattr(user, "pk", None):
         raise ValueError("user is required")
-    acct, _ = DropboxAccount.objects.get_or_create(
+    acct_model = _get_dropbox_account_model()
+    acct, _ = acct_model.objects.get_or_create(
         user=user, defaults={"account_id": tokens.get("account_id", "")}
     )
     if tokens.get("account_id"):

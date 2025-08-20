@@ -10,6 +10,15 @@
         <h1>AA Order Manager</h1>
     </header>
 
+    {% comment %}Optional global CTA banner hook (only render when needed){% endcomment %}
+    {% with db=integration_statuses.dropbox %}
+        {% if db and db.blocking_problem %}
+        <div class="global-cta" style="padding:8px 12px; background:#fff8e1; border-bottom:1px solid #f0e3b2;">
+            {% include "integrations/_cta.html" with status=db compact=True %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
     <main>
         {% if messages %}
         <div class="messages">
