@@ -1,0 +1,18 @@
+{% comment %}Reusable CTA partial. Expects: status (IntegrationStatus), compact (bool){% endcomment %}
+{% if status and status.blocking_problem %}
+<div class="integration-cta" role="status" aria-live="polite">
+    <span>
+        Action required: {{ status.reason }}
+    </span>
+    {% if status.cta_url and status.cta_label %}
+    <a href="{{ status.cta_url }}" class="button" style="margin-left:8px;">
+        {{ status.cta_label }}
+    </a>
+    {% endif %}
+    {% if compact %}{% else %}{% endif %}
+    <small style="margin-left:8px; color:#666;">{{ status.provider|title }}</small>
+    
+</div>
+{% endif %}
+
+

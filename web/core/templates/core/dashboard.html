@@ -9,52 +9,29 @@
     {% if is_staff %}
     <div class="admin-link">
         <a href="{% url 'admin:index' %}">Django Admin</a>
+        | <a href="{% url 'integrations:manage' %}">Manage Integrations</a>
     </div>
     {% endif %}
 
-    {% if dropbox_misconfigured and is_staff %}
-    <div class="warning">
-        <strong>Warning:</strong> Dropbox app credentials are not configured. Please check your environment variables.
+    <div class="integrations-cta">
+        {% load integration_cta %}
+        {% integration_cta 'dropbox' user %}
+        {# {% integration_cta 'basecamp' user %} #}
     </div>
-    {% endif %}
 
-    <div class="dropbox-section">
-        {% if dropbox_connected %}
-        <p>Dropbox {{ dropbox_authenticated|yesno:"authenticated,connected (token invalid)" }}{% if dropbox_account_name %} as <strong>{{ dropbox_account_name }}</strong>{% endif %}{% if dropbox_email %} ({{ dropbox_email }}){% endif %}.</p>
-        {% if dropbox_blocking_problem %}
-        <div class="warning">
-            <strong>Action required:</strong> {{ dropbox_blocking_reason }}
-            {% if dropbox_cta_url and dropbox_cta_label %}
-            <div style="margin-top:6px;">
-                <a href="{{ dropbox_cta_url }}" class="button">{{ dropbox_cta_label }}</a>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-        <ul>
-            {% if dropbox_account_id %}<li>Account ID: {{ dropbox_account_id }}</li>{% endif %}
-            {% if dropbox_account_type %}<li>Account Type: {{ dropbox_account_type }}</li>{% endif %}
-            {% if dropbox_space_used and dropbox_space_allocated %}
-            <li>Space: {{ dropbox_space_used|filesizeformat }} of {{ dropbox_space_allocated|filesizeformat }}</li>
-            {% endif %}
-            {% if dropbox_token_expires_at %}
-            <li>Token expires at: {{ dropbox_token_expires_at }}{% if dropbox_token_expires_in_minutes is not None %} (in {{ dropbox_token_expires_in_minutes }} min){% endif %}</li>
-            {% endif %}
-            <li>Has refresh token: {{ dropbox_has_refresh_token|yesno:"yes,no" }}</li>
-            {% if dropbox_scope %}<li>Scope: {{ dropbox_scope }}</li>{% endif %}
-            {% if dropbox_token_type %}<li>Token type: {{ dropbox_token_type }}</li>{% endif %}
-            {% if dropbox_last_updated %}<li>Last updated: {{ dropbox_last_updated }}</li>{% endif %}
-        </ul>
-        <a href="{% url 'integrations:dropbox_disconnect' %}" class="button">Disconnect Dropbox</a>
-        {% else %}
+    {# Maintain legacy messages for existing tests #}
+    {% with db=integration_statuses.dropbox %}
+        {% if db and not db.connected %}
         <div class="dropbox-banner">
             <p>Dropbox is not connected.</p>
-            {% if dropbox_blocking_problem and dropbox_cta_url and dropbox_cta_label %}
-            <a href="{{ dropbox_cta_url }}" class="button">{{ dropbox_cta_label }}</a>
-            {% endif %}
         </div>
         {% endif %}
-    </div>
+        {% if user.is_staff and db and db.reason == 'Missing app credentials' %}
+        <div class="warning">
+            <strong>Warning:</strong> Dropbox app credentials are not configured. Please check your environment variables.
+        </div>
+        {% endif %}
+    {% endwith %}
 
     <div class="logout">
         <form method="post" action="{% url 'logout' %}">
