@@ -11,9 +11,15 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Lease)
 class LeaseAdmin(admin.ModelAdmin):
-    list_display = ("agency", "lease_number")
+    list_display = ("agency", "lease_number", "runsheet_report_found")
     search_fields = ("lease_number",)
-    list_filter = ("agency",)
+    list_filter = ("agency", "runsheet_report_found")
+    
+    # Only agency and lease_number are editable
+    readonly_fields = ("runsheet_link", "misc_index_link", "runsheet_report_found", "created_at", "updated_at")
+    
+    # Hide runsheet_archive (it's just the foreign key to CloudLocation)
+    exclude = ("runsheet_archive",)
 
     class DocumentImagesLinkInline(admin.TabularInline):
         model = DocumentImagesLink

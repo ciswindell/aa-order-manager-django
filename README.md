@@ -1,4 +1,37 @@
-# AA Order Manager — Dev Setup
+# AA Order Manager
+
+## Development Setup
+
+### 🐳 Docker (Recommended)
+
+The easiest way to get started is using Docker Compose. This provides:
+- ✅ PostgreSQL database with persistent storage
+- ✅ Redis for Celery background tasks
+- ✅ Celery worker for async task processing
+- ✅ Hot-reload for development
+- ✅ Flower monitoring UI
+
+**Quick Start:**
+
+```bash
+# 1. Create .env file (see DOCKER_DEV_README.md for template)
+cp .env.example .env
+
+# 2. Start all services
+docker compose up -d
+
+# 3. Access the application
+# Django admin: http://localhost:8000/admin/ (admin/admin)
+# Flower monitoring: http://localhost:5555/
+```
+
+**📖 Full Docker documentation:** [DOCKER_DEV_README.md](./DOCKER_DEV_README.md)
+
+---
+
+### Local Development (Alternative)
+
+If you prefer to run services locally without Docker:
 
 ## Quick start
 

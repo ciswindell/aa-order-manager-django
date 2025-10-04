@@ -5,15 +5,15 @@ Service to find agency-specific runsheet archives in Dropbox and create shareabl
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
 from django.contrib.auth.models import User
-
 from orders.models import Lease
-from integrations.utils import get_agency_storage_config, AgencyStorageConfigError
-from integrations.cloud.factory import get_cloud_service
+
 from integrations.cloud.errors import CloudServiceError
+from integrations.cloud.factory import get_cloud_service
 from integrations.models import CloudLocation
+from integrations.utils import AgencyStorageConfigError, get_agency_storage_config
 
 logger = logging.getLogger(__name__)
 
@@ -91,9 +91,10 @@ def run_runsheet_archive_search(lease_id: int, user_id: int) -> Dict[str, Any]:
                     },
                 )
 
-                # Update lease with the cloud location
+                # Update lease with the cloud location and share link
                 lease.runsheet_archive = cloud_location
-                lease.save(update_fields=["runsheet_archive"])
+                lease.runsheet_link = share_link.url
+                lease.save(update_fields=["runsheet_archive", "runsheet_link"])
 
                 action = "created" if created else "updated"
                 logger.info(
@@ -207,10 +208,14 @@ def run_runsheet_archive_search(lease_id: int, user_id: int) -> Dict[str, Any]:
                                     )
                                     lease.runsheet_archive = cloud_location
                                     lease.runsheet_report_found = False
+                                    # Set runsheet_link if share_link was created
+                                    if share_link:
+                                        lease.runsheet_link = share_link.url
                                     lease.save(
                                         update_fields=[
                                             "runsheet_archive",
                                             "runsheet_report_found",
+                                            "runsheet_link",
                                         ]
                                     )
                                     logger.info(

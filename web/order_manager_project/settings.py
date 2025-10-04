@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -82,12 +83,17 @@ WSGI_APPLICATION = "order_manager_project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Use DATABASE_URL if provided (Docker), otherwise fallback to SQLite (local dev)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
 
 
 # Password validation
@@ -147,6 +153,8 @@ DROPBOX_REDIRECT_URI = os.getenv(
 RUNSHEET_PREVIOUS_REPORT_PATTERN = r".*master documents.*"
 
 # Celery Configuration
+# In Docker: use redis://redis:6379/0 (set via .env)
+# Local dev: defaults to redis://localhost:6379/0
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -162,6 +170,7 @@ CELERY_TASK_ROUTES = {
 # Celery task retry settings are defined per-task via decorators in app code
 
 # Dev convenience: allow eager tasks via env flag (no Redis/worker needed)
+# In Docker: Do NOT set CELERY_TASK_ALWAYS_EAGER to ensure async task execution
 if os.getenv("CELERY_TASK_ALWAYS_EAGER") in {"1", "true", "True"}:
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True

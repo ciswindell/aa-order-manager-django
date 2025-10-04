@@ -1,0 +1,22 @@
+# This file is automatically merged with docker-compose.yml
+# Use it for local development overrides without modifying the main file
+
+services:
+  web:
+    environment:
+      - DEBUG=True
+      - DJANGO_LOG_LEVEL=DEBUG
+    # Uncomment to override command for debugging
+    # command: python manage.py runserver 0.0.0.0:8000 --noreload
+
+  worker:
+    environment:
+      - CELERY_LOG_LEVEL=INFO
+    # Uncomment for more verbose Celery logging
+    # command: celery -A order_manager_project worker -l debug
+
+  # Uncomment to disable Flower in local development
+  # flower:
+  #   profiles:
+  #     - monitoring
+
