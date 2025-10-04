@@ -222,6 +222,16 @@ def run_runsheet_archive_search(lease_id: int, user_id: int) -> Dict[str, Any]:
                                         "Created runsheet archive and subfolders for %s",
                                         lease.lease_number,
                                     )
+
+                                    # Return success so detection task runs
+                                    return {
+                                        "found": True,
+                                        "path": directory_path,
+                                        "share_url": share_link.url
+                                        if share_link
+                                        else None,
+                                        "location_id": cloud_location.id,
+                                    }
                         except Exception as create_err:
                             logger.warning(
                                 "Runsheet archive create skipped/failed at %s: %s",
