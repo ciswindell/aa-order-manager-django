@@ -5,12 +5,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Dict, Optional
 
-from web.integrations.status.cache import CacheAdapter, default_cache
-from web.integrations.status.dto import IntegrationStatus
-from web.integrations.status.strategies.base import IntegrationStatusStrategy
-from web.integrations.status.strategies.basecamp import BasecampStatusStrategy
-from web.integrations.status.strategies.dropbox import DropboxStatusStrategy
-
+from integrations.status.cache import CacheAdapter, default_cache
+from integrations.status.dto import IntegrationStatus
+from integrations.status.strategies.base import IntegrationStatusStrategy
+from integrations.status.strategies.basecamp import BasecampStatusStrategy
+from integrations.status.strategies.dropbox import DropboxStatusStrategy
 
 DEFAULT_TTL_SECONDS = 600
 

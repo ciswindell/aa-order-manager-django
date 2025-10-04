@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from django.test import TestCase, override_settings
-from django.contrib.auth import get_user_model
-
 from django.apps import apps
-from web.integrations.status.strategies.dropbox import DropboxStatusStrategy
-from web.integrations.utils.crypto import encrypt_text
+from django.contrib.auth import get_user_model
+from django.test import TestCase, override_settings
+
+from integrations.status.strategies.dropbox import DropboxStatusStrategy
+from integrations.utils.crypto import encrypt_text
 
 
 class TestDropboxStatusStrategy(TestCase):

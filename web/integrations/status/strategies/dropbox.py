@@ -6,17 +6,17 @@ and INTEGRATIONS_STATUS_LIVE_PROBE is enabled.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import dropbox  # third-party
 from django.conf import settings
 from django.urls import reverse
-import dropbox  # third-party
 
-from web.integrations.status.policy import RawStatusSignals, map_raw_to_status
-from web.integrations.status.dto import IntegrationStatus
-from web.integrations.status.strategies.base import IntegrationStatusStrategy
-from web.integrations.utils.token_store import get_tokens_for_user
+from integrations.status.dto import IntegrationStatus
+from integrations.status.policy import RawStatusSignals, map_raw_to_status
+from integrations.status.strategies.base import IntegrationStatusStrategy
+from integrations.utils.token_store import get_tokens_for_user
 
 
 class DropboxStatusStrategy(IntegrationStatusStrategy):

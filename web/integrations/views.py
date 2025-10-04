@@ -3,7 +3,6 @@
 # pylint: disable=no-member
 
 import dropbox  # third-party
-
 from django.conf import settings  # third-party
 from django.contrib.auth.decorators import login_required
 from django.http import (
@@ -13,13 +12,14 @@ from django.http import (
     HttpResponseRedirect,
 )
 from django.shortcuts import render
-from django.views.decorators.http import require_GET
 from django.utils.http import url_has_allowed_host_and_scheme  # noqa: F401
+from django.views.decorators.http import require_GET
+
+from core.utils.redirects import redirect_back, store_next
+from integrations.status.service import IntegrationStatusService
 
 from .models import DropboxAccount  # local
-from .utils.token_store import save_tokens_for_user, get_tokens_for_user
-from web.integrations.status.service import IntegrationStatusService
-from web.core.utils.redirects import store_next, redirect_back
+from .utils.token_store import get_tokens_for_user, save_tokens_for_user
 
 
 @login_required

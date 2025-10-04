@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from django.template import Template, Context
-from django.test import TestCase, override_settings
-from django.contrib.auth import get_user_model
 from django.apps import apps
+from django.contrib.auth import get_user_model
+from django.template import Context, Template
+from django.test import TestCase, override_settings
 
-from web.integrations.utils.crypto import encrypt_text
+from integrations.utils.crypto import encrypt_text
 
 
 class TestIntegrationCtaTemplate(TestCase):

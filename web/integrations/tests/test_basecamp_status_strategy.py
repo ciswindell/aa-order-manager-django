@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 
-from web.integrations.status.strategies.basecamp import BasecampStatusStrategy
+from integrations.status.strategies.basecamp import BasecampStatusStrategy
 
 
 class TestBasecampStatusStrategy(TestCase):

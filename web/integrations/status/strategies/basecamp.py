@@ -10,9 +10,9 @@ from typing import Optional
 
 from django.urls import reverse
 
-from web.integrations.status.policy import RawStatusSignals, map_raw_to_status
-from web.integrations.status.dto import IntegrationStatus
-from web.integrations.status.strategies.base import IntegrationStatusStrategy
+from integrations.status.dto import IntegrationStatus
+from integrations.status.policy import RawStatusSignals, map_raw_to_status
+from integrations.status.strategies.base import IntegrationStatusStrategy
 
 
 class BasecampStatusStrategy(IntegrationStatusStrategy):

@@ -5,12 +5,13 @@ from __future__ import annotations
 import time
 from datetime import datetime, timezone
 from typing import Optional
-from web.integrations.status.cache import InMemoryTTLCache
-from web.integrations.status.policy import RawStatusSignals, map_raw_to_status
-from web.integrations.status.service import IntegrationStatusService
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+
+from integrations.status.cache import InMemoryTTLCache
+from integrations.status.policy import RawStatusSignals, map_raw_to_status
+from integrations.status.service import IntegrationStatusService
 
 
 class _FakeStrategy:
