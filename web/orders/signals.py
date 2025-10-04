@@ -3,13 +3,12 @@ Signals for the orders app.
 """
 
 import logging
-from django.db.models.signals import post_save
-from django.db import transaction
-from django.dispatch import receiver
-from django.conf import settings
 
 import redis
-
+from django.conf import settings
+from django.db import transaction
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from orders.models import Lease
 from orders.tasks import full_runsheet_discovery_task
 from orders.utils.current_user import get_current_user_id
@@ -27,7 +26,7 @@ def enqueue_runsheet_discovery_on_save(
     to prevent enqueue loops.
     """
     update_fields = kwargs.get("update_fields")
-    task_only_fields = {"runsheet_archive", "runsheet_report_found"}
+    task_only_fields = {"runsheet_archive", "runsheet_link", "runsheet_report_found"}
     if update_fields:
         # If all updated fields are task-only fields, skip
         try:
