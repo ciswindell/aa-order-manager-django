@@ -10,7 +10,7 @@ import re
 from typing import Any
 
 from django.conf import settings
-from orders.services.runsheet.results import ReportDetectionResult
+from orders.services.lease.runsheet_results import ReportDetectionResult
 
 from integrations.cloud.errors import CloudServiceError
 

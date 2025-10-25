@@ -10,9 +10,12 @@ from typing import Any, Dict
 
 from django.contrib.auth.models import User
 from orders.repositories import LeaseRepository
-from orders.services.runsheet.archive_creator import RunsheetArchiveCreator
-from orders.services.runsheet.archive_finder import RunsheetArchiveFinder
-from orders.services.runsheet.report_detector import PreviousReportDetector
+from orders.services.lease.document_discovery import (
+    DocumentDiscoveryWorkflow,
+)
+from orders.services.lease.runsheet_archive_creator import RunsheetArchiveCreator
+from orders.services.lease.runsheet_archive_finder import RunsheetArchiveFinder
+from orders.services.lease.runsheet_report_detector import PreviousReportDetector
 
 from integrations.cloud.errors import CloudServiceError
 from integrations.cloud.factory import get_cloud_service
@@ -186,7 +189,7 @@ class FullRunsheetDiscoveryWorkflow:
             user_id: ID of the user (for cloud authentication)
 
         Returns:
-            Dict with keys: search (dict), detection (dict or None)
+            Dict with keys: search (dict), detection (dict or None), document (dict or None)
 
         Raises:
             Lease.DoesNotExist: If lease not found
@@ -208,7 +211,7 @@ class FullRunsheetDiscoveryWorkflow:
             logger.info(
                 "Runsheet archive not found, skipping previous report detection"
             )
-            return {"search": search_result, "detection": None}
+            return {"search": search_result, "detection": None, "document": None}
 
         # Run previous report detection
         logger.info("Running previous report detection")
@@ -236,10 +239,25 @@ class FullRunsheetDiscoveryWorkflow:
         )
         self.repository.update_runsheet_report_found(lease, detection_result.found)
 
+        # Run document archive discovery (best-effort, don't fail workflow)
+        document_result = None
+        try:
+            logger.info("Running document archive discovery")
+            doc_workflow = DocumentDiscoveryWorkflow()
+            document_result = doc_workflow.execute(lease_id, user_id)
+            if document_result:
+                logger.info(
+                    "Document discovery completed: found=%s",
+                    document_result.get("found"),
+                )
+        except Exception as e:
+            logger.error("Document discovery failed for lease %s: %s", lease_id, str(e))
+
         return {
             "search": search_result,
             "detection": {
                 "found": detection_result.found,
                 "matching_files": detection_result.matching_files,
             },
+            "document": document_result,
         }

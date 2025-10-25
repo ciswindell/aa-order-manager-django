@@ -1,6 +1,8 @@
-# PyCharm specific
+# IDE specific
 .idea/
 *.iml
+.cursor/
+.vscode/
 
 # Caches and logs
 *.pyc
@@ -60,3 +62,35 @@ logs/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Node modules (any location)
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Root package.json (MCP tool only - not for production)
+/package.json
+
+# Next.js / Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/.turbo
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# NPM / Yarn
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
+frontend/.pnpm-store
+
+# Vercel
+frontend/.vercel

@@ -6,11 +6,11 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.contrib.auth.models import User
 from orders.repositories import LeaseRepository
-from orders.services.runsheet.discovery_workflow import (
+from orders.services.lease.runsheet_discovery import (
     FullRunsheetDiscoveryWorkflow,
     RunsheetDiscoveryWorkflow,
 )
-from orders.services.runsheet.report_detector import PreviousReportDetector
+from orders.services.lease.runsheet_report_detector import PreviousReportDetector
 
 from integrations.cloud.errors import CloudServiceError
 from integrations.cloud.factory import get_cloud_service

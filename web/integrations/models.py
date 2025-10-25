@@ -1,7 +1,7 @@
 """Models for the `integrations` app (Dropbox OAuth storage)."""
 
-from django.db import models
 from django.conf import settings
+from django.db import models
 from orders.models import AgencyType
 
 
@@ -88,6 +88,15 @@ class AgencyStorageConfig(models.Model):
     )
     # Toggle for automatic runsheet archive creation
     auto_create_runsheet_archives = models.BooleanField(default=True)
+    # Document subfolder configuration (optional per agency)
+    document_subfolder_agency_sourced_documents = models.CharField(
+        max_length=255, blank=True, null=True
+    )
+    document_subfolder_unknown_sourced_documents = models.CharField(
+        max_length=255, blank=True, null=True
+    )
+    # Toggle for automatic document archive creation
+    auto_create_document_archives = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -139,6 +148,16 @@ class AgencyStorageConfig(models.Model):
         )
         self.runsheet_subfolder_runsheets_name = self._normalize_subfolder_name(
             self.runsheet_subfolder_runsheets_name
+        )
+        self.document_subfolder_agency_sourced_documents = (
+            self._normalize_subfolder_name(
+                self.document_subfolder_agency_sourced_documents
+            )
+        )
+        self.document_subfolder_unknown_sourced_documents = (
+            self._normalize_subfolder_name(
+                self.document_subfolder_unknown_sourced_documents
+            )
         )
         super().save(*args, **kwargs)
 
