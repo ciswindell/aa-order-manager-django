@@ -164,12 +164,9 @@ export default function ReportsPage() {
 
   const handleDeleteConfirm = () => {
     if (selectedReport) {
-      deleteReport(selectedReport.id, {
-        onSuccess: () => {
-          setDeleteDialogOpen(false);
-          setSelectedReport(null);
-        },
-      });
+      deleteReport(selectedReport.id);
+      setDeleteDialogOpen(false);
+      setSelectedReport(null);
     }
   };
 
@@ -565,9 +562,8 @@ export default function ReportsPage() {
             <DialogDescription>
               Are you sure you want to delete this report? This action cannot be undone.
               {selectedReport?.lease_count > 0 && (
-                <span className="block mt-2 text-destructive">
-                  This report has {selectedReport.lease_count} associated lease(s). You must delete
-                  them first.
+                <span className="block mt-2 text-muted-foreground">
+                  Note: The {selectedReport.lease_count} associated lease(s) will remain in the system and can be used with other reports.
                 </span>
               )}
             </DialogDescription>

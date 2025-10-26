@@ -17,23 +17,34 @@ export async function getLeases(
   return apiRequest<PaginatedResponse<Lease>>(url);
 }
 
-export async function createLease(data: LeaseFormData): Promise<ApiResponse<Lease>> {
-  return apiRequest<Lease>('/leases/', {
+export async function createLease(data: LeaseFormData): Promise<Lease> {
+  const response = await apiRequest<Lease>('/leases/', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  return response.data!;
 }
 
-export async function updateLease(id: number, data: LeaseFormData): Promise<ApiResponse<Lease>> {
-  return apiRequest<Lease>(`/leases/${id}/`, {
+export async function updateLease(id: number, data: LeaseFormData): Promise<Lease> {
+  const response = await apiRequest<Lease>(`/leases/${id}/`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  return response.data!;
 }
 
-export async function deleteLease(id: number): Promise<ApiResponse<void>> {
-  return apiRequest<void>(`/leases/${id}/`, {
+export async function deleteLease(id: number): Promise<void> {
+  const response = await apiRequest<void>(`/leases/${id}/`, {
     method: 'DELETE',
   });
+  if (response.error) {
+    throw new Error(response.error);
+  }
 }
 

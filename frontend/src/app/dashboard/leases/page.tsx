@@ -3,41 +3,41 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeases } from '@/hooks/useLeases';
 import { AgencyType, LeaseFormData, RunsheetStatus } from '@/lib/api/types';
 import { format } from 'date-fns';
 import {
-  ChevronLeft,
-  ChevronRight,
-  Edit,
-  ExternalLink,
-  Plus,
-  Trash2
+    ChevronLeft,
+    ChevronRight,
+    Edit,
+    ExternalLink,
+    Plus,
+    Trash2
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -159,12 +159,9 @@ function LeasesPageContent() {
 
   const handleDeleteConfirm = () => {
     if (selectedLease) {
-      deleteLease(selectedLease.id, {
-        onSuccess: () => {
-          setDeleteDialogOpen(false);
-          setSelectedLease(null);
-        },
-      });
+      deleteLease(selectedLease.id);
+      setDeleteDialogOpen(false);
+      setSelectedLease(null);
     }
   };
 

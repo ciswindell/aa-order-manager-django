@@ -3,8 +3,7 @@
 from api.serializers.reports import ReportSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from orders.models import Report
-from rest_framework import filters, status, viewsets
-from rest_framework.response import Response
+from rest_framework import filters, viewsets
 
 
 class ReportViewSet(viewsets.ModelViewSet):
@@ -31,17 +30,3 @@ class ReportViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Set the updated_by field on object update."""
         serializer.save(updated_by=self.request.user)
-
-    def destroy(self, request, *args, **kwargs):
-        """
-        Prevent deletion of a report if it has associated leases.
-        """
-        instance = self.get_object()
-        if instance.leases.exists():
-            return Response(
-                {
-                    "detail": "Cannot delete a report that has associated leases. Delete the leases first."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return super().destroy(request, *args, **kwargs)

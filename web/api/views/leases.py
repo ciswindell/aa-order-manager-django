@@ -3,7 +3,8 @@
 from api.serializers.leases import LeaseSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from orders.models import Lease
-from rest_framework import filters, viewsets
+from rest_framework import filters, status, viewsets
+from rest_framework.response import Response
 
 
 class LeaseViewSet(viewsets.ModelViewSet):
@@ -44,3 +45,20 @@ class LeaseViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Set the updated_by field on object update."""
         serializer.save(updated_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Prevent deletion of a lease if it has associated reports.
+        Reports require at least one lease, so deleting a lease would leave reports in an invalid state.
+        """
+        instance = self.get_object()
+        report_count = instance.reports.count()
+        if report_count > 0:
+            return Response(
+                {
+                    "detail": f"Cannot delete this lease. It is associated with {report_count} report(s). "
+                    "Remove the lease from those reports first."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)

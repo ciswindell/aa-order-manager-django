@@ -38,6 +38,11 @@ export async function apiRequest<T>(
       return { error: errorData.detail || errorData.message || 'An error occurred' };
     }
 
+    // Handle 204 No Content responses (e.g., successful DELETE)
+    if (response.status === 204) {
+      return { data: undefined as T };
+    }
+
     const data = await response.json();
     return { data };
   } catch (error) {
