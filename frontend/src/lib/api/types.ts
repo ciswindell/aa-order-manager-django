@@ -79,6 +79,7 @@ export interface Report {
   start_date: string | null;
   end_date: string | null;
   report_notes: string | null;
+  leases: Lease[];
   lease_ids: number[];
   lease_count: number;
   created_at: string;
@@ -125,9 +126,7 @@ export interface Lease {
   agency: AgencyType;
   lease_number: string;
   runsheet_link: string | null;
-  runsheet_archive_link: string | null;
-  runsheet_status: RunsheetStatus;
-  document_archive_link: string | null;
+  runsheet_report_found: boolean;
   created_at: string;
   updated_at: string;
   created_by: {
@@ -143,5 +142,33 @@ export interface Lease {
 export interface LeaseFormData {
   agency: AgencyType;
   lease_number: string;
+}
+
+// Extended Order type for order details page
+export interface OrderDetails extends Order {
+  reports?: Report[];
+}
+
+// Component-specific types for order details feature
+
+export interface LeaseOption {
+  label: string;
+  value: number;
+  lease: Lease;
+}
+
+export type ReportDialogMode = 'create' | 'edit';
+
+export interface ReportDialogState {
+  open: boolean;
+  mode: ReportDialogMode;
+  report?: Report;
+}
+
+export interface LeaseDisplayItem {
+  id: number;
+  lease_number: string;
+  agency: AgencyType;
+  runsheet_report_found: boolean;
 }
 

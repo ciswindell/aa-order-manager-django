@@ -12,7 +12,13 @@ export function useReports(page = 1, pageSize = 20, orderId?: number) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: ReportFormData) => createReport(data),
+    mutationFn: async (data: ReportFormData) => {
+      const response = await createReport(data);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response.data!;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       toast.success('Report Created', {
@@ -28,7 +34,13 @@ export function useReports(page = 1, pageSize = 20, orderId?: number) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ReportFormData }) => updateReport(id, data),
+    mutationFn: async ({ id, data }: { id: number; data: ReportFormData }) => {
+      const response = await updateReport(id, data);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response.data!;
+    },
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['reports'] });
       const previousReports = queryClient.getQueryData(['reports', page, pageSize, orderId]);
@@ -66,7 +78,12 @@ export function useReports(page = 1, pageSize = 20, orderId?: number) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteReport(id),
+    mutationFn: async (id: number) => {
+      const response = await deleteReport(id);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+    },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['reports'] });
       const previousReports = queryClient.getQueryData(['reports', page, pageSize, orderId]);

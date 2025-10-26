@@ -13,12 +13,13 @@ export function useOrders(page = 1, pageSize = 20) {
 
   const createMutation = useMutation({
     mutationFn: (data: OrderFormData) => createOrder(data),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       toast.success('Order Created', {
         description: 'The order has been created successfully',
         duration: 5000,
       });
+      // Custom onSuccess callback will be called by mutation.mutate options
     },
     onError: (error: any) => {
       toast.error('Creation Failed', {

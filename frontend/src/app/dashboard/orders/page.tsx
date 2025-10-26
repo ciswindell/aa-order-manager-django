@@ -24,10 +24,12 @@ import { useOrders } from '@/hooks/useOrders';
 import { OrderFormData } from '@/lib/api/types';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight, Edit, Plus, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function OrdersPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -86,8 +88,12 @@ export default function OrdersPage() {
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createOrder(formData, {
-      onSuccess: () => {
+      onSuccess: (response) => {
         setCreateDialogOpen(false);
+        // Navigate to the newly created order's details page
+        if (response?.data?.id) {
+          router.push(`/dashboard/orders/${response.data.id}`);
+        }
       },
     });
   };
@@ -167,7 +173,11 @@ export default function OrdersPage() {
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow
+                    key={order.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+                  >
                     <TableCell className="font-medium">{order.order_number}</TableCell>
                     <TableCell>{format(new Date(order.order_date), 'PP')}</TableCell>
                     <TableCell>{order.report_count}</TableCell>
@@ -178,6 +188,7 @@ export default function OrdersPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           Link
                         </a>
@@ -191,14 +202,20 @@ export default function OrdersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEditClick(order)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClick(order);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDeleteClick(order)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(order);
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

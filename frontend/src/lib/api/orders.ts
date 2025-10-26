@@ -8,6 +8,10 @@ export async function getOrders(
   return apiRequest<PaginatedResponse<Order>>(`/orders/?page=${page}&page_size=${pageSize}`);
 }
 
+export async function getOrder(id: number): Promise<ApiResponse<Order>> {
+  return apiRequest<Order>(`/orders/${id}/`);
+}
+
 export async function createOrder(data: OrderFormData): Promise<ApiResponse<Order>> {
   return apiRequest<Order>('/orders/', {
     method: 'POST',

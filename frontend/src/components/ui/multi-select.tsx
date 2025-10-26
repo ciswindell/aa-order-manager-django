@@ -31,6 +31,9 @@ interface MultiSelectProps {
   placeholder?: string
   emptyText?: string
   className?: string
+  onSearchChange?: (value: string) => void
+  disabled?: boolean
+  emptyAction?: React.ReactNode
 }
 
 export function MultiSelect({
@@ -40,6 +43,9 @@ export function MultiSelect({
   placeholder = "Select items...",
   emptyText = "No items found.",
   className,
+  onSearchChange,
+  disabled,
+  emptyAction,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -66,6 +72,7 @@ export function MultiSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className={cn(
             "w-full justify-between h-auto min-h-10 py-2",
             className
@@ -106,11 +113,25 @@ export function MultiSelect({
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent 
+        className={cn(
+          "w-full p-0",
+          emptyAction && "max-h-[500px]"
+        )} 
+        align="start"
+      >
         <Command>
-          <CommandInput placeholder="Search..." />
-          <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+          <CommandInput 
+            placeholder="Search..." 
+            onValueChange={onSearchChange}
+          />
+          <CommandList className={cn(emptyAction && "max-h-[450px] overflow-y-auto")}>
+            <CommandEmpty>
+              <div className="text-center py-2">
+                <div className="text-sm text-muted-foreground">{emptyText}</div>
+                {emptyAction && <div className="mt-2 px-2 pb-2">{emptyAction}</div>}
+              </div>
+            </CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = selected.includes(option.value)
