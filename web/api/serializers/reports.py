@@ -18,6 +18,16 @@ class UserBasicSerializer(serializers.Serializer):
     username = serializers.CharField()
 
 
+class LeaseBasicSerializer(serializers.Serializer):
+    """Nested serializer for lease reference in reports."""
+
+    id = serializers.IntegerField()
+    agency = serializers.CharField()
+    lease_number = serializers.CharField()
+    runsheet_link = serializers.URLField(allow_null=True)
+    runsheet_report_found = serializers.BooleanField()
+
+
 class ReportSerializer(serializers.ModelSerializer):
     """Serializer for the Report model."""
 
@@ -27,11 +37,13 @@ class ReportSerializer(serializers.ModelSerializer):
         source="order",
         write_only=True,
     )
+    leases = LeaseBasicSerializer(many=True, read_only=True)
     lease_ids = serializers.PrimaryKeyRelatedField(
         queryset=Lease.objects.none(),
         source="leases",
         many=True,
         required=True,
+        write_only=True,
     )
     lease_count = serializers.SerializerMethodField()
     created_by = UserBasicSerializer(read_only=True)
@@ -48,6 +60,7 @@ class ReportSerializer(serializers.ModelSerializer):
             "start_date",
             "end_date",
             "report_notes",
+            "leases",
             "lease_ids",
             "lease_count",
             "created_at",
@@ -55,7 +68,7 @@ class ReportSerializer(serializers.ModelSerializer):
             "created_by",
             "updated_by",
         ]
-        read_only_fields = ["id", "lease_count", "created_at", "updated_at"]
+        read_only_fields = ["id", "leases", "lease_count", "created_at", "updated_at"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

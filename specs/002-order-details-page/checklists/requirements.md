@@ -2,8 +2,20 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: October 26, 2025  
+**Last Updated**: October 26, 2025  
 **Feature**: [spec.md](../spec.md)  
 **Status**: ✅ VALIDATED - Ready for Planning
+
+## Revision History
+
+**October 26, 2025 - Update**: Specification revised to show lease numbers inline instead of lease counts
+- Changed FR-004: Reports table now displays actual lease numbers (not counts)
+- Changed FR-020: Users click on lease numbers to view detailed information
+- Added FR-026: System must display multiple lease numbers inline with appropriate separation
+- Added edge case: "Report with many leases" handling
+- Updated User Story 8: Focus on viewing detailed lease information via lease number clicks
+- Total functional requirements: 26 (was 25)
+- Total edge cases: 9 (was 8)
 
 ---
 
@@ -35,11 +47,11 @@
 
 **Validation Notes**:
 - ✅ Zero [NEEDS CLARIFICATION] markers in specification
-- ✅ All 25 functional requirements are specific and testable (e.g., "System MUST provide a dedicated page accessible via `/dashboard/orders/[id]` route")
+- ✅ All 26 functional requirements are specific and testable (e.g., "System MUST provide a dedicated page accessible via `/dashboard/orders/[id]` route")
 - ✅ Success criteria include measurable metrics (40% reduction in time, under 2 seconds load time, 90% task completion)
 - ✅ Success criteria focus on user outcomes, not technical implementations
 - ✅ 8 prioritized user stories with detailed acceptance scenarios (Given-When-Then format)
-- ✅ 8 edge cases identified covering error scenarios, boundary conditions, and data integrity
+- ✅ 9 edge cases identified covering error scenarios, boundary conditions, and data integrity
 - ✅ Out of Scope section clearly defines 10 items not included
 - ✅ Assumptions section documents 7 reasonable defaults
 - ✅ Dependencies section lists 5 prerequisites
@@ -54,7 +66,7 @@
 - [x] No implementation details leak into specification
 
 **Validation Notes**:
-- ✅ Each of 25 functional requirements is independently verifiable
+- ✅ Each of 26 functional requirements is independently verifiable
 - ✅ 8 user stories with priorities (P1-P3) cover the complete workflow from order creation to report management
 - ✅ Each user story includes "Independent Test" section showing how it can be tested in isolation
 - ✅ Success criteria align with user stories (e.g., SC-001 matches User Stories 1-3 workflow)
@@ -127,6 +139,7 @@ This specification is **ready for the planning phase** (`/speckit.plan`). It mee
 ---
 
 **Checklist Completed**: October 26, 2025  
+**Last Validation**: October 26, 2025 (after lease display updates)  
 **Validated By**: AI Assistant  
-**Review Status**: Complete
+**Review Status**: Complete - All changes maintain specification quality standards
 

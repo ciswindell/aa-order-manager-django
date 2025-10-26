@@ -17,6 +17,14 @@ export async function getLeases(
   return apiRequest<PaginatedResponse<Lease>>(url);
 }
 
+export async function searchLeases(
+  searchTerm: string,
+  pageSize = 1000
+): Promise<ApiResponse<PaginatedResponse<Lease>>> {
+  const url = `/leases/?search=${encodeURIComponent(searchTerm)}&page_size=${pageSize}`;
+  return apiRequest<PaginatedResponse<Lease>>(url);
+}
+
 export async function createLease(data: LeaseFormData): Promise<Lease> {
   const response = await apiRequest<Lease>('/leases/', {
     method: 'POST',

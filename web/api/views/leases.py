@@ -19,7 +19,7 @@ class LeaseViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "agency", "lease_number"]
 
     def get_queryset(self):
-        """Get queryset with optional report filtering."""
+        """Get queryset with optional report filtering and search."""
         queryset = (
             Lease.objects.all()
             .select_related(
@@ -35,6 +35,16 @@ class LeaseViewSet(viewsets.ModelViewSet):
         report_id = self.request.query_params.get("report")
         if report_id:
             queryset = queryset.filter(reports__id=report_id).distinct()
+
+        # Filter by search term if search parameter is provided
+        search_term = self.request.query_params.get("search")
+        if search_term:
+            from django.db.models import Q
+
+            queryset = queryset.filter(
+                Q(lease_number__icontains=search_term)
+                | Q(agency__icontains=search_term)
+            )
 
         return queryset
 

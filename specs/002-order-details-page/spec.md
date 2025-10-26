@@ -23,7 +23,7 @@ As an order manager, I want to see all information about a specific order in one
 2. **Given** I am on an order details page, **When** the page loads, **Then** I see a reports section displaying all reports associated with this order in a table format
 3. **Given** an order has no reports, **When** I view the order details page, **Then** I see an empty state message "No reports added yet" with a prominent "Add Report" button
 4. **Given** I am on an order details page, **When** I want to return to the orders list, **Then** I can click a back button that navigates me back to the orders list
-5. **Given** I am viewing order details, **When** I view the reports table, **Then** I see each report's type, legal description, date range, and lease count
+5. **Given** I am viewing order details, **When** I view the reports table, **Then** I see each report's type, legal description, date range, and the actual lease numbers (not agency types) associated with that report displayed inline
 
 ---
 
@@ -74,7 +74,7 @@ As an order manager, I want to add reports to an order directly from the order d
 2. **Given** the add report modal is open, **When** I select a report type, enter a legal description, and select at least one existing lease, **Then** I can save the report
 3. **Given** I am creating a report, **When** I enter optional start date, end date, and notes, **Then** these fields are saved with the report
 4. **Given** I successfully created a report, **When** the modal closes, **Then** the reports table refreshes and displays the new report with its details
-5. **Given** the reports table has multiple reports, **When** I view the table, **Then** each report shows its type, truncated legal description (with full text on hover), date range, and lease count
+5. **Given** the reports table has multiple reports, **When** I view the table, **Then** each report shows its type, truncated legal description (with full text on hover), date range, and the associated lease numbers displayed inline
 
 ---
 
@@ -134,19 +134,19 @@ As an order manager, I want to edit or delete reports directly from the order de
 
 ---
 
-### User Story 8 - View Report's Associated Leases (Priority: P3)
+### User Story 8 - View Detailed Lease Information (Priority: P3)
 
-As an order manager, I want to see which leases are associated with a specific report, so I can verify correctness and access lease details if needed.
+As an order manager, I want to access detailed information about leases directly from the reports table, so I can quickly check runsheet status and access related links without navigating away.
 
-**Why this priority**: Nice-to-have detail view that enhances transparency but isn't required for core workflow. Users can infer lease associations from the lease count and manage leases separately.
+**Why this priority**: Nice-to-have detail view that provides quick access to lease metadata. Users can already see lease numbers inline, but this allows access to additional details like runsheet status and links.
 
-**Independent Test**: Can be fully tested by clicking on a report's lease count in the order details table and verifying a list/modal appears showing all associated lease details.
+**Independent Test**: Can be fully tested by clicking on a lease number in the reports table and verifying detailed lease information (agency, runsheet status, links) appears in a modal or popover.
 
 **Acceptance Scenarios**:
 
-1. **Given** I am viewing the reports table on an order details page, **When** I click on a report's lease count, **Then** a modal or expanded section opens showing all leases associated with that report
-2. **Given** the lease details modal is open, **When** I view the content, **Then** I see each lease's agency, lease number, runsheet status, and any available links
-3. **Given** I am viewing a report's leases, **When** I click on a lease, **Then** I can navigate to the main leases page with a filter applied for that lease
+1. **Given** I am viewing the reports table on an order details page, **When** I click on a lease number in a report row, **Then** a modal or popover opens showing detailed information for that specific lease
+2. **Given** the lease details modal is open, **When** I view the content, **Then** I see the lease's agency, lease number, runsheet status, and any available links (runsheet link, document archive link)
+3. **Given** I am viewing lease details, **When** I click on a runsheet or document link, **Then** the link opens in a new tab
 4. **Given** the lease details view is open, **When** I click close or outside the modal, **Then** I return to the order details page
 
 ---
@@ -154,6 +154,8 @@ As an order manager, I want to see which leases are associated with a specific r
 ### Edge Cases
 
 - **Order with many reports**: What happens when an order has more than 20 reports? Consider pagination or virtual scrolling for the reports table.
+
+- **Report with many leases**: What happens when a report has a large number of associated leases (e.g., 20+ leases)? Display lease numbers inline with appropriate wrapping or truncation (e.g., "Show 10 more leases" expandable link).
 
 - **Concurrent edits**: How does the system handle two users editing the same order or report simultaneously? Implement optimistic updates with rollback on error.
 
@@ -181,7 +183,7 @@ As an order manager, I want to see which leases are associated with a specific r
 
 - **FR-003**: System MUST automatically redirect users to the order details page immediately after successfully creating a new order
 
-- **FR-004**: Order details page MUST display a reports section showing all reports associated with the order in a tabular format with columns for report type, legal description, date range, lease count, and action buttons
+- **FR-004**: Order details page MUST display a reports section showing all reports associated with the order in a tabular format with columns for report type, legal description, date range, lease numbers (displayed inline without agency types), and action buttons
 
 - **FR-005**: System MUST display an empty state with "No reports added yet" message and prominent "Add Report" button when an order has no associated reports
 
@@ -213,7 +215,7 @@ As an order manager, I want to see which leases are associated with a specific r
 
 - **FR-019**: System MUST refresh the reports table immediately after creating, updating, or deleting a report without requiring a full page reload
 
-- **FR-020**: Users MUST be able to view all leases associated with a report by clicking on the lease count in the reports table
+- **FR-020**: Users MUST be able to view detailed information for individual leases (agency, runsheet status, links) by clicking on lease numbers displayed in the reports table
 
 - **FR-021**: System MUST display a warning when attempting to delete an order that has associated reports, indicating the reports must be deleted first
 
@@ -224,6 +226,8 @@ As an order manager, I want to see which leases are associated with a specific r
 - **FR-024**: System MUST display clear error messages when orders or reports fail to load, create, update, or delete
 
 - **FR-025**: System MUST maintain the order ID context when creating reports (order_id is pre-set and not user-selectable in the create report form)
+
+- **FR-026**: System MUST display lease numbers inline in the reports table, showing multiple lease numbers separated appropriately (e.g., comma-separated or as tags/chips) when a report has multiple associated leases
 
 ### Key Entities
 
