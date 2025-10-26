@@ -15,9 +15,12 @@ cd aa-order-manager
 # 3. Start all services
 docker compose up -d
 
-# 4. Access the application
+# 4. Create frontend environment file
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000/api" > frontend/.env.local
+
+# 5. Access the application
+# Next.js Frontend: http://localhost:3000/ (login: admin/admin)
 # Django admin: http://localhost:8000/admin/
-# Login: admin / admin
 # Flower (Celery monitoring): http://localhost:5555/
 ```
 
@@ -33,7 +36,8 @@ That's it! The database will initialize automatically on first startup.
 
 The development environment consists of:
 
-- **web**: Django development server (port 8000)
+- **frontend**: Next.js 16 development server (port 3000)
+- **web**: Django REST API backend (port 8000)
 - **worker**: Celery worker for background tasks (`celery@order-manager-worker`)
 - **db**: PostgreSQL 15 database with persistent storage
 - **redis**: Redis 7 broker/backend for Celery

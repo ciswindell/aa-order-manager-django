@@ -1,10 +1,20 @@
-<!doctype html>
-<html>
-  <body>
-    <h1>Integrations</h1>
-    <ul>
-      <li><a href="/integrations/dropbox/connect/">Connect Dropbox</a></li>
-      <li><a href="/integrations/dropbox/disconnect/">Disconnect Dropbox</a></li>
-    </ul>
-  </body>
-</html>
+{% extends "core/base.html" %}
+
+{% block title %}Integrations - AA Order Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <h1 class="mb-3">Integrations</h1>
+
+    <div class="list-group">
+      <a href="/integrations/dropbox/connect/" class="list-group-item list-group-item-action">
+        Connect Dropbox
+      </a>
+      <a href="/integrations/dropbox/disconnect/" class="list-group-item list-group-item-action">
+        Disconnect Dropbox
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

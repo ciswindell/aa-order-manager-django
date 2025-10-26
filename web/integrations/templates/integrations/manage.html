@@ -3,27 +3,43 @@
 {% block title %}Manage Integrations - AA Order Manager{% endblock %}
 
 {% block content %}
-<div class="integrations-manage">
-  <h2>Manage Integrations</h2>
+<div class="row">
+  <div class="col-12">
+    <h1 class="mb-3">Manage Integrations</h1>
 
-  <section>
-    <h3>Dropbox</h3>
-    {% if statuses.dropbox.connected %}
-      <p>Status: Connected{% if statuses.dropbox.authenticated %} (authenticated){% endif %}.</p>
-      <form method="get" action="{% url 'integrations:dropbox_disconnect' %}">
-        <input type="hidden" name="next" value="{% url 'integrations:manage' %}">
-        <button type="submit">Disconnect Dropbox</button>
-      </form>
-    {% else %}
-      <p>Status: Not connected.</p>
-      <a href="{% url 'integrations:dropbox_connect' %}">Connect Dropbox</a>
-    {% endif %}
-  </section>
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title mb-0">Dropbox</h3>
+      </div>
+      <div class="card-body">
+        {% if statuses.dropbox.connected %}
+          <p>
+            Status: 
+            <span class="badge bg-success">Connected</span>
+            {% if statuses.dropbox.authenticated %}
+            <span class="badge bg-info">Authenticated</span>
+            {% endif %}
+          </p>
+          <form method="get" action="{% url 'integrations:dropbox_disconnect' %}">
+            <input type="hidden" name="next" value="{% url 'integrations:manage' %}">
+            <button type="submit" class="btn btn-danger">Disconnect Dropbox</button>
+          </form>
+        {% else %}
+          <p>Status: <span class="badge bg-secondary">Not connected</span></p>
+          <a href="{% url 'integrations:dropbox_connect' %}" class="btn btn-primary">Connect Dropbox</a>
+        {% endif %}
+      </div>
+    </div>
 
-  <section>
-    <h3>Basecamp</h3>
-    <p>Coming soon.</p>
-  </section>
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title mb-0">Basecamp</h3>
+      </div>
+      <div class="card-body">
+        <p class="text-muted">Coming soon.</p>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 

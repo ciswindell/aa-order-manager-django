@@ -8,7 +8,8 @@ The easiest way to get started is using Docker Compose. This provides:
 - ✅ PostgreSQL database with persistent storage
 - ✅ Redis for Celery background tasks
 - ✅ Celery worker for async task processing
-- ✅ Hot-reload for development
+- ✅ Next.js frontend with hot-reload
+- ✅ Django REST API backend
 - ✅ Flower monitoring UI
 
 **Quick Start:**
@@ -17,10 +18,14 @@ The easiest way to get started is using Docker Compose. This provides:
 # 1. Create .env file (see DOCKER_DEV_README.md for template)
 cp .env.example .env
 
-# 2. Start all services
+# 2. Create frontend/.env.local file
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000/api" > frontend/.env.local
+
+# 3. Start all services
 docker compose up -d
 
-# 3. Access the application
+# 4. Access the application
+# Next.js Frontend: http://localhost:3000/ (login: admin/admin)
 # Django admin: http://localhost:8000/admin/ (admin/admin)
 # Flower monitoring: http://localhost:5555/
 ```
