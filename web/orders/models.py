@@ -1,9 +1,8 @@
 """Django models for orders, leases, and reports."""
 
-from typing import Any, cast
-
-from django.db import models
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import models
 
 
 class ReportType(models.TextChoices):
@@ -31,6 +30,20 @@ class Order(models.Model):
     delivery_link = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders_created",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders_updated",
+    )
 
     def __str__(self) -> str:  # pragma: no cover
         return f"Order {self.order_number}"
@@ -49,6 +62,20 @@ class Lease(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="leases_created",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="leases_updated",
+    )
 
     class Meta:
         """Model constraints and options."""
@@ -89,6 +116,20 @@ class Report(models.Model):
     report_notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reports_created",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reports_updated",
+    )
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.order} — {self.report_type}"

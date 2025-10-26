@@ -3,41 +3,47 @@
 {% block title %}Dashboard - AA Order Manager{% endblock %}
 
 {% block content %}
-<div class="dashboard">
-    <h2>Welcome, {{ user.username }}!</h2>
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-3">Welcome, {{ user.username }}!</h1>
 
-    {% if is_staff %}
-    <div class="admin-link">
-        <a href="{% url 'admin:index' %}">Django Admin</a>
-        | <a href="{% url 'integrations:manage' %}">Manage Integrations</a>
-    </div>
-    {% endif %}
-
-    <div class="integrations-cta">
-        {% load integration_cta %}
-        {% integration_cta 'dropbox' user %}
-        {# {% integration_cta 'basecamp' user %} #}
-    </div>
-
-    {# Maintain legacy messages for existing tests #}
-    {% with db=integration_statuses.dropbox %}
-        {% if db and not db.connected %}
-        <div class="dropbox-banner">
-            <p>Dropbox is not connected.</p>
+        {% if is_staff %}
+        <div class="mb-3">
+            <div class="btn-group" role="group" aria-label="Admin actions">
+                <a href="{% url 'admin:index' %}" class="btn btn-outline-primary">Django Admin</a>
+                <a href="{% url 'integrations:manage' %}" class="btn btn-outline-primary">Manage Integrations</a>
+            </div>
         </div>
         {% endif %}
-        {% if user.is_staff and db and db.reason == 'Missing app credentials' %}
-        <div class="warning">
-            <strong>Warning:</strong> Dropbox app credentials are not configured. Please check your environment variables.
-        </div>
-        {% endif %}
-    {% endwith %}
 
-    <div class="logout">
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit">Logout</button>
-        </form>
+        <div class="card mb-3">
+            <div class="card-body">
+                {% load integration_cta %}
+                {% integration_cta 'dropbox' user %}
+                {# {% integration_cta 'basecamp' user %} #}
+            </div>
+        </div>
+
+        {# Maintain legacy messages for existing tests #}
+        {% with db=integration_statuses.dropbox %}
+            {% if db and not db.connected %}
+            <div class="alert alert-warning dropbox-banner" role="alert">
+                <p class="mb-0">Dropbox is not connected.</p>
+            </div>
+            {% endif %}
+            {% if user.is_staff and db and db.reason == 'Missing app credentials' %}
+            <div class="alert alert-danger warning" role="alert">
+                <strong>Warning:</strong> Dropbox app credentials are not configured. Please check your environment variables.
+            </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="mt-4">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary">Logout</button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

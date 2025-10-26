@@ -19,6 +19,7 @@ class LeaseAdmin(admin.ModelAdmin):
     # Only agency and lease_number are editable
     readonly_fields = (
         "runsheet_link_display",
+        "document_archive_link_display",
         "misc_index_link_display",
         "runsheet_report_found",
         "created_at",
@@ -39,6 +40,19 @@ class LeaseAdmin(admin.ModelAdmin):
         return "-"
 
     runsheet_link_display.short_description = "Runsheet link"
+
+    def document_archive_link_display(self, obj):
+        """Display document archive link that opens in a new tab."""
+        doc_link = obj.document_images_links.first()
+        if doc_link and doc_link.url:
+            return format_html(
+                '<a href="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+                doc_link.url,
+                doc_link.url,
+            )
+        return "-"
+
+    document_archive_link_display.short_description = "Document archive link"
 
     def misc_index_link_display(self, obj):
         """Display misc index link that opens in a new tab."""

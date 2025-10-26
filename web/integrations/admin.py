@@ -1,7 +1,8 @@
 """Admin registrations for the `integrations` app."""
 
 from django.contrib import admin
-from .models import DropboxAccount, CloudLocation, AgencyStorageConfig
+
+from .models import AgencyStorageConfig, CloudLocation, DropboxAccount
 
 
 @admin.register(DropboxAccount)
@@ -50,6 +51,7 @@ class AgencyStorageConfigAdmin(admin.ModelAdmin):
         "agency",
         "enabled",
         "auto_create_runsheet_archives",
+        "auto_create_document_archives",
         "runsheet_archive_base_path",
         "updated_at",
     )
@@ -65,6 +67,7 @@ class AgencyStorageConfigAdmin(admin.ModelAdmin):
                     "agency",
                     "enabled",
                     "auto_create_runsheet_archives",
+                    "auto_create_document_archives",
                 )
             },
         ),
@@ -85,6 +88,15 @@ class AgencyStorageConfigAdmin(admin.ModelAdmin):
                     "runsheet_subfolder_documents_name",
                     "runsheet_subfolder_misc_index_name",
                     "runsheet_subfolder_runsheets_name",
+                )
+            },
+        ),
+        (
+            "Document Subfolders",
+            {
+                "fields": (
+                    "document_subfolder_agency_sourced_documents",
+                    "document_subfolder_unknown_sourced_documents",
                 )
             },
         ),
