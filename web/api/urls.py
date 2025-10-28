@@ -8,8 +8,12 @@ from api.views.auth import (
 )
 from api.views.dashboard import dashboard_view
 from api.views.integrations import (
+    basecamp_callback,
+    connect_basecamp,
     connect_dropbox,
+    disconnect_basecamp,
     disconnect_dropbox,
+    dropbox_callback,
     get_integration_status,
 )
 from api.views.leases import LeaseViewSet
@@ -38,9 +42,25 @@ urlpatterns = [
     path("integrations/status/", get_integration_status, name="integration_status"),
     path("integrations/dropbox/connect/", connect_dropbox, name="dropbox_connect"),
     path(
+        "integrations/dropbox/callback/",
+        dropbox_callback,
+        name="dropbox_callback",
+    ),
+    path(
         "integrations/dropbox/disconnect/",
         disconnect_dropbox,
         name="dropbox_disconnect",
+    ),
+    path("integrations/basecamp/connect/", connect_basecamp, name="basecamp_connect"),
+    path(
+        "integrations/basecamp/callback/",
+        basecamp_callback,
+        name="basecamp_callback",
+    ),
+    path(
+        "integrations/basecamp/disconnect/",
+        disconnect_basecamp,
+        name="basecamp_disconnect",
     ),
     # Include router URLs
     path("", include(router.urls)),

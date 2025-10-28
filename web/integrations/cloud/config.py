@@ -36,3 +36,22 @@ def get_dropbox_app_secret() -> Optional[str]:
 def get_dropbox_redirect_uri() -> Optional[str]:
     """Return configured Dropbox OAuth redirect URI."""
     return getattr(settings, "DROPBOX_REDIRECT_URI", os.getenv("DROPBOX_REDIRECT_URI"))
+
+
+def get_basecamp_app_key() -> Optional[str]:
+    """Return Basecamp app key from settings/env."""
+    return getattr(settings, "BASECAMP_APP_KEY", os.getenv("BASECAMP_APP_KEY"))
+
+
+def get_basecamp_app_secret() -> Optional[str]:
+    """Return Basecamp app secret from settings/env."""
+    return getattr(settings, "BASECAMP_APP_SECRET", os.getenv("BASECAMP_APP_SECRET"))
+
+
+def get_basecamp_redirect_uri() -> Optional[str]:
+    """Return configured Basecamp OAuth redirect URI."""
+    return getattr(
+        settings,
+        "BASECAMP_OAUTH_REDIRECT_URI",
+        os.getenv("BASECAMP_OAUTH_REDIRECT_URI"),
+    )

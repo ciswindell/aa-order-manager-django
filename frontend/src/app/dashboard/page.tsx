@@ -5,14 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { DashboardData, getDashboard } from '@/lib/api/dashboard';
+import { connectBasecamp, connectDropbox } from '@/lib/api/integrations';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -27,6 +30,29 @@ export default function DashboardPage() {
       fetchDashboard();
     }
   }, [user]);
+
+  const handleIntegrationConnect = async (provider: string) => {
+    setConnectingProvider(provider);
+    try {
+      const response =
+        provider === 'dropbox' ? await connectDropbox() : await connectBasecamp();
+
+      if (response.data?.authorize_url) {
+        // Redirect to OAuth URL
+        window.location.href = response.data.authorize_url;
+      } else if (response.error) {
+        toast.error('Connection Failed', {
+          description: response.error,
+        });
+        setConnectingProvider(null);
+      }
+    } catch (error) {
+      toast.error('Connection Failed', {
+        description: 'An unexpected error occurred',
+      });
+      setConnectingProvider(null);
+    }
+  };
 
   if (!user || loading) {
     return (
@@ -73,12 +99,18 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {integration.cta_label && integration.cta_url && (
-                <Link href={integration.cta_url}>
-                  <Button variant="outline" size="sm" className="w-full">
-                    {integration.cta_label}
-                  </Button>
-                </Link>
+              {integration.cta_label && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => handleIntegrationConnect(integration.provider)}
+                  disabled={connectingProvider === integration.provider}
+                >
+                  {connectingProvider === integration.provider
+                    ? 'Connecting...'
+                    : integration.cta_label}
+                </Button>
               )}
             </CardContent>
           </Card>

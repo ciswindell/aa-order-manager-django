@@ -11,7 +11,6 @@ from typing import Optional
 
 import dropbox  # third-party
 from django.conf import settings
-from django.urls import reverse
 
 from integrations.status.dto import IntegrationStatus
 from integrations.status.policy import RawStatusSignals, map_raw_to_status
@@ -69,7 +68,7 @@ class DropboxStatusStrategy(IntegrationStatusStrategy):
                 except Exception:
                     authenticated = False
 
-        cta_url = reverse("integrations:dropbox_connect")
+        cta_url = "/api/integrations/dropbox/connect/"
         return RawStatusSignals(
             connected=connected,
             authenticated=authenticated,

@@ -24,10 +24,10 @@
 
 **Purpose**: Environment configuration and database structure
 
-- [ ] T001 Add Basecamp OAuth environment variables to `web/order_manager_project/settings.py` (BASECAMP_APP_KEY, BASECAMP_APP_SECRET, BASECAMP_OAUTH_REDIRECT_URI)
-- [ ] T002 [P] Create Basecamp module directory structure at `web/integrations/basecamp/__init__.py`
-- [ ] T003 [P] Add Basecamp URL patterns to `web/integrations/urls.py` (connect, callback, disconnect endpoints)
-- [ ] T004 Register Basecamp OAuth application at https://launchpad.37signals.com/integrations (obtain client_id and client_secret)
+- [x] T001 Add Basecamp OAuth environment variables to `web/order_manager_project/settings.py` (BASECAMP_APP_KEY, BASECAMP_APP_SECRET, BASECAMP_OAUTH_REDIRECT_URI)
+- [x] T002 [P] Create Basecamp module directory structure at `web/integrations/basecamp/__init__.py`
+- [x] T003 [P] Add Basecamp URL patterns to `web/integrations/urls.py` (connect, callback, disconnect endpoints)
+- [x] T004 Register Basecamp OAuth application at https://launchpad.37signals.com/integrations (obtain client_id and client_secret)
 
 ---
 
@@ -37,11 +37,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create BasecampAccount model in `web/integrations/models.py` following data-model.md schema (user, account_id, account_name, access_token, refresh_token_encrypted, expires_at, scope, token_type, timestamps)
-- [ ] T006 Generate and apply Django migration for BasecampAccount model in `web/integrations/migrations/`
-- [ ] T007 [P] Create Basecamp configuration helpers in `web/integrations/basecamp/config.py` (get_basecamp_app_key, get_basecamp_app_secret, get_redirect_uri)
-- [ ] T008 [P] Extend token_store utility in `web/integrations/utils/token_store.py` to support Basecamp provider (get_tokens_for_user with provider='basecamp')
-- [ ] T009 [P] Add BasecampAccount to Django admin in `web/integrations/admin.py` for debugging
+- [x] T005 Create BasecampAccount model in `web/integrations/models.py` following data-model.md schema (user, account_id, account_name, access_token, refresh_token_encrypted, expires_at, scope, token_type, timestamps)
+- [x] T006 Generate and apply Django migration for BasecampAccount model in `web/integrations/migrations/`
+- [x] T007 [P] Create Basecamp configuration helpers in `web/integrations/basecamp/config.py` (get_basecamp_app_key, get_basecamp_app_secret, get_redirect_uri)
+- [x] T008 [P] Extend token_store utility in `web/integrations/utils/token_store.py` to support Basecamp provider (get_tokens_for_user with provider='basecamp')
+- [x] T009 [P] Add BasecampAccount to Django admin in `web/integrations/admin.py` for debugging
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -63,17 +63,17 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Implement BasecampOAuthAuth service in `web/integrations/basecamp/auth.py` (authenticate method, token exchange, refresh logic)
-- [ ] T011 [P] [US1] Implement BasecampService in `web/integrations/basecamp/basecamp_service.py` (API wrapper for authorization.json endpoint)
-- [ ] T012 [US1] Implement OAuth initiation view in `web/integrations/views.py` (POST /api/integrations/basecamp/connect/ - generate authorization URL with state parameter)
-- [ ] T013 [US1] Implement OAuth callback handler in `web/integrations/views.py` (GET /api/integrations/basecamp/callback/ - validate state, exchange code, get account details, save BasecampAccount)
-- [ ] T014 [US1] Implement disconnect view in `web/integrations/views.py` (DELETE /api/integrations/basecamp/disconnect/ - delete BasecampAccount, log disconnection)
-- [ ] T015 [US1] Add CSRF protection via state parameter in OAuth flow (generate and validate in session)
-- [ ] T016 [US1] Implement single-account enforcement (FR-004) in OAuth callback (check existing account, prevent duplicate)
-- [ ] T017 [US1] Add token encryption/decryption for refresh_token_encrypted field using existing utility
-- [ ] T018 [US1] Implement error handling for OAuth errors (FR-015) with user-friendly messages per contracts/api-spec.md
-- [ ] T019 [US1] Add authentication event logging (FR-016) for connect/disconnect operations (timestamp, user_id, account_id, status)
-- [ ] T020 [US1] Verify frontend integrations page displays "Connect" button and handles OAuth redirect (minimal frontend changes expected - existing UI should work)
+- [x] T010 [P] [US1] Implement BasecampOAuthAuth service in `web/integrations/basecamp/auth.py` (authenticate method, token exchange, refresh logic)
+- [x] T011 [P] [US1] Implement BasecampService in `web/integrations/basecamp/basecamp_service.py` (API wrapper for authorization.json endpoint)
+- [x] T012 [US1] Implement OAuth initiation view in `web/integrations/views.py` (POST /api/integrations/basecamp/connect/ - generate authorization URL with state parameter)
+- [x] T013 [US1] Implement OAuth callback handler in `web/integrations/views.py` (GET /api/integrations/basecamp/callback/ - validate state, exchange code, get account details, save BasecampAccount)
+- [x] T014 [US1] Implement disconnect view in `web/integrations/views.py` (DELETE /api/integrations/basecamp/disconnect/ - delete BasecampAccount, log disconnection)
+- [x] T015 [US1] Add CSRF protection via state parameter in OAuth flow (generate and validate in session)
+- [x] T016 [US1] Implement single-account enforcement (FR-004) in OAuth callback (check existing account, prevent duplicate)
+- [x] T017 [US1] Add token encryption/decryption for refresh_token_encrypted field using existing utility
+- [x] T018 [US1] Implement error handling for OAuth errors (FR-015) with user-friendly messages per contracts/api-spec.md
+- [x] T019 [US1] Add authentication event logging (FR-016) for connect/disconnect operations (timestamp, user_id, account_id, status)
+- [x] T020 [US1] Verify frontend integrations page displays "Connect" button and handles OAuth redirect (minimal frontend changes expected - existing UI should work)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can connect/disconnect Basecamp accounts independently
 
@@ -93,16 +93,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Enhance BasecampStatusStrategy in `web/integrations/status/strategies/basecamp.py` (implement assess_raw method following DropboxStatusStrategy pattern)
-- [ ] T022 [US2] Implement status endpoint in `web/integrations/views.py` (GET /api/integrations/basecamp/status/ - return provider, status, connected, authenticated, account details, cta_url)
-- [ ] T023 [US2] Add Basecamp serializer in `web/integrations/serializers/integrations.py` for status response format
-- [ ] T024 [US2] Implement token expiration detection (FR-009) in status strategy (check expires_at if present)
-- [ ] T025 [US2] Add environment validation in status strategy (check BASECAMP_APP_KEY and BASECAMP_APP_SECRET configured)
-- [ ] T026 [US2] Implement graceful degradation for token refresh failures (FR-008) - status shows warning, allows app access
-- [ ] T027 [US2] Add status caching support using ttl_seconds parameter (SC-002: status displays within 1 second)
-- [ ] T028 [US2] Extend cloud factory in `web/integrations/cloud/factory.py` to support Basecamp provider
-- [ ] T029 [US2] Add Basecamp to cloud config in `web/integrations/cloud/config.py` (get_cloud_provider support)
-- [ ] T030 [US2] Verify frontend integrations page displays Basecamp status correctly using existing status API pattern (no frontend code changes expected)
+- [x] T021 [US2] Enhance BasecampStatusStrategy in `web/integrations/status/strategies/basecamp.py` (implement assess_raw method following DropboxStatusStrategy pattern)
+- [x] T022 [US2] Implement status endpoint in `web/integrations/views.py` (GET /api/integrations/basecamp/status/ - return provider, status, connected, authenticated, account details, cta_url)
+- [x] T023 [US2] Add Basecamp serializer in `web/integrations/serializers/integrations.py` for status response format
+- [x] T024 [US2] Implement token expiration detection (FR-009) in status strategy (check expires_at if present)
+- [x] T025 [US2] Add environment validation in status strategy (check BASECAMP_APP_KEY and BASECAMP_APP_SECRET configured)
+- [x] T026 [US2] Implement graceful degradation for token refresh failures (FR-008) - status shows warning, allows app access
+- [x] T027 [US2] Add status caching support using ttl_seconds parameter (SC-002: status displays within 1 second)
+- [x] T028 [US2] Extend cloud factory in `web/integrations/cloud/factory.py` to support Basecamp provider
+- [x] T029 [US2] Add Basecamp to cloud config in `web/integrations/cloud/config.py` (get_cloud_provider support)
+- [x] T030 [US2] Verify frontend integrations page displays Basecamp status correctly using existing status API pattern (no frontend code changes expected)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - full OAuth flow and status visibility complete
 
@@ -112,16 +112,16 @@
 
 **Purpose**: Improvements that affect multiple user stories and production readiness
 
-- [ ] T031 [P] Implement automatic token refresh logic (FR-007, SC-003: 95% success rate) in `web/integrations/basecamp/auth.py`
-- [ ] T032 [P] Add comprehensive authentication event logging (FR-016) for refresh attempts with metadata (timestamp, user_id, success/failure, error details)
-- [ ] T033 [P] Implement rate limiting handling for Basecamp API calls with exponential backoff in `web/integrations/basecamp/basecamp_service.py`
-- [ ] T034 [P] Add User-Agent header per Basecamp API guidelines to all API requests
-- [ ] T035 [P] Create BasecampAccount admin actions in `web/integrations/admin.py` (manually disconnect, view token status)
-- [ ] T036 [P] Add validation for OAuth callback parameters (code format, state format) before processing
-- [ ] T037 [P] Document Basecamp OAuth setup in README or quickstart.md additions
-- [ ] T038 [P] Add monitoring/alerting considerations for token refresh failures exceeding 5% threshold
-- [ ] T039 Verify quickstart.md steps work end-to-end (register OAuth app, configure env, test flow)
-- [ ] T040 Code review: Ensure follows constitution (SOLID, DRY, mirrors Dropbox pattern)
+- [x] T031 [P] Implement automatic token refresh logic (FR-007, SC-003: 95% success rate) in `web/integrations/basecamp/auth.py`
+- [x] T032 [P] Add comprehensive authentication event logging (FR-016) for refresh attempts with metadata (timestamp, user_id, success/failure, error details)
+- [x] T033 [P] Implement rate limiting handling for Basecamp API calls with exponential backoff in `web/integrations/basecamp/basecamp_service.py`
+- [x] T034 [P] Add User-Agent header per Basecamp API guidelines to all API requests
+- [x] T035 [P] Create BasecampAccount admin actions in `web/integrations/admin.py` (manually disconnect, view token status)
+- [x] T036 [P] Add validation for OAuth callback parameters (code format, state format) before processing
+- [x] T037 [P] Document Basecamp OAuth setup in README or quickstart.md additions
+- [x] T038 [P] Add monitoring/alerting considerations for token refresh failures exceeding 5% threshold
+- [x] T039 Verify quickstart.md steps work end-to-end (register OAuth app, configure env, test flow)
+- [x] T040 Code review: Ensure follows constitution (SOLID, DRY, mirrors Dropbox pattern)
 
 ---
 
@@ -281,4 +281,5 @@ Each task maps to success criteria from spec.md:
 - Follow constitution: SOLID principles, DRY (mirrors Dropbox pattern), PEP 8
 - Preserve existing comments in code
 - Use python3 command explicitly on Linux
+
 
