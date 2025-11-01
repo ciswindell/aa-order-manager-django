@@ -6,7 +6,7 @@ Minimal adapter: get/set with monotonic-based expiry.
 from __future__ import annotations
 
 from time import monotonic
-from typing import Any, Dict, Optional, Tuple, Protocol
+from typing import Any, Dict, Optional, Protocol, Tuple
 
 
 class InMemoryTTLCache:
@@ -32,6 +32,10 @@ class InMemoryTTLCache:
         """Set value with TTL in seconds."""
         expires_at = monotonic() + max(0, int(ttl_seconds))
         self._store[key] = (value, expires_at)
+
+    def delete(self, key: str) -> None:
+        """Remove a key from the cache."""
+        self._store.pop(key, None)
 
 
 # Default cache instance for callers that don't need custom wiring

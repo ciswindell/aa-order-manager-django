@@ -2,7 +2,12 @@
 
 from django.contrib import admin
 
-from .models import AgencyStorageConfig, CloudLocation, DropboxAccount
+from .models import (
+    AgencyStorageConfig,
+    BasecampAccount,
+    CloudLocation,
+    DropboxAccount,
+)
 
 
 @admin.register(DropboxAccount)
@@ -17,6 +22,84 @@ class DropboxAccountAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
+
+
+@admin.register(BasecampAccount)
+class BasecampAccountAdmin(admin.ModelAdmin):
+    """Admin for Basecamp OAuth accounts with management actions."""
+
+    list_display = (
+        "user",
+        "account_id",
+        "account_name",
+        "token_status",
+        "expires_at",
+        "updated_at",
+    )
+    search_fields = ("account_id", "account_name", "user__username", "user__email")
+    readonly_fields = (
+        "access_token",
+        "refresh_token_encrypted",
+        "created_at",
+        "updated_at",
+        "token_status",
+    )
+    actions = ["disconnect_accounts", "check_token_status"]
+    list_filter = ("created_at", "updated_at")
+
+    @admin.display(description="Token Status")
+    def token_status(self, obj):
+        """Display token expiration status."""
+        from datetime import datetime, timezone
+
+        if not obj.expires_at:
+            return "No expiration"
+        now = datetime.now(timezone.utc)
+        if obj.expires_at.tzinfo is None:
+            expires_at = obj.expires_at.replace(tzinfo=timezone.utc)
+        else:
+            expires_at = obj.expires_at
+        if expires_at > now:
+            return f"Valid until {expires_at}"
+        return "Expired"
+
+    @admin.action(description="Disconnect selected Basecamp accounts")
+    def disconnect_accounts(self, request, queryset):
+        """Manually disconnect Basecamp accounts (delete records)."""
+        from integrations.status.cache import default_cache
+
+        count = 0
+        for account in queryset:
+            user_id = account.user.id
+            account.delete()
+            # Invalidate cache
+            cache_key = f"integration_status:basecamp:{user_id}"
+            default_cache.delete(cache_key)
+            count += 1
+        self.message_user(request, f"Successfully disconnected {count} account(s).")
+
+    @admin.action(description="Check token status for selected accounts")
+    def check_token_status(self, request, queryset):
+        """Check and display token status for selected accounts."""
+        from datetime import datetime, timezone
+
+        messages = []
+        for account in queryset:
+            if not account.expires_at:
+                status = "No expiration"
+            else:
+                now = datetime.now(timezone.utc)
+                expires_at = account.expires_at
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(tzinfo=timezone.utc)
+                if expires_at > now:
+                    status = f"Valid until {expires_at}"
+                else:
+                    status = "Expired"
+            messages.append(
+                f"User: {account.user.username} | Account: {account.account_name} | Status: {status}"
+            )
+        self.message_user(request, "\n".join(messages))
 
 
 @admin.register(CloudLocation)

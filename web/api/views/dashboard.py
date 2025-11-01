@@ -28,7 +28,9 @@ def dashboard_view(request):
 
     # Serialize data
     user_data = UserSerializer(user).data
-    statuses_data = IntegrationStatusSerializer(integration_statuses, many=True).data
+    statuses_data = IntegrationStatusSerializer(
+        integration_statuses, many=True, context={"request": request}
+    ).data
 
     return Response(
         {

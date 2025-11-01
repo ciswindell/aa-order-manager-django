@@ -17,3 +17,15 @@ export async function disconnectDropbox(): Promise<ApiResponse<{ message: string
   });
 }
 
+export async function connectBasecamp(): Promise<ApiResponse<{ authorize_url: string }>> {
+  return apiRequest<{ authorize_url: string }>('/integrations/basecamp/connect/', {
+    method: 'POST',
+  });
+}
+
+export async function disconnectBasecamp(): Promise<ApiResponse<{ message: string }>> {
+  return apiRequest<{ message: string }>('/integrations/basecamp/disconnect/', {
+    method: 'POST',
+  });
+}
+

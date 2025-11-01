@@ -153,7 +153,15 @@ DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY", "")
 DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET", "")
 DROPBOX_REDIRECT_URI = os.getenv(
     "DROPBOX_REDIRECT_URI",
-    "http://localhost:8000/integrations/dropbox/callback/",
+    "http://localhost:8000/api/integrations/dropbox/callback/",
+)
+
+# Integrations – Basecamp OAuth (env-backed)
+BASECAMP_APP_KEY = os.getenv("BASECAMP_APP_KEY", "")
+BASECAMP_APP_SECRET = os.getenv("BASECAMP_APP_SECRET", "")
+BASECAMP_OAUTH_REDIRECT_URI = os.getenv(
+    "BASECAMP_OAUTH_REDIRECT_URI",
+    "http://localhost:8000/api/integrations/basecamp/callback/",
 )
 
 # Runsheet detection pattern (case-insensitive used in code)

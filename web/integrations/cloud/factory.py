@@ -7,11 +7,10 @@ Factory for creating cloud-agnostic service instances based on configuration.
 import logging
 import os
 
-
-from .protocols import CloudOperations
-from .errors import CloudServiceError
-from . import config
 from ..dropbox.dropbox_service import DropboxCloudService
+from . import config
+from .errors import CloudServiceError
+from .protocols import CloudOperations
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +37,12 @@ class CloudServiceFactory:
         try:
             if provider.lower() == "dropbox":
                 return cls._create_dropbox_service(user=user)
+            elif provider.lower() == "basecamp":
+                raise CloudServiceError(
+                    "Basecamp file operations not yet implemented. "
+                    "Authentication and status checking available via OAuth endpoints.",
+                    provider,
+                )
             else:
                 raise CloudServiceError(
                     f"Unsupported cloud provider: {provider}", provider

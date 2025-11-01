@@ -13,7 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import {
+    connectBasecamp,
     connectDropbox,
+    disconnectBasecamp,
     disconnectDropbox,
     getIntegrationStatus,
 } from '@/lib/api/integrations';
@@ -49,25 +51,25 @@ export default function IntegrationsPage() {
   }, [user]);
 
   const handleConnect = async (provider: string) => {
-    if (provider === 'dropbox') {
-      setActionLoading(true);
-      try {
-        const response = await connectDropbox();
-        if (response.data?.authorize_url) {
-          // Redirect to OAuth URL
-          window.location.href = response.data.authorize_url;
-        } else if (response.error) {
-          toast.error('Connection Failed', {
-            description: response.error,
-          });
-        }
-      } catch (error) {
+    setActionLoading(true);
+    try {
+      const response =
+        provider === 'dropbox' ? await connectDropbox() : await connectBasecamp();
+
+      if (response.data?.authorize_url) {
+        // Redirect to OAuth URL
+        window.location.href = response.data.authorize_url;
+      } else if (response.error) {
         toast.error('Connection Failed', {
-          description: 'An unexpected error occurred',
+          description: response.error,
         });
-      } finally {
-        setActionLoading(false);
       }
+    } catch (error) {
+      toast.error('Connection Failed', {
+        description: 'An unexpected error occurred',
+      });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -81,7 +83,10 @@ export default function IntegrationsPage() {
 
     setActionLoading(true);
     try {
-      const response = await disconnectDropbox();
+      const response = selectedProvider === 'basecamp' 
+        ? await disconnectBasecamp()
+        : await disconnectDropbox();
+      
       if (response.data) {
         toast.success('Disconnected', {
           description: response.data.message || 'Successfully disconnected',
@@ -189,12 +194,27 @@ export default function IntegrationsPage() {
                 )}
                 {isBasecamp && (
                   <>
-                    <Button variant="outline" size="sm" className="w-full" disabled>
-                      Coming Soon
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Basecamp integration is under development
-                    </p>
+                    {isConnected ? (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleDisconnectClick(integration.provider)}
+                        disabled={actionLoading}
+                      >
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleConnect(integration.provider)}
+                        disabled={actionLoading}
+                      >
+                        Connect Basecamp
+                      </Button>
+                    )}
                   </>
                 )}
               </CardContent>

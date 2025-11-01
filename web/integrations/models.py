@@ -36,6 +36,74 @@ class DropboxAccount(models.Model):
         return f"DropboxAccount(user={self.user}, account_id={self.account_id})"
 
 
+class BasecampAccount(models.Model):
+    """Per-user Basecamp 3 OAuth credentials.
+
+    Stores current access token, encrypted refresh token, and metadata for a single
+    Basecamp account linked to a Django user. Enforces one-to-one relationship
+    (FR-004: single Basecamp account per user).
+
+    OAuth tokens stored encrypted at rest per FR-005. Access token used for API calls,
+    refresh token for long-term access renewal.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="basecamp_account",
+        help_text="Application user who owns this Basecamp connection",
+    )
+    account_id = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text="Basecamp account ID from OAuth authorization",
+    )
+    account_name = models.CharField(
+        max_length=255,
+        help_text="Human-readable Basecamp account name (e.g., 'Acme Corp')",
+    )
+    access_token = models.TextField(
+        help_text="Current OAuth access token for Basecamp API calls"
+    )
+    refresh_token_encrypted = models.TextField(
+        help_text="Encrypted OAuth refresh token for long-term access"
+    )
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Token expiration timestamp (optional, Basecamp tokens may not expire)",
+    )
+    scope = models.TextField(
+        blank=True,
+        default="",
+        help_text="OAuth scope (empty for Basecamp 3 default full access)",
+    )
+    token_type = models.CharField(
+        max_length=50,
+        blank=True,
+        default="Bearer",
+        help_text="OAuth token type (typically 'Bearer')",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="When user first connected Basecamp account"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Last modification timestamp (token refresh, etc.)",
+    )
+
+    class Meta:
+        db_table = "integrations_basecamp_account"
+        verbose_name = "Basecamp Account"
+        verbose_name_plural = "Basecamp Accounts"
+        indexes = [
+            models.Index(fields=["account_id"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"BasecampAccount(user={self.user}, account_id={self.account_id}, name={self.account_name})"
+
+
 class CloudLocation(models.Model):
     """Generic, reusable cloud location store for files and directories."""
 
