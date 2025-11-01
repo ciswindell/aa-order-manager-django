@@ -22,6 +22,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Tool-specific directories
+.playwright-mcp/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
