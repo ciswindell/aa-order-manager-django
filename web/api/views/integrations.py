@@ -378,44 +378,83 @@ def basecamp_callback(request):
         auth_details = BasecampOAuthAuth.get_authorization_details(access_token)
         accounts = auth_details.get("accounts", [])
 
-        if not accounts:
+        # T008: Detect multiple accounts
+        if len(accounts) == 0:
             logger.error("Basecamp OAuth no accounts found | user_id=%s", user_id)
             return Response(
                 {"error": "No Basecamp accounts found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Select first account
-        account = accounts[0]
-        account_id = str(account.get("id"))
-        account_name = account.get("name", "Unknown")
+        elif len(accounts) == 1:
+            # T036-T037: Auto-select single account (existing behavior)
+            account = accounts[0]
+            account_id = str(account.get("id"))
+            # T046: Truncate account name to 255 chars
+            account_name = account.get("name", "Unknown")[:255]
 
-        # Save tokens
-        logger.info(
-            "Basecamp OAuth saving tokens | user_id=%s | account_id=%s | account_name=%s",
-            user_id,
-            account_id,
-            account_name,
-        )
-        tokens = {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "account_id": account_id,
-            "account_name": account_name,
-            "expires_at": None,
-            "scope": "",
-            "token_type": "Bearer",
-        }
+            # Save tokens
+            logger.info(
+                "Basecamp OAuth saving tokens | user_id=%s | account_id=%s | account_name=%s",
+                user_id,
+                account_id,
+                account_name,
+            )
+            tokens = {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "account_id": account_id,
+                "account_name": account_name,
+                "expires_at": None,
+                "scope": "",
+                "token_type": "Bearer",
+            }
 
-        save_tokens_for_user(user, tokens, provider="basecamp")
+            save_tokens_for_user(user, tokens, provider="basecamp")
 
-        logger.info(
-            "Basecamp OAuth connection successful | user_id=%s | account_id=%s",
-            user_id,
-            account_id,
-        )
-        # Redirect to frontend dashboard
-        return redirect("http://localhost:3000/dashboard?basecamp=connected")
+            # T038: Log auto-connected single account
+            logger.info(
+                "Basecamp auto-connected | user_id=%s | account_id=%s | account_name=%s",
+                user_id,
+                account_id,
+                account_name,
+            )
+            # Redirect to frontend dashboard
+            return redirect("http://localhost:3000/dashboard?basecamp=connected")
+
+        else:  # len(accounts) > 1
+            # T013: Truncate to 20 accounts if needed
+            if len(accounts) > 20:
+                logger.warning(
+                    "User has %d Basecamp accounts, truncating to 20 | user_id=%s",
+                    len(accounts),
+                    user_id,
+                )
+                accounts = accounts[:20]
+
+            # T009: Store pending accounts in session (T046: truncate names to 255 chars)
+            request.session["basecamp_pending_accounts"] = [
+                {"id": str(acc["id"]), "name": acc["name"][:255]} for acc in accounts
+            ]
+
+            # T010: Store pending tokens in session
+            request.session["basecamp_pending_tokens"] = {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+            }
+
+            # T011: Set 15-minute session expiry
+            request.session.set_expiry(900)  # 15 minutes
+
+            # T014: Log selection flow initiated
+            logger.info(
+                "Basecamp account selection initiated | user_id=%s | accounts_count=%d",
+                user_id,
+                len(accounts),
+            )
+
+            # T012: Redirect to selection page
+            return redirect("http://localhost:3000/basecamp/select-account")
 
     except Exception as e:
         logger.error(
@@ -425,3 +464,117 @@ def basecamp_callback(request):
             exc_info=True,
         )
         return redirect("http://localhost:3000/dashboard?error=basecamp_failed")
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_pending_accounts(request):
+    """Retrieve pending Basecamp accounts from session for account selection."""
+    # T016: Check session expiry
+    pending_accounts = request.session.get("basecamp_pending_accounts")
+
+    if not pending_accounts:
+        # T017: Log session expiry
+        logger.warning(
+            "Basecamp pending accounts session expired | user_id=%s", request.user.id
+        )
+        return Response(
+            {
+                "error": "Session expired or invalid",
+                "action": "restart_oauth",
+                "message": "Your session has expired. Please connect again.",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # T017: Log successful retrieval
+    logger.info(
+        "Basecamp pending accounts retrieved | user_id=%s | accounts_count=%d",
+        request.user.id,
+        len(pending_accounts),
+    )
+
+    return Response({"accounts": pending_accounts})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def select_basecamp_account(request):
+    """Complete Basecamp OAuth with user-selected account."""
+    from integrations.utils.token_store import save_tokens_for_user
+
+    # T019: Validate account_id is required
+    account_id = request.data.get("account_id")
+
+    if not account_id:
+        return Response(
+            {"error": "Missing required field", "detail": "account_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # T020: Retrieve and validate session data
+    pending_accounts = request.session.get("basecamp_pending_accounts", [])
+    pending_tokens = request.session.get("basecamp_pending_tokens", {})
+
+    if not pending_accounts or not pending_tokens:
+        # T024: Log session expiry
+        logger.warning(
+            "Basecamp account selection failed - session expired | user_id=%s",
+            request.user.id,
+        )
+        return Response(
+            {
+                "error": "Session expired or invalid",
+                "action": "restart_oauth",
+                "message": "Your session has expired. Please connect again.",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # T021: Validate selected account against pending list
+    selected = next((acc for acc in pending_accounts if acc["id"] == account_id), None)
+
+    if not selected:
+        # T024: Log invalid selection
+        logger.error(
+            "Basecamp account selection failed - invalid account | user_id=%s | selected_id=%s | pending_count=%d",
+            request.user.id,
+            account_id,
+            len(pending_accounts),
+        )
+        return Response(
+            {
+                "error": "Invalid account selection",
+                "action": "choose_again",
+                "message": "The selected account is not in your authorized list",
+                "detail": f"Account ID '{account_id}' not found in pending accounts",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # T022: Save tokens with selected account
+    tokens = {
+        "access_token": pending_tokens["access_token"],
+        "refresh_token": pending_tokens["refresh_token"],
+        "account_id": str(selected["id"]),
+        "account_name": selected["name"],
+        "expires_at": None,
+        "scope": "",
+        "token_type": "Bearer",
+    }
+
+    save_tokens_for_user(request.user, tokens, provider="basecamp")
+
+    # T023: Clear session data
+    del request.session["basecamp_pending_accounts"]
+    del request.session["basecamp_pending_tokens"]
+
+    # T024: Log successful selection
+    logger.info(
+        "Basecamp account selected and connected | user_id=%s | account_id=%s | account_name=%s",
+        request.user.id,
+        selected["id"],
+        selected["name"],
+    )
+
+    return Response({"message": "Account connected successfully", "account": selected})

@@ -15,6 +15,8 @@ from api.views.integrations import (
     disconnect_dropbox,
     dropbox_callback,
     get_integration_status,
+    get_pending_accounts,
+    select_basecamp_account,
 )
 from api.views.leases import LeaseViewSet
 from api.views.orders import OrderViewSet
@@ -61,6 +63,18 @@ urlpatterns = [
         "integrations/basecamp/disconnect/",
         disconnect_basecamp,
         name="basecamp_disconnect",
+    ),
+    # T025: Account selection endpoints
+    path(
+        "integrations/basecamp/pending-accounts/",
+        get_pending_accounts,
+        name="basecamp_pending_accounts",
+    ),
+    # T026: Account selection completion
+    path(
+        "integrations/basecamp/select-account/",
+        select_basecamp_account,
+        name="basecamp_select_account",
     ),
     # Include router URLs
     path("", include(router.urls)),
