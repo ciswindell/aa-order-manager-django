@@ -321,7 +321,8 @@ def basecamp_callback(request):
         return redirect("http://localhost:3000/dashboard?error=invalid_callback")
 
     # Validate code format (alphanumeric, reasonable length)
-    if not code.isalnum() or len(code) < 10 or len(code) > 200:
+    # Note: Basecamp codes are typically 8 characters
+    if not code.isalnum() or len(code) < 6 or len(code) > 200:
         logger.error(
             "Basecamp OAuth callback invalid code format | code_length=%d", len(code)
         )
