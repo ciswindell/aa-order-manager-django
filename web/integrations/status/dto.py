@@ -19,6 +19,12 @@ class IntegrationStatus:
     cta_url: Optional[str]
     last_checked: datetime
     ttl_seconds: int
+    # T004: Account identification fields
+    account_name: Optional[str] = None
+    # T005: Account email (Dropbox only)
+    account_email: Optional[str] = None
+    # T006: Connection timestamp
+    connected_at: Optional[datetime] = None
 
 
 __all__ = ["IntegrationStatus"]

@@ -169,6 +169,67 @@ def dropbox_callback(request):
             "scope": getattr(result, "scope", ""),
             "token_type": getattr(result, "token_type", ""),
         }
+
+        # T019-T025: Fetch Dropbox account info with retry logic
+        display_name = ""
+        email = ""
+        try:
+            import time
+
+            from integrations.utils.log_masking import mask_email, mask_name
+
+            # T019: Create Dropbox client
+            dbx = dropbox.Dropbox(oauth2_access_token=result.access_token)
+
+            # T020-T023: Fetch account info with retry
+            account_info = None
+            for attempt in range(2):  # Try twice: initial + 1 retry
+                try:
+                    account_info = dbx.users_get_current_account()
+                    break
+                except Exception as fetch_error:
+                    if attempt == 0:
+                        logger.warning(
+                            "Dropbox account info fetch failed, retrying | user_id=%s | error=%s",
+                            user.id,
+                            str(fetch_error),
+                        )
+                        time.sleep(2)  # Wait 2 seconds before retry
+                    else:
+                        logger.error(
+                            "Dropbox account info fetch failed after retry | user_id=%s | error=%s",
+                            user.id,
+                            str(fetch_error),
+                        )
+
+            if account_info:
+                # T021: Extract display_name (truncate to 255 chars)
+                raw_display_name = account_info.name.display_name
+                display_name = raw_display_name[:255] if raw_display_name else ""
+
+                # T022: Extract email
+                email = account_info.email or ""
+
+                # T025: Apply log masking
+                logger.info(
+                    "Dropbox account info retrieved | user_id=%s | display_name=%s | email=%s",
+                    user.id,
+                    mask_name(display_name),
+                    mask_email(email),
+                )
+
+                # T024: Include in tokens dict
+                tokens["display_name"] = display_name
+                tokens["email"] = email
+        except Exception as account_error:
+            logger.error(
+                "Failed to fetch Dropbox account info | user_id=%s | error=%s",
+                user.id,
+                str(account_error),
+                exc_info=True,
+            )
+            # Continue without account info - connection will still work
+
         save_tokens_for_user(user, tokens, provider="dropbox")
 
         # Clear the user ID from session
@@ -394,11 +455,14 @@ def basecamp_callback(request):
             account_name = account.get("name", "Unknown")[:255]
 
             # Save tokens
+            # T041: Apply log masking to account_name
+            from integrations.utils.log_masking import mask_name
+
             logger.info(
                 "Basecamp OAuth saving tokens | user_id=%s | account_id=%s | account_name=%s",
                 user_id,
                 account_id,
-                account_name,
+                mask_name(account_name),
             )
             tokens = {
                 "access_token": access_token,
@@ -417,7 +481,7 @@ def basecamp_callback(request):
                 "Basecamp auto-connected | user_id=%s | account_id=%s | account_name=%s",
                 user_id,
                 account_id,
-                account_name,
+                mask_name(account_name),
             )
             # Redirect to frontend dashboard
             return redirect("http://localhost:3000/dashboard?basecamp=connected")
@@ -570,11 +634,13 @@ def select_basecamp_account(request):
     del request.session["basecamp_pending_tokens"]
 
     # T024: Log successful selection
+    from integrations.utils.log_masking import mask_name
+
     logger.info(
         "Basecamp account selected and connected | user_id=%s | account_id=%s | account_name=%s",
         request.user.id,
         selected["id"],
-        selected["name"],
+        mask_name(selected["name"]),
     )
 
     return Response({"message": "Account connected successfully", "account": selected})

@@ -64,9 +64,40 @@ class BasecampStatusStrategy(IntegrationStatusStrategy):
         """Map raw signals into the final IntegrationStatus DTO."""
         now = now or datetime.now(timezone.utc)
         raw = self.assess_raw(user)
-        return map_raw_to_status(
+        status = map_raw_to_status(
             provider=self.provider, raw=raw, now=now, ttl_seconds=ttl_seconds
         )
+        
+        # T009-T011: Add account_name and connected_at from BasecampAccount
+        if raw.connected:
+            tokens = get_tokens_for_user(user, provider="basecamp")
+            account_name = tokens.get("account_name") if tokens else None
+            
+            # Get connected_at from BasecampAccount.created_at
+            from integrations.models import BasecampAccount
+            try:
+                basecamp_account = BasecampAccount.objects.get(user=user)
+                connected_at = basecamp_account.created_at
+            except BasecampAccount.DoesNotExist:
+                connected_at = None
+            
+            # Return new status with account fields
+            return IntegrationStatus(
+                provider=status.provider,
+                connected=status.connected,
+                authenticated=status.authenticated,
+                has_refresh=status.has_refresh,
+                blocking_problem=status.blocking_problem,
+                reason=status.reason,
+                cta_label=status.cta_label,
+                cta_url=status.cta_url,
+                last_checked=status.last_checked,
+                ttl_seconds=status.ttl_seconds,
+                account_name=account_name,
+                connected_at=connected_at,
+            )
+        
+        return status
 
 
 __all__ = ["BasecampStatusStrategy"]

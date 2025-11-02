@@ -161,9 +161,46 @@ export default function IntegrationsPage() {
                   )}
                 </div>
                 <CardDescription>
-                  {isConnected
-                    ? `Last synced: ${format(new Date(integration.last_sync), 'PPp')}`
-                    : integration.reason || 'Not connected'}
+                  {isConnected ? (
+                    <div className="space-y-1">
+                      {/* T012-T014, T033-T035: Display account info with truncation */}
+                      {integration.account_name ? (
+                        <div 
+                          className="font-medium truncate max-w-[250px]" 
+                          title={
+                            isDropbox && integration.account_email
+                              ? `${integration.account_name} (${integration.account_email})`
+                              : integration.account_name
+                          }
+                        >
+                          Connected as: {(() => {
+                            // T033: Format Dropbox as "Name (email)"
+                            const displayText = isDropbox && integration.account_email
+                              ? `${integration.account_name} (${integration.account_email})`
+                              : integration.account_name;
+                            // T035: Truncate at 50 chars
+                            return displayText.length > 50 
+                              ? `${displayText.substring(0, 50)}...` 
+                              : displayText;
+                          })()}
+                        </div>
+                      ) : (
+                        // T034: Generic message for legacy connections
+                        <div className="font-medium">Connected</div>
+                      )}
+                      {/* T038-T040: Display connection date */}
+                      {integration.connected_at && (
+                        <div className="text-xs text-muted-foreground">
+                          Connected on: {format(new Date(integration.connected_at), 'MMM d, yyyy')}
+                        </div>
+                      )}
+                      <div className="text-xs">
+                        Last synced: {format(new Date(integration.last_sync), 'PPp')}
+                      </div>
+                    </div>
+                  ) : (
+                    integration.reason || 'Not connected'
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">

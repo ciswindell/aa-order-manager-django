@@ -108,6 +108,13 @@ def save_tokens_for_user(user, tokens: OAuthTokens, provider: str = "dropbox"):
     # Basecamp-specific field
     if provider == "basecamp" and tokens.get("account_name"):
         acct.account_name = tokens["account_name"]
+    
+    # T026-T027: Dropbox-specific fields
+    if provider == "dropbox":
+        if "display_name" in tokens:
+            acct.display_name = tokens["display_name"]
+        if "email" in tokens:
+            acct.email = tokens["email"]
 
     # Build update_fields list
     update_fields = [
@@ -121,6 +128,8 @@ def save_tokens_for_user(user, tokens: OAuthTokens, provider: str = "dropbox"):
     ]
     if provider == "basecamp":
         update_fields.append("account_name")
+    if provider == "dropbox":
+        update_fields.extend(["display_name", "email"])
 
     acct.save(update_fields=update_fields)
 

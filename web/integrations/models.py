@@ -23,6 +23,18 @@ class DropboxAccount(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     scope = models.TextField(blank=True, default="")
     token_type = models.CharField(max_length=50, blank=True, default="")
+    # T015-T016: Account identification fields
+    display_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="User's display name from Dropbox",
+    )
+    email = models.EmailField(
+        blank=True,
+        default="",
+        help_text="User's email address from Dropbox",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
