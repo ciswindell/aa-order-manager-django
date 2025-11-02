@@ -149,24 +149,31 @@ See `CORRECTIONS.md` for full details.
 
 **Goal**: User clicks "Push to Basecamp" on order with State (NMSLO) reports → creates workflows in State Runsheets and/or State Abstracts projects following same patterns as Federal products
 
-**Independent Test**: Create test order with 1 NMSLO RUNSHEET report and 1 NMSLO BASE_ABSTRACT report → trigger workflow → verify 2 workflows created in State Runsheets and State Abstracts projects
+**Independent Test**: Create test order with 1 NMSLO RUNSHEET report → trigger workflow → verify workflow created in State Runsheets project with HTML-formatted descriptions
 
 **Estimated Time**: 2 hours
 
+**✅ COMPLETED 2025-11-02**: State Runsheets activated by reusing `RunsheetWorkflowStrategy` with NMSLO agency configuration. Zero new code needed thanks to Strategy Pattern!
+
 ### Implementation for User Story 3 (Extend to State)
 
-- [ ] T044 [P] [US3] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (add state_runsheets config with agency="NMSLO", report_types=["RUNSHEET"], workflow_strategy=RunsheetWorkflowStrategy)
+- [X] T044 [P] [US3] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (set state_runsheets workflow_strategy to RunsheetWorkflowStrategy - reuses Federal Runsheet strategy with agency="NMSLO")
 - [ ] T045 [P] [US3] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (add state_abstracts config with agency="NMSLO", report_types=["BASE_ABSTRACT", "SUPPLEMENTAL_ABSTRACT", "DOL_ABSTRACT"], workflow_strategy=AbstractWorkflowStrategy)
-- [ ] T046 [US3] Extend product detection logic in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (iterate through all 4 PRODUCT_CONFIGS, detect applicable products based on report_type and agency filters for both BLM and NMSLO)
-- [ ] T047 [US3] Update success message generation in WorkflowResultSerializer in `web/api/serializers/workflows.py` (handle multiple product names: "Workflows created: Federal Runsheets, State Abstracts")
+- [X] T046 [US3] Extend product detection logic in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (ALREADY IMPLEMENTED - executor automatically iterates through all PRODUCT_CONFIGS and processes products with non-None strategies)
+- [X] T047 [US3] Update success message generation in WorkflowResultSerializer in `web/api/serializers/workflows.py` (ALREADY IMPLEMENTED - serializer joins multiple product names with commas: "Workflows created: Federal Runsheets, State Runsheets")
 
-**Checkpoint**: User Story 3 is complete - State products (both runsheets and abstracts) can be created via API, independent of US1 and US2
+**Checkpoint**: State Runsheets implementation complete - NMSLO runsheet reports automatically create workflows in State Runsheets project
 
 **Manual Verification**:
-1. Create order with 1 NMSLO RUNSHEET report and 1 NMSLO BASE_ABSTRACT report
+1. Create order with 1+ NMSLO RUNSHEET reports (with leases)
 2. Click "Push to Basecamp" button
-3. Verify success toast lists both "State Runsheets, State Abstracts"
-4. Check both State projects in Basecamp for new workflows
+3. Verify success toast shows "Workflows created: State Runsheets"
+4. Check State Runsheets Basecamp project for:
+   - ✅ 1 to-do list per order
+   - ✅ 1 to-do per unique lease (grouped by lease number)
+   - ✅ HTML-formatted descriptions with bold headers and bulleted lists
+   - ✅ Date ranges in legal descriptions
+   - ✅ Clickable archive links
 
 ---
 

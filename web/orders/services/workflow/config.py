@@ -43,7 +43,7 @@ PRODUCT_CONFIGS: dict[str, ProductConfig] = {
         project_id_env_var="BASECAMP_PROJECT_STATE_RUNSHEETS",
         agency="NMSLO",
         report_types=["RUNSHEET"],
-        workflow_strategy=None,  # type: ignore  # Will be set to RunsheetWorkflowStrategy in Phase 5
+        workflow_strategy=RunsheetWorkflowStrategy,  # Reuses same strategy as Federal Runsheets
     ),
     "state_abstracts": ProductConfig(
         name="State Abstracts",
