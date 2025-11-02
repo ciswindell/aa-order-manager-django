@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 from orders.services.workflow.strategies.base import WorkflowStrategy
-from orders.services.workflow.utils import format_report_description
+from orders.services.workflow.utils import format_report_description_html
 
 if TYPE_CHECKING:
     from orders.models import Order, Report
@@ -198,12 +198,13 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
         - "{lease_number} - Previous Report" if runsheet_report_found==True
         - "{lease_number}" otherwise
 
-        Description format:
-            Reports Needed:
-            - Sec 1: N2 from 1/1/1979 to 2/2/1988
-            - Sec 17: NW, S2 from 3/15/1985 to present
-
-            Lease Data: https://www.dropbox.com/...
+        Description format (HTML):
+            <strong>Reports Needed:</strong>
+            <ul>
+              <li>Sec 1: N2 from <strong>1/1/1979</strong> to <strong>2/2/1988</strong></li>
+              <li>Sec 17: NW, S2 from <strong>3/15/1985</strong> to <strong>present</strong></li>
+            </ul>
+            <strong>Lease Data:</strong> <a href="...">...</a>
 
         Args:
             order: Order object
@@ -227,23 +228,26 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
             if len(todo_name) > 255:
                 todo_name = todo_name[:252] + "..."
 
-            # Build "Reports Needed:" section (bulleted list of legal descriptions with date ranges)
-            description_parts = []
-            if reports_for_lease:
-                description_parts.append("Reports Needed:")
-                for report in reports_for_lease:
-                    formatted_desc = format_report_description(report)
-                    description_parts.append(f"- {formatted_desc}")
+            # Build HTML description with "Reports Needed:" and "Lease Data:" sections
+            html_parts = []
 
-            # Add "Lease Data:" section (archive link)
+            # Reports Needed section (HTML list)
+            if reports_for_lease:
+                html_parts.append("<strong>Reports Needed:</strong>")
+                html_parts.append("<ul>")
+                for report in reports_for_lease:
+                    formatted_desc = format_report_description_html(report)
+                    html_parts.append(f"<li>{formatted_desc}</li>")
+                html_parts.append("</ul>")
+
+            # Lease Data section (link)
             if lease.runsheet_archive and lease.runsheet_archive.share_url:
-                if description_parts:
-                    description_parts.append("")  # blank line
-                description_parts.append(
-                    f"Lease Data: {lease.runsheet_archive.share_url}"
+                archive_url = lease.runsheet_archive.share_url
+                html_parts.append(
+                    f'<strong>Lease Data:</strong> <a href="{archive_url}">{archive_url}</a>'
                 )
 
-            description = "\n".join(description_parts)
+            description = "".join(html_parts)
 
             # Create to-do via BasecampService
             basecamp_service.create_todo(

@@ -56,7 +56,7 @@
 - [x] T014 Implement WorkflowResultSerializer in `web/api/serializers/workflows.py` (serialize WorkflowResult dataclass with success, workflows_created, failed_products, total_count, message fields)
 - [x] T015 Create API view skeleton in `web/orders/views/workflows.py` (trigger_workflow function with authentication, order validation, Basecamp connection check)
 - [x] T016 Add URL route in `web/api/urls.py` (POST /api/orders/<int:order_id>/workflows/ → trigger_workflow view)
-- [X] T016b [P] Create shared utilities module `web/orders/services/workflow/utils.py` with `format_report_description()` function (handles date range formatting for all 4 product types) **[ADDED 2025-11-02]**
+- [X] T016b [P] Create shared utilities module `web/orders/services/workflow/utils.py` with `format_report_description()` and `format_report_description_html()` functions (handles date range formatting in plain text and HTML for all 4 product types) **[ADDED 2025-11-02]**
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -75,6 +75,7 @@
 **⚠️ CORRECTED 2025-11-02**: 
 1. Changed from "1 to-do per report" to "1 to-do per unique lease" with grouped legal descriptions
 2. Added date range formatting to legal descriptions (e.g., "Sec 1: N2 from 1/1/1979 to 2/2/1988")
+3. Switched from plain text to HTML formatting for better Basecamp rendering (bold headers, bulleted lists, clickable links)
 See `CORRECTIONS.md` for full details.
 
 ### Implementation for User Story 1 (Backend - Pattern A)
@@ -83,7 +84,7 @@ See `CORRECTIONS.md` for full details.
 - [X] T018 [US1] Implement `_get_project_id()` helper method in `web/orders/services/workflow/strategies/runsheet.py` (load project ID from Django settings using ProductConfig.project_id_env_var, raise ValueError if missing)
 - [X] T019 [US1] Implement `_group_reports_by_lease()` helper method in `web/orders/services/workflow/strategies/runsheet.py` (group reports by lease number, return dict mapping lease_number to (reports_list, lease_object)) **[CORRECTED]**
 - [X] T020 [US1] Implement `_create_todolist()` method in `web/orders/services/workflow/strategies/runsheet.py` (create to-do list with format "Order {number} - {YYYYMMDD}", include delivery_link in description)
-- [X] T021 [US1] Implement `_create_todos()` method in `web/orders/services/workflow/strategies/runsheet.py` (for each unique lease: create ONE to-do with all legal descriptions from reports sharing that lease, format as "Reports Needed:" bulleted list with date ranges + "Lease Data:" archive link) **[CORRECTED × 2]**
+- [X] T021 [US1] Implement `_create_todos()` method in `web/orders/services/workflow/strategies/runsheet.py` (for each unique lease: create ONE to-do with all legal descriptions from reports sharing that lease, format as HTML with "Reports Needed:" bulleted list with date ranges + "Lease Data:" clickable link) **[CORRECTED × 3]**
 - [X] T022 [US1] Implement `create_workflow()` main method in `web/orders/services/workflow/strategies/runsheet.py` (orchestrate project ID retrieval, report grouping by lease, to-do list creation, to-do creation, return dict with todolist_ids and todo_count) **[CORRECTED]**
 - [X] T023 [US1] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (set federal_runsheets workflow_strategy to RunsheetWorkflowStrategy class)
 - [X] T024 [US1] Implement product detection logic in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (filter reports by report_type="RUNSHEET" and agency="BLM", instantiate RunsheetWorkflowStrategy, call create_workflow())

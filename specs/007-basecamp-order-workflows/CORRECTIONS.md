@@ -195,9 +195,122 @@ docker compose exec web python3 manage.py check
 
 ---
 
+## Correction 3: HTML Formatting for Basecamp Descriptions (2025-11-02)
+
+### Issue Description
+
+To-do descriptions were using plain text formatting, which doesn't render well in Basecamp. Basecamp supports HTML, which provides better visual structure with bold headers, bulleted lists, and clickable links.
+
+### Corrected Behavior
+
+To-do descriptions now use HTML formatting for improved readability:
+
+**Before (Plain Text)**:
+```
+Reports Needed:
+- Sec 1: N2 from 1/1/1979 to 2/2/1988
+- Sec 17: NW, S2 from 3/15/1985 to present
+
+Lease Data: https://www.dropbox.com/...
+```
+
+**After (HTML)**:
+```html
+<strong>Reports Needed:</strong>
+<ul>
+  <li>Sec 1: N2 from <strong>1/1/1979</strong> to <strong>2/2/1988</strong></li>
+  <li>Sec 17: NW, S2 from <strong>3/15/1985</strong> to <strong>present</strong></li>
+</ul>
+<strong>Lease Data:</strong> <a href="https://www.dropbox.com/...">https://www.dropbox.com/...</a>
+```
+
+**Benefits**:
+- ✅ Bold section headers ("Reports Needed:", "Lease Data:")
+- ✅ Proper bulleted list formatting
+- ✅ Bold dates for emphasis
+- ✅ Clickable archive links
+- ✅ Better visual hierarchy in Basecamp UI
+
+### Technical Implementation
+
+#### Updated Utility Module
+
+**File**: `web/orders/services/workflow/utils.py`
+
+**Added Function**:
+```python
+def format_report_description_html(report: "Report") -> str:
+    """
+    Format report legal description with date range as HTML.
+    Uses <strong> tags to emphasize dates.
+    """
+    # Implementation with HTML date formatting
+```
+
+**Why Both Plain Text and HTML?**
+- `format_report_description()` - Plain text version (kept for backward compatibility)
+- `format_report_description_html()` - HTML version (used by all workflows)
+
+#### Updated RunsheetWorkflowStrategy
+
+**File**: `web/orders/services/workflow/strategies/runsheet.py`
+
+**Changes**:
+- Line 8: Import `format_report_description_html` instead of plain text version
+- Lines 230-249: Build HTML description with:
+  - `<strong>` tags for section headers
+  - `<ul>` and `<li>` tags for bulleted lists
+  - `<a>` tags for clickable archive links
+  - No line breaks needed (HTML handles formatting)
+- Lines 201-207: Updated docstring with HTML format example
+
+**HTML Structure**:
+```python
+html_parts = []
+html_parts.append("<strong>Reports Needed:</strong>")
+html_parts.append("<ul>")
+for report in reports_for_lease:
+    formatted_desc = format_report_description_html(report)
+    html_parts.append(f"<li>{formatted_desc}</li>")
+html_parts.append("</ul>")
+html_parts.append(f'<strong>Lease Data:</strong> <a href="{url}">{url}</a>')
+description = "".join(html_parts)
+```
+
+### Reusability
+
+The HTML formatting will be used by **all 4 product types**:
+- ✅ Federal Runsheets (Phase 3)
+- ✅ State Runsheets (Phase 5)
+- 🔜 Federal Abstracts (Phase 4) - will use HTML formatting
+- 🔜 State Abstracts (Phase 6) - will use HTML formatting
+
+### Verification
+
+```bash
+# Django check passes
+docker compose exec web python3 manage.py check
+# System check identified no issues (0 silenced).
+
+# No linter errors
+# PEP 8 compliant
+```
+
+### Expected Basecamp Rendering
+
+In Basecamp, the HTML will render as:
+
+**Reports Needed:**
+• Sec 1: N2 from **1/1/1979** to **2/2/1988**
+• Sec 17: NW, S2 from **3/15/1985** to **present**
+
+**Lease Data:** [clickable link]
+
+---
+
 ## Commit Status
 
 Initial changes committed in: `feat: Implement Federal Runsheet workflow automation (Phase 3)` (d794da0)
 
-Corrections 1 & 2 pending commit.
+Corrections 1, 2, & 3 pending commit.
 
