@@ -4,7 +4,7 @@
 
 This guide outlines the path from current Basecamp OAuth integration to a full database-driven workflow template system that allows business users to configure Basecamp task creation through Django Admin.
 
-**Current Status**: Phase 1 (API Service Extension) is complete. The system can now interact with Basecamp to create projects, to-do lists, tasks, groups, and comments.
+**Current Status**: Phase 1 (API Service Extension) is complete. Phase 2 (Hardcoded Workflows) is now specified and ready for implementation. The system supports 4 product types across 2 distinct workflow patterns (Runsheet vs Abstract).
 
 ## Current State
 
@@ -23,8 +23,8 @@ This guide outlines the path from current Basecamp OAuth integration to a full d
   - Full error handling and logging
 
 ### ❌ What's Missing
-- **Workflow Creation Logic**: No code to create complete workflows from orders
-- **Template System**: No database models or template processing for configurable workflows
+- **Workflow Creation Logic**: No code to create complete workflows from orders (Phase 2 - now specified with dual patterns)
+- **Template System**: No database models or template processing for configurable workflows (Phase 3 - may not be needed)
 
 ### ⚠️ Known Issues
 - **OAuth Account Selection**: When user has access to multiple Basecamp accounts (e.g., "American Abstract LLC" and "Dudley Land Company"), the system automatically selects the first account without prompting. This can result in connecting the wrong account.
@@ -218,38 +218,304 @@ This guide outlines the path from current Basecamp OAuth integration to a full d
 
 ### Phase 2: Hardcoded Workflow Proof of Concept
 
-**Goal**: Create ONE working example that generates Basecamp tasks from an Order (no templates yet)
+**Goal**: Create working workflows that generate Basecamp tasks from Orders for all 4 product types (no templates yet)
 
 **Why This Step?**: Validates the integration works end-to-end before investing in template system complexity
 
-**Components**:
+---
 
-1. **Order Workflow Service** (`web/orders/services/basecamp_workflow.py`)
-   - Takes an Order object
-   - Hardcodes the workflow structure (to-do list name, task names, assignees)
-   - Calls `BasecampService` methods to create tasks
-   - Returns success/failure result
+#### Understanding the Two Workflow Patterns
 
-2. **API Endpoint** (`web/api/views/orders.py`)
-   - Accepts order ID and project ID
-   - Validates user has Basecamp connected
-   - Calls workflow service
-   - Returns result to frontend
+The system supports **4 product types** across **2 distinct workflow patterns**:
 
-3. **Frontend Button** (optional)
-   - Add "Create Basecamp Workflow" button to order details page
-   - Calls API endpoint on click
-   - Shows success/error message
+##### Pattern A: Runsheet Workflows (Lease-Centric)
 
-**Testing Strategy**:
-- Create test order with reports
-- Call workflow creation endpoint
-- Verify to-do list and tasks appear in Basecamp
-- Verify links and assignees are correct
+**Products**: Federal Runsheets (BLM), State Runsheets (NMSLO)
 
-**Estimated Time**: 2-3 days
+**Structure**:
+- **1 to-do list per ORDER**: "Order 1946 - 20251023"
+- **1 to-do per LEASE**: "NMNM 110339" or "NMNM 110339 - Previous Report"
+- **No groups** within to-do list
+- **Naming suffix**: "Previous Report" only if `lease.runsheet_report_found = True`
 
-**Deliverable**: Working demo showing order → Basecamp task creation
+**Example Basecamp Structure**:
+```
+📋 To-do List: "Order 1946 - 20251023"
+  └─ Delivery Link: https://dropbox.com/...
+  
+  ✓ NMNM 110339 - Previous Report
+    └─ Legal Description: 22S-25E, Sec. 13-Lots 1, 4
+    └─ Lease Data: https://dropbox.com/runsheet_archive
+  
+  □ NMNM 112898 - Previous Report
+  □ NMNM 106965 - Previous Report
+```
+
+**Business Logic**:
+```python
+# Filter: Reports where report_type='RUNSHEET' AND leases.agency='BLM' (or 'NMSLO')
+# One to-do list per order
+# One to-do per lease with that agency
+```
+
+---
+
+##### Pattern B: Abstract Workflows (Report-Centric, Grouped by Department)
+
+**Products**: Federal Abstracts (BLM), State Abstracts (NMSLO)
+
+**Structure**:
+- **1 to-do list per REPORT** (not per order): "Order 1765- Base Abstract 4793 - 20250715"
+- **Fixed workflow steps** (not per lease): Setup → Workup → Imaging → Indexing → Assembly → Delivery
+- **Grouped by department**: Each phase is a Basecamp group
+- **Some steps repeat per lease**: e.g., "Create Abstract Worksheet NMNM 0467934"
+
+**Example Basecamp Structure**:
+```
+📋 To-do List: "Order 1765- Base Abstract 4793 - 20250715"
+  └─ Type: Base
+  └─ Dates: Inception
+  └─ Leases: NMNM 0467934, NMNM 0558581
+  └─ Lands: 17S-30E, Sec. 33-NE
+  └─ Delivery Link: https://dropbox.com/...
+  
+  📁 Setup
+    □ Setup Abstract Todos
+  
+  📁 Workup
+    □ Workup - See Abstract 4794
+    □ Microfilm SRP - See Abstract 4794
+  
+  📁 Imaging
+    □ Unfiled Documents - See Abstract 4794
+    □ Imaging - See Abstract 4794
+  
+  📁 Indexing
+    □ File Index - See Abstract 4794
+    □ File Index NMLC 0028936A
+    □ Create Abstract Worksheet NMNM 0467934
+    □ Create Abstract Worksheet NMNM 0558581
+    □ Review Abstract Worksheet NMNM 0467934
+    □ Review Abstract Worksheet NMNM 0558581
+  
+  📁 Assembly
+    □ Assemble Abstract
+    □ Review Abstract
+  
+  📁 Delivery
+    □ Deliver Base Abstract
+```
+
+**Business Logic**:
+```python
+# Filter: Reports where report_type='BASE_ABSTRACT' AND leases.agency='BLM' (or 'NMSLO')
+# One to-do list per report (not per order)
+# Fixed workflow steps with some steps duplicated per lease
+# Steps organized into department groups (Setup, Workup, Imaging, etc.)
+```
+
+---
+
+#### Multi-Product Orders
+
+**Key Requirement**: A single order may contain multiple product types simultaneously.
+
+**Example Order**:
+- 2 Federal Runsheet reports (BLM agency)
+- 1 Federal Abstract report (BLM agency)
+- 1 State Runsheet report (NMSLO agency)
+
+**Expected Basecamp Result**:
+- Creates to-do list in **Federal Runsheets** project (1 list for all BLM runsheet leases)
+- Creates to-do list in **Federal Abstracts** project (1 list for the abstract report)
+- Creates to-do list in **State Runsheets** project (1 list for all NMSLO runsheet leases)
+
+**Total**: 3 to-do lists across 3 different Basecamp projects from 1 order
+
+---
+
+#### Architecture Recommendation: Strategy Pattern
+
+Given the fundamentally different structures (lease-centric vs. report-centric, grouped vs. flat), recommend implementing:
+
+**1. Abstract Strategy Interface**:
+```python
+class WorkflowStrategy:
+    def should_create_workflow(order) -> bool
+    def create_workflow(order) -> dict
+```
+
+**2. Two Concrete Strategies**:
+- `RunsheetWorkflowStrategy`: Implements Pattern A
+- `AbstractWorkflowStrategy`: Implements Pattern B (with group creation)
+
+**3. Configuration-Driven Product Mapping**:
+```python
+PRODUCT_CONFIGS = {
+    'federal_runsheets': {
+        'strategy': RunsheetWorkflowStrategy,
+        'project_id_key': 'federal_runsheets',
+        'agency': 'BLM',
+    },
+    'federal_abstracts': {
+        'strategy': AbstractWorkflowStrategy,
+        'project_id_key': 'federal_abstracts',
+        'agency': 'BLM',
+    },
+    # ... etc
+}
+```
+
+**Benefits**:
+- ✅ DRY: No duplicated logic between similar products (Federal/State Runsheets share strategy)
+- ✅ SOLID: Open/Closed Principle - add new products by adding config, not code
+- ✅ Maintainable: Workflow changes isolated to one strategy class
+- ✅ Testable: Each strategy independently testable
+
+---
+
+#### Components to Build
+
+1. **Workflow Service** (`web/orders/services/basecamp_workflow.py`)
+   - Strategy classes: `RunsheetWorkflowStrategy`, `AbstractWorkflowStrategy`
+   - Product configuration dictionary
+   - Executor class that delegates to appropriate strategy
+   - Public API: `create_workflow_for_order(order_id, user, product_key)`
+   - Public API: `create_all_workflows_for_order(order_id, user)` (creates all applicable)
+
+2. **Configuration** (`web/order_manager_project/settings.py`)
+   ```python
+   BASECAMP_PROJECT_IDS = {
+       'federal_runsheets': os.getenv('BASECAMP_PROJECT_IDS__FEDERAL_RUNSHEETS'),
+       'federal_abstracts': os.getenv('BASECAMP_PROJECT_IDS__FEDERAL_ABSTRACTS'),
+       'state_runsheets': os.getenv('BASECAMP_PROJECT_IDS__STATE_RUNSHEETS'),
+       'state_abstracts': os.getenv('BASECAMP_PROJECT_IDS__STATE_ABSTRACTS'),
+   }
+   ```
+
+3. **API Endpoint** (`web/api/views/orders.py`)
+   ```python
+   POST /api/orders/{order_id}/create-basecamp-workflow/
+   
+   Body (optional):
+   {
+       "product": "federal_runsheets",  // Create specific product
+       "all": false                      // Or create all applicable
+   }
+   
+   # Default: creates all applicable workflows
+   ```
+
+4. **Frontend Button** (`frontend/src/app/orders/[id]/page.tsx`)
+   - "Push to Basecamp" button on order details page
+   - Calls API with no body (creates all applicable workflows)
+   - Shows success toast: "Workflows created: Federal Runsheets, Federal Abstracts"
+   - Optionally displays links to created to-do lists
+
+---
+
+#### Data Model Relationships
+
+**Filtering Logic**:
+```python
+# For Federal Runsheets:
+reports = order.reports.filter(
+    report_type='RUNSHEET',
+    leases__agency='BLM'
+).distinct()
+
+# For Federal Abstracts:
+reports = order.reports.filter(
+    report_type='BASE_ABSTRACT',
+    leases__agency='BLM'
+).distinct()
+```
+
+**Key Fields**:
+- `Order.order_number` - Used in to-do list name
+- `Order.order_date` - Used in to-do list name (format: YYYYMMDD)
+- `Order.delivery_link` - Attached to to-do list description
+- `Report.report_type` - Filter criterion (RUNSHEET vs BASE_ABSTRACT)
+- `Report.legal_description` - Used in to-do descriptions
+- `Lease.agency` - Filter criterion (BLM vs NMSLO)
+- `Lease.lease_number` - Used in to-do names
+- `Lease.runsheet_report_found` - Determines "Previous Report" suffix
+- `Lease.runsheet_archive_link` - Added to runsheet to-do descriptions
+
+---
+
+#### Testing Strategy
+
+**Phase 2a: Test Federal Runsheets First**:
+1. Create test order with BLM runsheet reports
+2. Call `create_workflow_for_order(order_id, user, 'federal_runsheets')`
+3. Verify to-do list created in Federal Runsheets project
+4. Verify one to-do per BLM lease
+5. Verify "Previous Report" suffix logic works
+
+**Phase 2b: Test Federal Abstracts**:
+1. Create test order with BLM abstract reports
+2. Call `create_workflow_for_order(order_id, user, 'federal_abstracts')`
+3. Verify one to-do list per report
+4. Verify all workflow steps created
+5. Verify groups created (Setup, Workup, etc.)
+6. Verify lease-specific steps duplicated correctly
+
+**Phase 2c: Test Multi-Product Order**:
+1. Create order with both runsheets and abstracts (BLM and NMSLO)
+2. Call `create_all_workflows_for_order(order_id, user)`
+3. Verify workflows created in all 4 projects
+4. Verify each workflow follows correct pattern
+
+**Phase 2d: Frontend Integration**:
+1. Add "Push to Basecamp" button to order details page
+2. Test button creates all applicable workflows
+3. Verify success/error messages display correctly
+
+---
+
+#### Edge Cases to Handle
+
+1. **Order with no applicable reports**: Return success=False, message="No workflows to create"
+2. **Missing project ID configuration**: Return clear error about missing env var
+3. **Basecamp API failures**: Log error, continue with other products, return partial success
+4. **Duplicate to-do list names**: Basecamp allows duplicates, but BasecampService already prevents this
+5. **Empty legal descriptions or missing links**: Handle gracefully (empty strings)
+
+---
+
+#### Success Criteria
+
+- ✅ "Push to Basecamp" button creates workflows for all 4 product types
+- ✅ Runsheet workflows match expected structure (1 list per order, to-dos per lease)
+- ✅ Abstract workflows match expected structure (1 list per report, grouped steps)
+- ✅ Multi-product orders create multiple to-do lists in correct projects
+- ✅ All to-dos contain correct data (legal descriptions, links, lease numbers)
+- ✅ Error handling provides clear feedback to users
+- ✅ Code follows SOLID/DRY principles
+
+---
+
+#### Estimated Time
+
+- **Phase 2a (Federal Runsheets)**: 1-2 days
+- **Phase 2b (Federal Abstracts)**: 2-3 days (more complex with groups)
+- **Phase 2c (Multi-Product + State products)**: 1 day (reuse strategies)
+- **Phase 2d (Frontend Integration)**: 0.5 days
+- **Testing & Polish**: 1 day
+
+**Total**: 5-7 days
+
+---
+
+#### Deliverable
+
+Working "Push to Basecamp" feature that:
+1. Detects which product types are present in an order
+2. Creates appropriate workflows in correct Basecamp projects
+3. Handles both simple (runsheet) and complex (abstract with groups) workflows
+4. Provides clear feedback on success/failure
+5. Serves as foundation for Phase 3 template system (if needed)
 
 ---
 
@@ -398,15 +664,20 @@ This guide outlines the path from current Basecamp OAuth integration to a full d
 
 For fastest time-to-value:
 
-### Week 1: Core API + Hardcoded Demo ✅ **Phase 1 Complete**
+### Week 1: Core API ✅ **Phase 1 Complete**
 - Days 1-2: ✅ Implement Phase 1 (API methods)
-- Days 3-4: Implement Phase 2 (hardcoded workflow)
-- Day 5: Test and demo to stakeholders
+- Phase 1 Status: Complete and tested
 
-### Week 2-3: Template System (if validated)
-- Week 2: Implement Phase 3a-3c (models + processing)
-- Week 3: Implement Phase 3d-3f (integration + admin)
-- End of Week 3: Full template system in production
+### Week 2: Hardcoded Workflows (Phase 2) - Ready to Start
+- Days 1-2: Implement Federal Runsheets (simple pattern)
+- Days 3-5: Implement Federal Abstracts (complex pattern with groups)
+- Days 6-7: Extend to State products + frontend integration
+- End of Week 2: Working "Push to Basecamp" feature for all 4 product types
+
+### Week 3+: Template System (Phase 3 - Optional)
+- Only proceed if workflows need frequent changes
+- Phase 2's Strategy pattern may be sufficient for stable workflows
+- Can defer until business need is validated
 
 ### Optional: OAuth Account Selection
 - 1-2 days to implement Phase 0
@@ -428,10 +699,13 @@ For fastest time-to-value:
 - ❌ No → Debug API integration, review Basecamp docs
 
 ### After Phase 2
-**Question**: Does the hardcoded workflow meet business needs?
-- ✅ Yes, and workflows are stable → Consider stopping here (simpler system)
-- ⚠️ Yes, but workflows change frequently → Proceed to Phase 3
-- ❌ No, workflow structure is wrong → Iterate on Phase 2 before building templates
+**Question**: Do the hardcoded workflows (with Strategy pattern) meet business needs?
+- ✅ Yes, and workflows are stable → **Stop here** (Phase 2 is production-ready)
+- ⚠️ Yes, but workflow steps change frequently → Consider Phase 3 templates
+- ⚠️ Yes, but need to add new product types often → Strategy pattern handles this (stay in Phase 2)
+- ❌ No, workflow structure is wrong → Iterate on strategies before adding complexity
+
+**Note**: Phase 2 now uses Strategy pattern, making it production-quality. Phase 3 templates add complexity that may not be needed if workflows are relatively stable.
 
 ### During Phase 3
 **Question**: What template features are essential vs. nice-to-have?
@@ -559,9 +833,27 @@ python manage.py shell
 **Phase 1 is now complete!** ✅ You can successfully create projects, to-do lists, tasks, groups, and comments via `BasecampService`. The integration is solid and tested with the American Abstract LLC account.
 
 **Next Steps**:
-1. **Phase 2 (Recommended)**: Implement hardcoded workflow to validate end-to-end workflow creation
-2. **Phase 3**: Build full template system for configurable workflows
-3. **Phase 0 (Optional)**: Add OAuth account selection UI for better user experience
 
-For your use case (multiple order types with varying workflows based on screenshots), Phase 3's template system is the right long-term solution. Phase 0 can be implemented anytime to improve the OAuth experience but isn't blocking for workflow functionality.
+1. **Phase 2 (Recommended Next)**: Implement hardcoded workflows using Strategy pattern
+   - Start with Federal Runsheets (simplest pattern)
+   - Validate end-to-end workflow creation
+   - Add Federal Abstracts (complex pattern with groups)
+   - Extend to State products (reuse strategies)
+   - Estimated: 5-7 days
+
+2. **Phase 3 (Future)**: Build database-driven template system
+   - Only needed if workflows change frequently
+   - Phase 2's Strategy pattern may be sufficient for stable workflows
+   - Can defer until business need is proven
+
+3. **Phase 0 (Optional)**: Add OAuth account selection UI
+   - Improves UX but not blocking
+   - Can be implemented anytime (1-2 days)
+   - Independent of workflow functionality
+
+**Important Discovery**: Your workflows have **two fundamentally different patterns** (Runsheet vs Abstract). Phase 2 now accounts for this with a Strategy pattern approach that handles:
+- Runsheet workflows: Lease-centric, flat structure
+- Abstract workflows: Report-centric, grouped by department, more complex
+
+The Strategy pattern gives you SOLID/DRY code while supporting both patterns cleanly. Phase 3's template system may not be necessary if the workflows remain relatively stable.
 
