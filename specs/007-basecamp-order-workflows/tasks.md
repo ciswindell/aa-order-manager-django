@@ -65,20 +65,22 @@
 
 ## Phase 3: User Story 1 - Create Federal Runsheet Workflows (Priority: P1) 🎯 MVP
 
-**Goal**: User clicks "Push to Basecamp" on order with Federal runsheet reports → creates 1 to-do list in Federal Runsheets project with 1 task per BLM lease
+**Goal**: User clicks "Push to Basecamp" on order with Federal runsheet reports → creates 1 to-do list in Federal Runsheets project with 1 task per unique BLM lease (grouped by lease number)
 
-**Independent Test**: Create test order with 2 BLM RUNSHEET reports containing 3 BLM leases → trigger workflow → verify 1 to-do list with 3 to-dos in Federal Runsheets Basecamp project
+**Independent Test**: Create test order with 2 BLM RUNSHEET reports referencing same lease NMNM 11111 → trigger workflow → verify 1 to-do list with 1 to-do showing both legal descriptions
 
 **Estimated Time**: 1 day
+
+**⚠️ CORRECTED 2025-11-02**: Changed from "1 to-do per report" to "1 to-do per unique lease" with grouped legal descriptions. See `CORRECTIONS.md` for details.
 
 ### Implementation for User Story 1 (Backend - Pattern A)
 
 - [X] T017 [P] [US1] Implement RunsheetWorkflowStrategy class in `web/orders/services/workflow/strategies/runsheet.py` (inherit from WorkflowStrategy)
 - [X] T018 [US1] Implement `_get_project_id()` helper method in `web/orders/services/workflow/strategies/runsheet.py` (load project ID from Django settings using ProductConfig.project_id_env_var, raise ValueError if missing)
-- [X] T019 [US1] Implement `_extract_leases()` helper method in `web/orders/services/workflow/strategies/runsheet.py` (filter leases by agency, deduplicate across reports, return list)
+- [X] T019 [US1] Implement `_group_reports_by_lease()` helper method in `web/orders/services/workflow/strategies/runsheet.py` (group reports by lease number, return dict mapping lease_number to (reports_list, lease_object)) **[CORRECTED]**
 - [X] T020 [US1] Implement `_create_todolist()` method in `web/orders/services/workflow/strategies/runsheet.py` (create to-do list with format "Order {number} - {YYYYMMDD}", include delivery_link in description)
-- [X] T021 [US1] Implement `_create_todos()` method in `web/orders/services/workflow/strategies/runsheet.py` (for each lease: create to-do with "{lease_number} - Previous Report" or "{lease_number}" based on runsheet_report_found, include legal_description and runsheet_archive_link)
-- [X] T022 [US1] Implement `create_workflow()` main method in `web/orders/services/workflow/strategies/runsheet.py` (orchestrate project ID retrieval, lease extraction, to-do list creation, to-do creation, return dict with todolist_ids and todo_count)
+- [X] T021 [US1] Implement `_create_todos()` method in `web/orders/services/workflow/strategies/runsheet.py` (for each unique lease: create ONE to-do with all legal descriptions from reports sharing that lease, format as "Reports Needed:" bulleted list + "Lease Data:" archive link) **[CORRECTED]**
+- [X] T022 [US1] Implement `create_workflow()` main method in `web/orders/services/workflow/strategies/runsheet.py` (orchestrate project ID retrieval, report grouping by lease, to-do list creation, to-do creation, return dict with todolist_ids and todo_count) **[CORRECTED]**
 - [X] T023 [US1] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (set federal_runsheets workflow_strategy to RunsheetWorkflowStrategy class)
 - [X] T024 [US1] Implement product detection logic in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (filter reports by report_type="RUNSHEET" and agency="BLM", instantiate RunsheetWorkflowStrategy, call create_workflow())
 - [X] T025 [US1] Add comprehensive logging to RunsheetWorkflowStrategy in `web/orders/services/workflow/strategies/runsheet.py` (INFO for success, ERROR for failures with order_id, user_id, report IDs, lease IDs, exc_info=True)

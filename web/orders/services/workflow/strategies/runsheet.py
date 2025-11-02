@@ -50,9 +50,9 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
         # Get project ID
         project_id = self._get_project_id(product_config)
 
-        # Extract leases
-        leases = self._extract_leases(reports, product_config.agency)
-        if not leases:
+        # Group reports by lease
+        grouped_reports = self._group_reports_by_lease(reports, product_config.agency)
+        if not grouped_reports:
             logger.info(
                 "No leases found for runsheet workflow | order_id=%s | agency=%s",
                 order.id,
@@ -65,12 +65,11 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
             order, project_id, basecamp_service, account_id
         )
 
-        # Create to-dos
+        # Create to-dos (one per unique lease)
         self._create_todos(
             order=order,
             todolist_id=todolist_id,
-            leases=leases,
-            reports=reports,
+            grouped_reports=grouped_reports,
             project_id=project_id,
             basecamp_service=basecamp_service,
             account_id=account_id,
@@ -81,10 +80,10 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
             order.id,
             product_config.name,
             todolist_id,
-            len(leases),
+            len(grouped_reports),
         )
 
-        return {"todolist_ids": [todolist_id], "todo_count": len(leases)}
+        return {"todolist_ids": [todolist_id], "todo_count": len(grouped_reports)}
 
     def _get_project_id(self, product_config: "ProductConfig") -> str:
         """
@@ -107,29 +106,34 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
             )
         return str(project_id)
 
-    def _extract_leases(self, reports: list["Report"], agency: str) -> list:
+    def _group_reports_by_lease(
+        self, reports: list["Report"], agency: str
+    ) -> dict[str, tuple[list["Report"], "Lease"]]:
         """
-        Extract all leases matching agency from reports.
+        Group reports by their lease number.
 
-        Deduplicates leases across reports (same lease may be in multiple reports).
+        Multiple reports can reference the same lease. This method groups them
+        together so we can create one to-do per unique lease with all legal
+        descriptions from reports sharing that lease.
 
         Args:
             reports: List of Report objects
             agency: Agency filter ("BLM" or "NMSLO")
 
         Returns:
-            List of deduplicated Lease objects matching agency
+            dict mapping lease_number to (reports_list, lease_object)
+            Example: {"NMNM 11111": ([report1, report2], lease_obj)}
         """
-        seen_lease_ids = set()
-        leases = []
+        grouped = {}
 
         for report in reports:
             for lease in report.leases.filter(agency=agency):
-                if lease.id not in seen_lease_ids:
-                    seen_lease_ids.add(lease.id)
-                    leases.append(lease)
+                lease_number = lease.lease_number or "[Unknown]"
+                if lease_number not in grouped:
+                    grouped[lease_number] = ([], lease)
+                grouped[lease_number][0].append(report)
 
-        return leases
+        return grouped
 
     def _create_todolist(
         self,
@@ -181,28 +185,29 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
         self,
         order: "Order",
         todolist_id: str,
-        leases: list,
-        reports: list["Report"],
+        grouped_reports: dict[str, tuple[list["Report"], "Lease"]],
         project_id: str,
         basecamp_service: "BasecampService",
         account_id: str,
     ) -> None:
         """
-        Create to-do items for each lease.
+        Create one to-do per unique lease, with all legal descriptions from reports.
 
         To-do naming:
         - "{lease_number} - Previous Report" if runsheet_report_found==True
         - "{lease_number}" otherwise
 
-        Description includes:
-        - Report legal_description
-        - Lease runsheet_archive_link
+        Description format:
+            Reports Needed:
+            - Sec 1: N2
+            - Sec 17: NW, S2
+
+            Lease Data: https://www.dropbox.com/...
 
         Args:
             order: Order object
             todolist_id: To-do list ID
-            leases: List of Lease objects
-            reports: List of Report objects (for legal_description)
+            grouped_reports: Dict mapping lease_number to (reports_list, lease_object)
             project_id: Basecamp project ID
             basecamp_service: Basecamp API client
             account_id: Basecamp account ID
@@ -210,14 +215,8 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
         Raises:
             HTTPError: Basecamp API failure
         """
-        # Get legal description from first report (shared across all leases in runsheet)
-        legal_description = ""
-        if reports:
-            legal_description = reports[0].legal_description or ""
-
-        for lease in leases:
+        for lease_number, (reports_for_lease, lease) in grouped_reports.items():
             # Build to-do name
-            lease_number = lease.lease_number or "[Unknown]"
             if lease.runsheet_report_found:
                 todo_name = f"{lease_number} - Previous Report"
             else:
@@ -227,16 +226,23 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
             if len(todo_name) > 255:
                 todo_name = todo_name[:252] + "..."
 
-            # Build description
+            # Build "Reports Needed:" section (bulleted list of legal descriptions)
             description_parts = []
-            if legal_description:
-                description_parts.append(f"Legal Description: {legal_description}")
-            
-            # Add archive link if available (from runsheet_archive.share_url)
-            if lease.runsheet_archive and lease.runsheet_archive.share_url:
-                description_parts.append(f"Archive: {lease.runsheet_archive.share_url}")
+            if reports_for_lease:
+                description_parts.append("Reports Needed:")
+                for report in reports_for_lease:
+                    legal_desc = report.legal_description or "[No description]"
+                    description_parts.append(f"- {legal_desc}")
 
-            description = "\n\n".join(description_parts)
+            # Add "Lease Data:" section (archive link)
+            if lease.runsheet_archive and lease.runsheet_archive.share_url:
+                if description_parts:
+                    description_parts.append("")  # blank line
+                description_parts.append(
+                    f"Lease Data: {lease.runsheet_archive.share_url}"
+                )
+
+            description = "\n".join(description_parts)
 
             # Create to-do via BasecampService
             basecamp_service.create_todo(
@@ -248,8 +254,9 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
             )
 
             logger.debug(
-                "Created runsheet to-do | order_id=%s | lease_id=%s | lease_number=%s",
+                "Created runsheet to-do | order_id=%s | lease_id=%s | lease_number=%s | report_count=%d",
                 order.id,
                 lease.id,
                 lease_number,
+                len(reports_for_lease),
             )
