@@ -83,9 +83,42 @@ class DropboxStatusStrategy(IntegrationStatusStrategy):
         """Map raw signals into the final IntegrationStatus DTO."""
         now = now or datetime.now(timezone.utc)
         raw = self.assess_raw(user)
-        return map_raw_to_status(
+        status = map_raw_to_status(
             provider=self.provider, raw=raw, now=now, ttl_seconds=ttl_seconds
         )
+        
+        # T028-T032: Add account info from DropboxAccount
+        if raw.connected:
+            from integrations.models import DropboxAccount
+            try:
+                dropbox_account = DropboxAccount.objects.get(user=user)
+                # T029: Extract display_name (None if empty)
+                account_name = dropbox_account.display_name or None
+                # T030: Extract email (None if empty)
+                account_email = dropbox_account.email or None
+                # T031: Extract connected_at
+                connected_at = dropbox_account.created_at
+                
+                # T032: Return new status with account fields
+                return IntegrationStatus(
+                    provider=status.provider,
+                    connected=status.connected,
+                    authenticated=status.authenticated,
+                    has_refresh=status.has_refresh,
+                    blocking_problem=status.blocking_problem,
+                    reason=status.reason,
+                    cta_label=status.cta_label,
+                    cta_url=status.cta_url,
+                    last_checked=status.last_checked,
+                    ttl_seconds=status.ttl_seconds,
+                    account_name=account_name,
+                    account_email=account_email,
+                    connected_at=connected_at,
+                )
+            except DropboxAccount.DoesNotExist:
+                pass
+        
+        return status
 
 
 __all__ = ["DropboxStatusStrategy"]

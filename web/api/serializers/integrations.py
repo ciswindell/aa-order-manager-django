@@ -14,6 +14,10 @@ class IntegrationStatusSerializer(serializers.Serializer):
     reason = serializers.CharField()
     cta_label = serializers.CharField(allow_null=True)
     cta_url = serializers.CharField(allow_null=True)
+    # T007: Account identification fields
+    account_name = serializers.CharField(allow_null=True, required=False)
+    account_email = serializers.CharField(allow_null=True, required=False)
+    connected_at = serializers.DateTimeField(allow_null=True, required=False)
 
     def to_representation(self, instance):
         """Convert relative URLs to absolute URLs for frontend consumption."""

@@ -37,6 +37,10 @@ export interface IntegrationStatus {
   reason: string;
   cta_label: string | null;
   cta_url: string | null;
+  // T008: Account identification fields
+  account_name?: string | null;
+  account_email?: string | null;
+  connected_at?: string | null;
 }
 
 export interface Order {
