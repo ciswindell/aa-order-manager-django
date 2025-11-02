@@ -176,3 +176,14 @@ export interface LeaseDisplayItem {
   runsheet_report_found: boolean;
 }
 
+/**
+ * Workflow automation types
+ */
+export interface WorkflowResult {
+  success: boolean;
+  workflows_created: string[];
+  failed_products?: string[];
+  total_count: number;
+  message: string;
+}
+

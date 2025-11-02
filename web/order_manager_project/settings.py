@@ -164,6 +164,12 @@ BASECAMP_OAUTH_REDIRECT_URI = os.getenv(
     "http://localhost:8000/api/integrations/basecamp/callback/",
 )
 
+# Basecamp Project IDs for Workflow Automation
+BASECAMP_PROJECT_FEDERAL_RUNSHEETS = os.getenv("BASECAMP_PROJECT_FEDERAL_RUNSHEETS")
+BASECAMP_PROJECT_FEDERAL_ABSTRACTS = os.getenv("BASECAMP_PROJECT_FEDERAL_ABSTRACTS")
+BASECAMP_PROJECT_STATE_RUNSHEETS = os.getenv("BASECAMP_PROJECT_STATE_RUNSHEETS")
+BASECAMP_PROJECT_STATE_ABSTRACTS = os.getenv("BASECAMP_PROJECT_STATE_ABSTRACTS")
+
 # Runsheet detection pattern (case-insensitive used in code)
 RUNSHEET_PREVIOUS_REPORT_PATTERN = r".*master documents.*"
 

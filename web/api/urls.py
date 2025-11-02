@@ -22,6 +22,7 @@ from api.views.leases import LeaseViewSet
 from api.views.orders import OrderViewSet
 from api.views.reports import ReportViewSet
 from django.urls import include, path
+from orders.views.workflows import trigger_workflow
 from rest_framework.routers import DefaultRouter
 
 app_name = "api"
@@ -75,6 +76,12 @@ urlpatterns = [
         "integrations/basecamp/select-account/",
         select_basecamp_account,
         name="basecamp_select_account",
+    ),
+    # Workflow automation endpoints
+    path(
+        "orders/<int:order_id>/workflows/",
+        trigger_workflow,
+        name="trigger_workflow",
     ),
     # Include router URLs
     path("", include(router.urls)),
