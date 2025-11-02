@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 from orders.services.workflow.strategies.base import WorkflowStrategy
+from orders.services.workflow.utils import format_report_description
 
 if TYPE_CHECKING:
     from orders.models import Order, Report
@@ -199,8 +200,8 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
 
         Description format:
             Reports Needed:
-            - Sec 1: N2
-            - Sec 17: NW, S2
+            - Sec 1: N2 from 1/1/1979 to 2/2/1988
+            - Sec 17: NW, S2 from 3/15/1985 to present
 
             Lease Data: https://www.dropbox.com/...
 
@@ -226,13 +227,13 @@ class RunsheetWorkflowStrategy(WorkflowStrategy):
             if len(todo_name) > 255:
                 todo_name = todo_name[:252] + "..."
 
-            # Build "Reports Needed:" section (bulleted list of legal descriptions)
+            # Build "Reports Needed:" section (bulleted list of legal descriptions with date ranges)
             description_parts = []
             if reports_for_lease:
                 description_parts.append("Reports Needed:")
                 for report in reports_for_lease:
-                    legal_desc = report.legal_description or "[No description]"
-                    description_parts.append(f"- {legal_desc}")
+                    formatted_desc = format_report_description(report)
+                    description_parts.append(f"- {formatted_desc}")
 
             # Add "Lease Data:" section (archive link)
             if lease.runsheet_archive and lease.runsheet_archive.share_url:
