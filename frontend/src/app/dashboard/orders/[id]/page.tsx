@@ -4,12 +4,12 @@ import { OrderDetailsHeader } from '@/components/orders/OrderDetailsHeader';
 import { OrderReportsSection } from '@/components/orders/OrderReportsSection';
 import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -18,11 +18,13 @@ import { useOrderDetails } from '@/hooks/useOrderDetails';
 import { useOrders } from '@/hooks/useOrders';
 import { useReports } from '@/hooks/useReports';
 import { OrderFormData, Report, ReportFormData } from '@/lib/api/types';
+import { triggerWorkflow } from '@/lib/api/workflows';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Send, Trash2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const ReportFormDialog = dynamic(
   () => import('@/components/reports/ReportFormDialog').then((mod) => ({ default: mod.ReportFormDialog })),
@@ -47,6 +49,7 @@ export default function OrderDetailsPage() {
   const [editingReportId, setEditingReportId] = useState<number | null>(null);
   const [deleteReportDialogOpen, setDeleteReportDialogOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<number | null>(null);
+  const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
   
   const [formData, setFormData] = useState<OrderFormData>({
     order_number: '',
@@ -182,6 +185,59 @@ export default function OrderDetailsPage() {
     }
   };
 
+  const handlePushToBasecamp = async () => {
+    setIsCreatingWorkflow(true);
+    try {
+      const result = await triggerWorkflow(orderId);
+      
+      if (result.success) {
+        // Complete or partial success
+        const isPartialSuccess = result.failed_products && result.failed_products.length > 0;
+        
+        toast.success(result.message, {
+          description: result.workflows_created.length > 0 
+            ? `Created workflows in: ${result.workflows_created.join(', ')}`
+            : undefined,
+          duration: 5000,
+        });
+        
+        // Show warning for failed products in partial success
+        if (isPartialSuccess) {
+          toast.warning('Some products failed', {
+            description: `Failed to create workflows for: ${result.failed_products.join(', ')}`,
+            duration: 7000,
+          });
+        }
+      } else {
+        // Complete failure or no applicable products
+        const isFailure = result.failed_products && result.failed_products.length > 0;
+        
+        if (isFailure) {
+          toast.error(result.message, {
+            description: result.failed_products.length > 0 
+              ? `Failed products: ${result.failed_products.join(', ')}`
+              : undefined,
+            duration: 7000,
+          });
+        } else {
+          // No applicable products
+          toast.info(result.message, {
+            description: 'This order has no reports that match configured product types.',
+            duration: 5000,
+          });
+        }
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create workflows';
+      toast.error('Workflow creation failed', {
+        description: errorMessage,
+        duration: 5000,
+      });
+    } finally {
+      setIsCreatingWorkflow(false);
+    }
+  };
+
   if (isLoadingOrder) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -216,6 +272,14 @@ export default function OrderDetailsPage() {
             Back to Orders
           </Button>
           <div className="flex gap-2">
+            <Button
+              variant="default"
+              onClick={handlePushToBasecamp}
+              disabled={isCreatingWorkflow}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              {isCreatingWorkflow ? 'Creating...' : 'Push to Basecamp'}
+            </Button>
             <Button
               variant="outline"
               onClick={handleEditClick}
