@@ -42,8 +42,13 @@ build/
 
 # Django
 db.sqlite3
+db.sqlite3-journal
 media/
 staticfiles/
+*.pot
+local_settings.py
+celerybeat-schedule
+celerybeat.pid
 
 # Dropbox integration secrets and credentials
 *.token
