@@ -1,19 +1,4 @@
-# AA Order Manager - Web Application
-
-A Django REST API backend with Next.js frontend for managing oil & gas lease orders, reports, and integrations with Basecamp and Dropbox.
-
-## Tech Stack
-
-- **Backend:** Django 4.x + Django REST Framework
-- **Frontend:** Next.js 16+ (App Router) + TypeScript + shadcn/ui
-- **Database:** PostgreSQL
-- **Cache/Queue:** Redis + Celery
-- **Monitoring:** Flower (Celery task monitoring)
-- **Deployment:** Docker Compose
-
-## Related Repositories
-
-- **[aa-order-manager](https://github.com/ciswindell/aa-order-manager)** - Original Tkinter desktop application (production)
+# AA Order Manager
 
 ## Development Setup
 
