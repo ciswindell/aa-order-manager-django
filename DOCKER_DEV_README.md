@@ -6,8 +6,8 @@ This document describes the Docker-based development environment for the AA Orde
 
 ```bash
 # 1. Clone the repository (if not already done)
-git clone <repository-url>
-cd aa-order-manager
+git clone https://github.com/ciswindell/aa-order-manager-django.git
+cd aa-order-manager-django
 
 # 2. Create .env file with required configuration
 # See .env.example for template
@@ -266,7 +266,7 @@ docker system df
 ## File Structure
 
 ```
-aa-order-manager/
+aa-order-manager-django/
 ├── Dockerfile                    # Main application image
 ├── docker-compose.yml            # Service orchestration
 ├── docker-compose.override.yml   # Dev-specific overrides
