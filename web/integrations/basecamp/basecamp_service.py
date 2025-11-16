@@ -661,19 +661,17 @@ class BasecampService:
         description: str = "",
         due_on: Optional[str] = None,
         assignee_ids: Optional[list[int]] = None,
-        group_id: Optional[int] = None,
     ) -> dict:
         """Create a new task (to-do) in a to-do list.
 
         Args:
             account_id: Basecamp account ID
             project_id: Project ID
-            todolist_id: To-do list ID
+            todolist_id: To-do list ID (can be a group ID since groups are todolists)
             content: Task name (required, max 255 chars)
             description: Task description (optional, max 10,000 chars)
             due_on: Due date in YYYY-MM-DD format (optional)
             assignee_ids: List of Basecamp user IDs to assign (optional)
-            group_id: Group ID to assign task to (optional)
 
         Returns:
             dict: Created to-do object with id, content, description, etc.
@@ -692,8 +690,6 @@ class BasecampService:
             self._validate_date_format(due_on)
         if assignee_ids is not None and not isinstance(assignee_ids, list):
             raise ValueError("assignee_ids must be a list of integers")
-        if group_id is not None and not isinstance(group_id, int):
-            raise ValueError("group_id must be an integer")
 
         # Build endpoint
         endpoint = (
@@ -709,8 +705,6 @@ class BasecampService:
             body["due_on"] = due_on
         if assignee_ids:
             body["assignee_ids"] = assignee_ids
-        if group_id is not None:
-            body["group_id"] = group_id
 
         # T024: Log request start
         context = {
@@ -739,7 +733,8 @@ class BasecampService:
                 "POST", endpoint, response.status_code, context, duration_ms
             )
 
-            return response.json()
+            result = response.json()
+            return result
 
         except requests.exceptions.RequestException as e:
             duration_ms = (time.time() - start_time) * 1000

@@ -39,14 +39,22 @@ class WorkflowResultSerializer(serializers.Serializer):
 
     def _build_message(self, instance):
         """Build user-friendly message based on workflow result."""
-        if not instance.success and instance.total_count == 0:
+        # No applicable products found
+        if not instance.success and not instance.failed_products:
             return "No workflows to create for this order"
-
-        if instance.failed_products:
+        
+        # All products failed
+        if not instance.success and instance.failed_products:
+            failed_list = ", ".join(instance.failed_products)
+            return f"Workflow creation failed for: {failed_list}"
+        
+        # Partial success (some succeeded, some failed)
+        if instance.success and instance.failed_products:
             failed_count = len(instance.failed_products)
             return (
                 f"Workflows created: {', '.join(instance.workflows_created)} "
                 f"({failed_count} product(s) failed)"
             )
-
+        
+        # Complete success
         return f"Workflows created: {', '.join(instance.workflows_created)}"

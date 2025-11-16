@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from orders.services.workflow.strategies.base import WorkflowStrategy
 
 # Import strategy classes
+from orders.services.workflow.strategies.abstract import AbstractWorkflowStrategy
 from orders.services.workflow.strategies.runsheet import RunsheetWorkflowStrategy
 
 
@@ -36,7 +37,7 @@ PRODUCT_CONFIGS: dict[str, ProductConfig] = {
         project_id_env_var="BASECAMP_PROJECT_FEDERAL_ABSTRACTS",
         agency="BLM",
         report_types=["BASE_ABSTRACT", "SUPPLEMENTAL_ABSTRACT", "DOL_ABSTRACT"],
-        workflow_strategy=None,  # type: ignore  # Will be set to AbstractWorkflowStrategy in Phase 4
+        workflow_strategy=AbstractWorkflowStrategy,
     ),
     "state_runsheets": ProductConfig(
         name="State Runsheets",
@@ -50,7 +51,7 @@ PRODUCT_CONFIGS: dict[str, ProductConfig] = {
         project_id_env_var="BASECAMP_PROJECT_STATE_ABSTRACTS",
         agency="NMSLO",
         report_types=["BASE_ABSTRACT", "SUPPLEMENTAL_ABSTRACT", "DOL_ABSTRACT"],
-        workflow_strategy=None,  # type: ignore  # Will be set to AbstractWorkflowStrategy in Phase 5
+        workflow_strategy=AbstractWorkflowStrategy,  # Reuses same strategy as Federal Abstracts
     ),
 }
 

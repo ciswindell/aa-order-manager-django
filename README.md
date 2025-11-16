@@ -34,6 +34,65 @@ docker compose up -d
 
 ---
 
+## Basecamp Workflow Automation
+
+Automatically create Basecamp to-do lists and tasks for orders with a single button click.
+
+### Features
+
+- **4 Product Types Supported:**
+  - Federal Runsheets (BLM leases)
+  - Federal Abstracts (BLM leases)
+  - State Runsheets (NMSLO leases)
+  - State Abstracts (NMSLO leases)
+
+- **Intelligent Workflow Creation:**
+  - Runsheets: One to-do per unique lease with grouped reports
+  - Abstracts: Structured workflow with 5 groups (Setup, Workup, Imaging, Indexing, Assembly)
+  - Lease-specific tasks automatically generated
+  - HTML-formatted descriptions with clickable links
+
+- **Multi-Product Orders:** Automatically detects and creates workflows for all applicable product types
+
+### Configuration
+
+Set Basecamp project IDs in your `.env` file:
+
+```bash
+# Required: Basecamp project IDs for each product type
+BASECAMP_PROJECT_FEDERAL_RUNSHEETS=your_project_id
+BASECAMP_PROJECT_FEDERAL_ABSTRACTS=your_project_id
+BASECAMP_PROJECT_STATE_RUNSHEETS=your_project_id
+BASECAMP_PROJECT_STATE_ABSTRACTS=your_project_id
+```
+
+### Usage
+
+1. **Connect Basecamp:** Go to Dashboard → Integrations → Connect Basecamp
+2. **Create/Edit Order:** Add reports with appropriate leases
+3. **Push to Basecamp:** Click "Push to Basecamp" button on order details page
+4. **View Workflows:** Check your Basecamp projects for new to-do lists
+
+### Success Scenarios
+
+- ✅ **Complete Success:** All workflows created successfully
+- ⚠️ **Partial Success:** Some workflows created, others failed (shows warning)
+- ❌ **Complete Failure:** All workflows failed (shows error details)
+- ℹ️ **No Applicable Products:** Order has no matching reports
+
+### Troubleshooting
+
+**"Basecamp not connected"**  
+→ Connect your Basecamp account in the Integrations page
+
+**"Missing project ID configuration"**  
+→ Set the required `BASECAMP_PROJECT_*` environment variables and restart services
+
+**"No workflows to create for this order"**  
+→ Order has no reports matching configured product types (Runsheet/Abstract)
+
+---
+
 ### Local Development (Alternative)
 
 If you prefer to run services locally without Docker:

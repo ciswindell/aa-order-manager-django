@@ -58,62 +58,15 @@ def trigger_workflow(request, order_id):
         )
 
     # 3. Execute workflows
+    # Executor catches all errors internally and returns WorkflowResult with details
     executor = WorkflowExecutor()
-    try:
-        result = executor.execute(order_id=order.id, user_id=request.user.id)
-    except ValueError as e:
-        # Configuration errors (missing project IDs)
-        logger.warning(
-            "Workflow execution configuration error | order_id=%s | user_id=%s | error=%s",
-            order.id,
-            request.user.id,
-            str(e),
-        )
-        return Response(
-            {"success": False, "error": "Configuration error", "message": str(e)},
-            status=422,
-        )
-    except Exception as e:
-        # Total failure (all products failed)
-        logger.error(
-            "Workflow execution failed | order_id=%s | user_id=%s | error=%s",
-            order.id,
-            request.user.id,
-            str(e),
-            exc_info=True,
-        )
-        return Response(
-            {
-                "success": False,
-                "error": "Workflow creation failed",
-                "message": "Failed to create workflows. Please try again later.",
-            },
-            status=500,
-        )
+    result = executor.execute(order_id=order.id, user_id=request.user.id)
 
-    # 4. Log and return result
-    if result.success:
-        logger.info(
-            "Workflow creation succeeded | order_id=%s | user_id=%s | products=%s | count=%d",
-            order.id,
-            request.user.id,
-            ", ".join(result.workflows_created),
-            result.total_count,
-        )
-        if result.failed_products:
-            logger.warning(
-                "Workflow creation partial success | order_id=%s | user_id=%s | succeeded=%s | failed=%s",
-                order.id,
-                request.user.id,
-                ", ".join(result.workflows_created),
-                ", ".join(result.failed_products),
-            )
-    else:
-        logger.warning(
-            "Workflow creation returned no workflows | order_id=%s | user_id=%s",
-            order.id,
-            request.user.id,
-        )
-
+    # 4. Serialize and return result
+    # Return 200 OK for all cases:
+    # - Complete success (all products succeeded)
+    # - Partial success (some products succeeded, some failed)
+    # - No applicable products (no workflows to create)
+    # - Complete failure (all products failed) - still 200 with error details in response
     serializer = WorkflowResultSerializer(result)
     return Response(serializer.data, status=200)

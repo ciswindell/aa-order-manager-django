@@ -191,6 +191,9 @@ export default function OrderDetailsPage() {
       const result = await triggerWorkflow(orderId);
       
       if (result.success) {
+        // Complete or partial success
+        const isPartialSuccess = result.failed_products && result.failed_products.length > 0;
+        
         toast.success(result.message, {
           description: result.workflows_created.length > 0 
             ? `Created workflows in: ${result.workflows_created.join(', ')}`
@@ -198,14 +201,31 @@ export default function OrderDetailsPage() {
           duration: 5000,
         });
         
-        if (result.failed_products && result.failed_products.length > 0) {
-          toast.warning(`Some workflows failed`, {
-            description: `Failed: ${result.failed_products.join(', ')}`,
-            duration: 5000,
+        // Show warning for failed products in partial success
+        if (isPartialSuccess) {
+          toast.warning('Some products failed', {
+            description: `Failed to create workflows for: ${result.failed_products.join(', ')}`,
+            duration: 7000,
           });
         }
       } else {
-        toast.warning(result.message);
+        // Complete failure or no applicable products
+        const isFailure = result.failed_products && result.failed_products.length > 0;
+        
+        if (isFailure) {
+          toast.error(result.message, {
+            description: result.failed_products.length > 0 
+              ? `Failed products: ${result.failed_products.join(', ')}`
+              : undefined,
+            duration: 7000,
+          });
+        } else {
+          // No applicable products
+          toast.info(result.message, {
+            description: 'This order has no reports that match configured product types.',
+            duration: 5000,
+          });
+        }
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create workflows';

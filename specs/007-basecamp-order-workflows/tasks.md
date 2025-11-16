@@ -120,20 +120,22 @@ See `CORRECTIONS.md` for full details.
 
 **Estimated Time**: 1 day
 
+**✅ COMPLETED 2025-11-02**: Implemented AbstractWorkflowStrategy with Pattern B logic (report-centric, grouped). Includes HTML formatting, lease-specific step duplication, and modular class structure for easy expansion.
+
 ### Implementation for User Story 2 (Backend - Pattern B)
 
-- [ ] T032 [P] [US2] Implement AbstractWorkflowStrategy class in `web/orders/services/workflow/strategies/abstract.py` (inherit from WorkflowStrategy)
-- [ ] T033 [US2] Define WORKFLOW_GROUPS constant in `web/orders/services/workflow/strategies/abstract.py` (list: Setup, Workup, Imaging, Indexing, Assembly, Delivery)
-- [ ] T034 [US2] Define WORKFLOW_STEPS placeholder structure in `web/orders/services/workflow/strategies/abstract.py` (dict mapping groups to step lists, include lease-specific placeholders like "File Index NMLC-{lease_number}")
-- [ ] T035 [US2] Implement `_get_project_id()` helper method in `web/orders/services/workflow/strategies/abstract.py` (load project ID from Django settings, raise ValueError if missing)
-- [ ] T036 [US2] Implement `_extract_abstract_type()` helper method in `web/orders/services/workflow/strategies/abstract.py` (extract "Base", "Supplemental", or "DOL" from report_type enum)
-- [ ] T037 [US2] Implement `_create_todolist()` method in `web/orders/services/workflow/strategies/abstract.py` (create to-do list per report with format "Order {number}- {abstract_type} Abstract {report_id} - {YYYYMMDD}", include report type, date range, lease numbers, legal_description, delivery_link in description)
-- [ ] T038 [US2] Implement `_create_groups()` method in `web/orders/services/workflow/strategies/abstract.py` (create 6 Basecamp groups in order using BasecampService.create_group(), return dict mapping group name to group_id)
-- [ ] T039 [US2] Implement `_create_steps()` method in `web/orders/services/workflow/strategies/abstract.py` (for each group: create fixed steps, create lease-specific steps with {lease_number} substitution, assign to group via group_id parameter)
-- [ ] T040 [US2] Implement `create_workflow()` main method in `web/orders/services/workflow/strategies/abstract.py` (for each report: create to-do list, create groups, create steps, collect todolist_ids and todo_count)
-- [ ] T041 [US2] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (set federal_abstracts workflow_strategy to AbstractWorkflowStrategy class, report_types to ["BASE_ABSTRACT", "SUPPLEMENTAL_ABSTRACT", "DOL_ABSTRACT"])
-- [ ] T042 [US2] Extend product detection logic in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (add filtering for abstract report types with agency="BLM", instantiate AbstractWorkflowStrategy, call create_workflow())
-- [ ] T043 [US2] Add comprehensive logging to AbstractWorkflowStrategy in `web/orders/services/workflow/strategies/abstract.py` (INFO for success, ERROR for failures with report_id, group names, step counts, exc_info=True)
+- [X] T032 [P] [US2] Implement AbstractWorkflowStrategy class in `web/orders/services/workflow/strategies/abstract.py` (inherit from WorkflowStrategy)
+- [X] T033 [US2] Define WORKFLOW_GROUPS constant in `web/orders/services/workflow/strategies/abstract.py` (list: Setup, Workup, Imaging, Indexing, Assembly, Delivery)
+- [X] T034 [US2] Define WORKFLOW_STEPS placeholder structure in `web/orders/services/workflow/strategies/abstract.py` (dict mapping groups to step lists, include lease-specific placeholders like "File Index NMLC-{lease_number}")
+- [X] T035 [US2] Implement `_get_project_id()` helper method in `web/orders/services/workflow/strategies/abstract.py` (load project ID from Django settings, raise ValueError if missing)
+- [X] T036 [US2] Implement `_extract_abstract_type()` helper method in `web/orders/services/workflow/strategies/abstract.py` (extract "Base", "Supplemental", or "DOL" from report_type enum)
+- [X] T037 [US2] Implement `_create_todolist()` method in `web/orders/services/workflow/strategies/abstract.py` (create to-do list per report with format "Order {number}- {abstract_type} Abstract {report_id} - {YYYYMMDD}", include report type, date range, lease numbers, legal_description, delivery_link in HTML description)
+- [X] T038 [US2] Implement `_create_groups()` method in `web/orders/services/workflow/strategies/abstract.py` (create 6 Basecamp groups in order using BasecampService.create_group(), return dict mapping group name to group_id)
+- [X] T039 [US2] Implement `_create_steps()` method in `web/orders/services/workflow/strategies/abstract.py` (for each group: create fixed steps, create lease-specific steps with {lease_number} substitution, assign to group via group_id parameter)
+- [X] T040 [US2] Implement `create_workflow()` main method in `web/orders/services/workflow/strategies/abstract.py` (for each report: create to-do list, create groups, create steps, collect todolist_ids and todo_count)
+- [X] T041 [US2] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (set federal_abstracts workflow_strategy to AbstractWorkflowStrategy class, report_types to ["BASE_ABSTRACT", "SUPPLEMENTAL_ABSTRACT", "DOL_ABSTRACT"])
+- [X] T042 [US2] Extend product detection logic in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (ALREADY IMPLEMENTED - executor automatically iterates through all PRODUCT_CONFIGS and processes products with non-None strategies)
+- [X] T043 [US2] Add comprehensive logging to AbstractWorkflowStrategy in `web/orders/services/workflow/strategies/abstract.py` (INFO for success, ERROR for failures with report_id, group names, step counts, exc_info=True)
 
 **Checkpoint**: User Story 2 is complete - Federal Abstract workflows can be created via API, independent of User Story 1
 
@@ -153,27 +155,31 @@ See `CORRECTIONS.md` for full details.
 
 **Estimated Time**: 2 hours
 
-**✅ COMPLETED 2025-11-02**: State Runsheets activated by reusing `RunsheetWorkflowStrategy` with NMSLO agency configuration. Zero new code needed thanks to Strategy Pattern!
+**✅ COMPLETED 2025-11-02**: All 4 product types activated!
+- State Runsheets: Reuses `RunsheetWorkflowStrategy` with NMSLO agency
+- State Abstracts: Reuses `AbstractWorkflowStrategy` with NMSLO agency
+- Zero new code needed for State products thanks to Strategy Pattern!
 
 ### Implementation for User Story 3 (Extend to State)
 
 - [X] T044 [P] [US3] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (set state_runsheets workflow_strategy to RunsheetWorkflowStrategy - reuses Federal Runsheet strategy with agency="NMSLO")
-- [ ] T045 [P] [US3] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (add state_abstracts config with agency="NMSLO", report_types=["BASE_ABSTRACT", "SUPPLEMENTAL_ABSTRACT", "DOL_ABSTRACT"], workflow_strategy=AbstractWorkflowStrategy)
+- [X] T045 [P] [US3] Update PRODUCT_CONFIGS in `web/orders/services/workflow/config.py` (set state_abstracts workflow_strategy to AbstractWorkflowStrategy - reuses Federal Abstract strategy with agency="NMSLO")
 - [X] T046 [US3] Extend product detection logic in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (ALREADY IMPLEMENTED - executor automatically iterates through all PRODUCT_CONFIGS and processes products with non-None strategies)
 - [X] T047 [US3] Update success message generation in WorkflowResultSerializer in `web/api/serializers/workflows.py` (ALREADY IMPLEMENTED - serializer joins multiple product names with commas: "Workflows created: Federal Runsheets, State Runsheets")
 
-**Checkpoint**: State Runsheets implementation complete - NMSLO runsheet reports automatically create workflows in State Runsheets project
+**Checkpoint**: All State products complete - NMSLO reports automatically create workflows in State Runsheets and State Abstracts projects
 
 **Manual Verification**:
-1. Create order with 1+ NMSLO RUNSHEET reports (with leases)
-2. Click "Push to Basecamp" button
-3. Verify success toast shows "Workflows created: State Runsheets"
-4. Check State Runsheets Basecamp project for:
-   - ✅ 1 to-do list per order
-   - ✅ 1 to-do per unique lease (grouped by lease number)
-   - ✅ HTML-formatted descriptions with bold headers and bulleted lists
-   - ✅ Date ranges in legal descriptions
-   - ✅ Clickable archive links
+1. **State Runsheets**: Create order with 1+ NMSLO RUNSHEET reports (with leases)
+   - Click "Push to Basecamp" button
+   - Verify success toast shows "Workflows created: State Runsheets"
+   - Check State Runsheets project for HTML-formatted to-dos grouped by lease
+2. **State Abstracts**: Create order with 1+ NMSLO abstract reports (with leases)
+   - Click "Push to Basecamp" button
+   - Verify success toast shows "Workflows created: State Abstracts"
+   - Check State Abstracts project for to-do lists with 6 groups and workflow steps
+3. **Multi-product**: Create order with both NMSLO runsheets AND abstracts
+   - Verify success toast shows "Workflows created: State Runsheets, State Abstracts"
 
 ---
 
@@ -187,11 +193,11 @@ See `CORRECTIONS.md` for full details.
 
 ### Implementation for User Story 4 (Multi-Product Integration)
 
-- [ ] T048 [US4] Implement partial success handling in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (if one product fails, continue with remaining products, track failed_products and error_details)
-- [ ] T049 [US4] Implement no applicable products handling in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (if no reports match any ProductConfig, return WorkflowResult with success=False, message="No workflows to create for this order")
-- [ ] T050 [US4] Update WorkflowResultSerializer in `web/api/serializers/workflows.py` (handle partial success in message: "Workflows created: X, Y (1 product failed)", include failed_products in response if present)
-- [ ] T051 [US4] Update trigger_workflow API view in `web/orders/views/workflows.py` (return 200 OK for partial success, include failed_products in response, log warnings for partial failures)
-- [ ] T052 [US4] Update frontend button handler in `frontend/src/app/dashboard/orders/[id]/page.tsx` (display success toast even with failed_products, show warning icon or separate toast for partial failures)
+- [X] T048 [US4] Implement partial success handling in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (if one product fails, continue with remaining products, track failed_products and error_details)
+- [X] T049 [US4] Implement no applicable products handling in WorkflowExecutor.execute() in `web/orders/services/workflow/executor.py` (if no reports match any ProductConfig, return WorkflowResult with success=False, message="No workflows to create for this order")
+- [X] T050 [US4] Update WorkflowResultSerializer in `web/api/serializers/workflows.py` (handle partial success in message: "Workflows created: X, Y (1 product failed)", include failed_products in response if present)
+- [X] T051 [US4] Update trigger_workflow API view in `web/orders/views/workflows.py` (return 200 OK for partial success, include failed_products in response, log warnings for partial failures)
+- [X] T052 [US4] Update frontend button handler in `frontend/src/app/dashboard/orders/[id]/page.tsx` (display success toast even with failed_products, show warning icon or separate toast for partial failures)
 
 **Checkpoint**: User Story 4 is complete - Multi-product orders create workflows across all applicable projects, with graceful partial failure handling
 
@@ -209,15 +215,15 @@ See `CORRECTIONS.md` for full details.
 
 **Estimated Time**: 4 hours
 
-- [ ] T053 [P] Implement missing Basecamp connection validation in trigger_workflow view in `web/orders/views/workflows.py` (check BasecampAccount exists for user, return 422 with "Basecamp not connected" message)
-- [ ] T054 [P] Implement missing project ID configuration error handling in WorkflowExecutor in `web/orders/services/workflow/executor.py` (catch ValueError from _get_project_id(), append to failed_products with clear error message)
-- [ ] T055 [P] Add empty reports edge case handling in RunsheetWorkflowStrategy in `web/orders/services/workflow/strategies/runsheet.py` (if no leases found, return {"todolist_ids": [], "todo_count": 0} without creating anything)
-- [ ] T056 [P] Add empty reports edge case handling in AbstractWorkflowStrategy in `web/orders/services/workflow/strategies/abstract.py` (if report has no leases, create fixed steps only, skip lease-specific steps)
-- [ ] T057 [P] Implement to-do name truncation in strategies in `web/orders/services/workflow/strategies/runsheet.py` and `abstract.py` (truncate to 255 characters if lease number or abstract type is very long)
-- [ ] T058 [P] Add order authorization check in trigger_workflow view in `web/orders/views/workflows.py` (verify user has permission to access this order, return 403 Forbidden if not)
-- [ ] T059 Validate all logging includes comprehensive context in both strategies in `web/orders/services/workflow/strategies/runsheet.py` and `abstract.py` (order_id, user_id, report_ids, lease_ids, API errors, HTTP status codes, exc_info=True for failures)
-- [ ] T060 [P] Update project README.md with Basecamp workflow automation section (document environment variables, usage instructions, configuration requirements)
-- [ ] T061 Run quickstart.md validation (manually test all success criteria from spec.md: single button click, <30s completion, 95% success rate, correct workflows created)
+- [X] T053 [P] Implement missing Basecamp connection validation in trigger_workflow view in `web/orders/views/workflows.py` (check BasecampAccount exists for user, return 422 with "Basecamp not connected" message)
+- [X] T054 [P] Implement missing project ID configuration error handling in WorkflowExecutor in `web/orders/services/workflow/executor.py` (catch ValueError from _get_project_id(), append to failed_products with clear error message)
+- [X] T055 [P] Add empty reports edge case handling in RunsheetWorkflowStrategy in `web/orders/services/workflow/strategies/runsheet.py` (if no leases found, return {"todolist_ids": [], "todo_count": 0} without creating anything)
+- [X] T056 [P] Add empty reports edge case handling in AbstractWorkflowStrategy in `web/orders/services/workflow/strategies/abstract.py` (if report has no leases, create fixed steps only, skip lease-specific steps)
+- [X] T057 [P] Implement to-do name truncation in strategies in `web/orders/services/workflow/strategies/runsheet.py` and `abstract.py` (truncate to 255 characters if lease number or abstract type is very long)
+- [X] T058 [P] Add order authorization check in trigger_workflow view in `web/orders/views/workflows.py` (verify user has permission to access this order, return 403 Forbidden if not)
+- [X] T059 Validate all logging includes comprehensive context in both strategies in `web/orders/services/workflow/strategies/runsheet.py` and `abstract.py` (order_id, user_id, report_ids, lease_ids, API errors, HTTP status codes, exc_info=True for failures)
+- [X] T060 [P] Update project README.md with Basecamp workflow automation section (document environment variables, usage instructions, configuration requirements)
+- [X] T061 Run quickstart.md validation (manually test all success criteria from spec.md: single button click, <30s completion, 95% success rate, correct workflows created)
 
 **Checkpoint**: All edge cases handled, comprehensive error messages, ready for production deployment
 

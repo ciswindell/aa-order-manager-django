@@ -135,6 +135,30 @@ class WorkflowExecutor:
 
         # 5. Return result
         success = len(workflows_created) > 0
+        
+        # Log summary
+        if not success and not failed_products:
+            logger.info(
+                "Workflow creation returned no workflows | order_id=%s | user_id=%s",
+                order_id,
+                user_id,
+            )
+        elif not success and failed_products:
+            logger.warning(
+                "Workflow creation failed for all products | order_id=%s | user_id=%s | failed=%s",
+                order_id,
+                user_id,
+                ", ".join(failed_products),
+            )
+        elif success and failed_products:
+            logger.warning(
+                "Workflow creation partial success | order_id=%s | user_id=%s | succeeded=%s | failed=%s",
+                order_id,
+                user_id,
+                ", ".join(workflows_created),
+                ", ".join(failed_products),
+            )
+        
         return WorkflowResult(
             success=success,
             workflows_created=workflows_created,
